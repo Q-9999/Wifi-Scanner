@@ -1,12 +1,12 @@
 # MMQ. / NetScanner - Localhost Wi-Fi Spectrum & Site Survey Suite
 
-Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và khảo sát mạng Wi-Fi (Site Survey) chạy trực tiếp trên máy cục bộ (`http://localhost:8000`). Được thiết kế tối ưu hóa hiệu năng, siêu nhẹ cho cả các dòng máy tính cấu hình thấp, kết hợp song ngữ (Việt - Anh) chuẩn xác theo chuyên ngành mạng máy tính (NWC203 / NWC303).
+Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và khảo sát mạng Wi-Fi (Site Survey) chạy trực tiếp trên máy cục bộ (`http://localhost:8000`). Được thiết kế tối ưu hóa hiệu năng, siêu nhẹ cho cả các dòng máy tính cấu hình thấp, sử dụng song ngữ (Việt - Anh) theo chuyên ngành mạng máy tính (NWC303).
 
 ---
 
 ##  Tính Năng Nổi Bật (Key Features)
 
-### 1. 📡 Thu Thập & Khảo Sát Sóng Wi-Fi Thời Gian Thực (Live Wi-Fi Site Survey)
+### 1.  Thu Thập & Khảo Sát Sóng Wi-Fi Thời Gian Thực (Live Wi-Fi Site Survey)
 * **Tích Hợp Sâu C-API Windows Native WLAN (`wlanapi.dll`)**: Đo lường trực tiếp phần cứng chỉ mất ~16ms, phản ánh tức thì độ mạnh tín hiệu (RSSI dBm) và độ ổn định anten.
 * **Định Danh Dữ Liệu Song Ngữ Dễ Tiếp Thu**:
   * **Tên Mạng (SSID)** & **Địa chỉ MAC thiết bị (BSSID)**.
@@ -30,7 +30,7 @@ Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và k
 ### 3.  Kiểm Toán Thoại VoWiFi & Điểm MOS (Voice over Wi-Fi / ITU-T E-Model G.107)
 * **Tính năng tương đương giải pháp Enterprise (Ekahau AI Pro / AirMagnet)**:
   * Đo đạc trực tiếp RTT Latency, Jitter (ms) và Tỷ lệ mất gói (Packet Loss %).
-  * Tính điểm **MOS (Mean Opinion Score: 1.0 - 4.5)** theo công thức chuẩn viễn thông ITU-T G.107 E-model.
+  * Tính điểm **MOS (Mean Opinion Score: 1.0 - 4.5)** theo công thức ITU-T G.107 E-model.
   * Phân loại trải nghiệm đàm thoại thực tế: Zalo Call, Microsoft Teams, Zoom, Google Meet và Wi-Fi Calling.
   * Đánh giá độ tương thích các bộ giải mã âm thanh: **Opus HD Audio**, **G.711u/a** và **G.729**.
 
@@ -53,9 +53,9 @@ Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và k
   * Nêu rõ **Rủi ro thực tế**: Nguy cơ bị bắt gói tin (Packet Sniffing), tấn công trạm phát giả mạo (Evil Twin), truy cập trái phép thiết bị nội bộ (LAN).
   * Nêu rõ **Các bước khắc phục**: Cấu hình WPA2-PSK (AES) / WPA3-SAE, đặt mật khẩu mạnh $\ge 12$ ký tự, bật Client Isolation cho mạng khách và tắt WPS.
 
-### 7. 📑 Báo Cáo Khảo Sát Chuẩn Hóa: `NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv`
-* Định dạng file báo cáo xuất ra tuân thủ nghiêm ngặt:
-  * `NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv` (Tự động tăng số thứ tự `ID-01`, `ID-02` theo ngày).
+### 7. 📑 Báo Cáo : `NetScanner_Report_[MM-DD-YYYY]_[ID-0X].csv`
+* Định dạng file báo cáo:
+  * `NetScanner_Report_[MM-DD-YYYY]_[ID-0X].csv` (Tự động tăng số thứ tự `ID-01`, `ID-02` theo ngày).
   * Sinh file nhanh (< 2ms), gọn nhẹ, tương thích hoàn toàn tiếng Việt trên Microsoft Excel (UTF-8 with BOM).
   * Gồm 6 phần chi tiết: Tổng quan, Khuyến nghị kênh 2.4G/5G, Hướng dẫn cài router, Báo cáo chẩn đoán an ninh mạng, Tiêu chuẩn chất lượng thoại VoWiFi MOS và Bảng kê chi tiết từng Access Point (kèm SNR, Noise Floor, MCS Index, tốc độ thực ước tính).
 
@@ -80,16 +80,16 @@ Hệ thống sẽ khởi chạy server FastAPI tại `http://localhost:8000` và
 |---|---|---|
 | `GET` | `/api/vowifi-mos` | Đo đạc RTT, Jitter, Packet loss và tính điểm MOS ITU-T G.107 cho VoWiFi |
 | `POST` | `/api/ai-planner/optimize` | Thuật toán tính số lượng và vị trí đặt AP tối ưu trên mặt bằng |
-| `POST` | `/api/ai-planner/calculate-heatmap` | Tạo ma trận bản đồ nhiệt 2D RSSI Heatmap từ vị trí AP và vách tường |
+| `POST` | `/api/ai-planner/calculate-heatmap` | Tạo ma trận bản đồ nhiệt 2D RSSI Heatmap từ vị trí AP và vật cản |
 | `GET` | `/api/scan` | Quét sóng Wi-Fi phần cứng và trả về danh sách BSSID, cụm thiết bị và cảnh báo |
 | `GET` | `/api/clusters` | Trả về danh sách cụm thiết bị vật lý (Hardware Grouping) và giải mã mạng ẩn |
 | `GET` | `/api/channel-recommendations` | Trả về điểm số phân tích các kênh 2.4 GHz và 5 GHz |
-| `POST` | `/api/channel-autopick` | Kích hoạt thuật toán tự động chọn kênh sạch nhất |
+| `POST` | `/api/channel-autopick` | Tự động chọn kênh sạch nhất |
 | `POST` | `/api/export-report` | Xuất báo cáo định dạng `csv` hoặc `json` |
 | `GET` | `/api/reports/download/{filename}` | Tải file báo cáo về máy |
 | `GET` | `/api/reports/list` | Liệt kê danh sách toàn bộ báo cáo trong thư mục `reports/` |
 | `DELETE` | `/api/reports/{filename}` | Xóa một bản ghi báo cáo |
-| `POST` | `/api/reports/clear-all` | Dọn dẹp sạch toàn bộ kho báo cáo cũ |
+| `POST` | `/api/reports/clear-all` | Xóa toàn bộ các báo cáo cũ |
 | `WS` | `/ws/live` | Luồng WebSocket truyền dữ liệu thời gian thực |
 
 ---
@@ -99,13 +99,13 @@ Hệ thống sẽ khởi chạy server FastAPI tại `http://localhost:8000` và
 ```
 tool-NWC203/
 ├── run.py                 # File khởi chạy & tự động mở trình duyệt
-├── start.bat              # Script khởi chạy 1-click trên Windows
+├── start.bat              # Script khởi chạy trên Windows
 ├── server.py              # FastAPI server, REST API & WebSocket endpoint
 ├── wifi_scanner.py        # Module quét sóng phần cứng (wlanapi.dll + netsh bssid)
 ├── channel_analyzer.py    # Mô hình toán học đánh giá phổ tần và tính kênh sạch
 ├── vowifi_analyzer.py     # Đo đạc độ trễ RTT/Jitter và tính điểm chất lượng thoại MOS
 ├── ai_planner.py          # Thuật toán tính vị trí AP và vẽ bản đồ nhiệt 2D/2.5D Heatmap
-├── report_generator.py    # Bộ xuất báo cáo chuẩn NetScanner_Report_[MM-DD-YYYY]_[ID-01]
+├── report_generator.py    # Bộ xuất báo cáo theo fromat NetScanner_Report_[MM-DD-YYYY]_[ID-01]
 ├── reports/               # Thư mục lưu trữ báo cáo cục bộ
 └── static/
     ├── index.html         # Giao diện chính MMQ./NetScanner
@@ -113,3 +113,4 @@ tool-NWC203/
     ├── app.js             # Logic xử lý giao diện, vẽ Canvas phổ tần, Heatmap 2D/2.5D và WebSocket
     └── lucide.min.js      # Bộ thư viện icon offline
 ```
+## Created as part of the NWC303 Course at Danang FPT University (Oct 2026).
