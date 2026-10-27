@@ -113,4 +113,4 @@ tool-NWC203/
     ├── app.js             # Logic xử lý giao diện, vẽ Canvas phổ tần, Heatmap 2D/2.5D và WebSocket
     └── lucide.min.js      # Bộ thư viện icon offline
 ```
-## Created as part of the NWC303 Course at Danang FPT University (Oct 2026).
+*Created as part of the NWC303 Course at Danang FPT University (Oct 2026).*
