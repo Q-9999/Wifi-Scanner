@@ -1,10 +1,10 @@
 # MMQ. / NetScanner - Localhost Wi-Fi Spectrum & Site Survey Suite
 
-Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và khảo sát mạng Wi-Fi (Site Survey) chuyên nghiệp chạy trực tiếp trên máy cục bộ (`http://localhost:8000`). Được thiết kế tối ưu hóa hiệu năng, siêu nhẹ cho cả các dòng máy tính cấu hình thấp, kết hợp giải thích song ngữ (Việt - Anh) chuẩn xác theo chuyên ngành mạng máy tính (NWC203 / NWC303).
+Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và khảo sát mạng Wi-Fi (Site Survey) chạy trực tiếp trên máy cục bộ (`http://localhost:8000`). Được thiết kế tối ưu hóa hiệu năng, siêu nhẹ cho cả các dòng máy tính cấu hình thấp, kết hợp song ngữ (Việt - Anh) chuẩn xác theo chuyên ngành mạng máy tính (NWC203 / NWC303).
 
 ---
 
-## 🌟 Tính Năng Nổi Bật (Key Features)
+##  Tính Năng Nổi Bật (Key Features)
 
 ### 1. 📡 Thu Thập & Khảo Sát Sóng Wi-Fi Thời Gian Thực (Live Wi-Fi Site Survey)
 * **Tích Hợp Sâu C-API Windows Native WLAN (`wlanapi.dll`)**: Đo lường trực tiếp phần cứng chỉ mất ~16ms, phản ánh tức thì độ mạnh tín hiệu (RSSI dBm) và độ ổn định anten.
@@ -16,7 +16,7 @@ Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và k
   * **Tải kênh & Số máy khách**: Trích xuất tỉ lệ nghẽn kênh (%) và số lượng client đang nối từ Information Elements (BSS Load).
   * **Theo dõi card mạng nội bộ & Mẹo Roaming**: Hiển thị tốc độ truyền dữ liệu Link Speed (Tx/Rx Mbps), độ trễ Ping Gateway và gợi ý chuyển sang băng tần 5GHz khi router phát sóng kép.
 
-### 2. ⚡ Tối Ưu Kênh & Cài Đặt Router Trực Tiếp (Channel Optimizer & Router Setup)
+### 2.  Tối Ưu Kênh & Cài Đặt Router Trực Tiếp (Channel Optimizer & Router Setup)
 * **Mô Hình Băng Tần 2.4 GHz**:
   * Ưu tiên 3 kênh chuẩn sạch không chồng lấn (**1, 6, 11**).
   * Phân biệt rõ ràng **Nhiễu Cùng Kênh (Co-Channel Interference - CCI)** và **Nhiễu Chồng Lấn Kênh Kề (Adjacent Channel Interference - ACI)**.
@@ -27,27 +27,27 @@ Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và k
 * **Bảng Hướng Dẫn Cài Đặt Router Thực Chiến**:
   * Cung cấp 4 bước thao tác ngay trên trang quản trị `192.168.1.1` của modem/router gia đình/ký túc xá.
 
-### 3. 🎙️ Kiểm Toán Thoại VoWiFi & Điểm MOS (Voice over Wi-Fi / ITU-T E-Model G.107)
+### 3.  Kiểm Toán Thoại VoWiFi & Điểm MOS (Voice over Wi-Fi / ITU-T E-Model G.107)
 * **Tính năng tương đương giải pháp Enterprise (Ekahau AI Pro / AirMagnet)**:
   * Đo đạc trực tiếp RTT Latency, Jitter (ms) và Tỷ lệ mất gói (Packet Loss %).
   * Tính điểm **MOS (Mean Opinion Score: 1.0 - 4.5)** theo công thức chuẩn viễn thông ITU-T G.107 E-model.
   * Phân loại trải nghiệm đàm thoại thực tế: Zalo Call, Microsoft Teams, Zoom, Google Meet và Wi-Fi Calling.
   * Đánh giá độ tương thích các bộ giải mã âm thanh: **Opus HD Audio**, **G.711u/a** và **G.729**.
 
-### 4. 🗺️ Quy Hoạch AP & Bản Đồ Nhiệt RF 2D/2.5D (Floorplan RF Heatmap Simulator)
+### 4.  Quy Hoạch AP & Bản Đồ Nhiệt RF 2D/2.5D (Floorplan RF Heatmap Simulator)
 * **Kế thừa thao tác trực quan từ Sweet Home 3D (`sweethome3d.com`) & SketchUp (`sketchup.trimble.com`)**:
   * Thay vì nhúng phần mềm dựng hình 3D nặng nề vào trình duyệt, công cụ chọn lọc các thao tác thiết kế mặt bằng nhanh nhất cho kỹ sư mạng: **Vẽ Khung Phòng (`room`)**, **Vẽ Tường Lẻ (`draw`)**, **Chọn & Kéo Sửa (`select`)**, **Đặt Thêm AP Thủ Công (`place_ap`)**, **Thước Đo Suy Hao (`ruler`)** và **Phối Cảnh 2.5D (`view25D`)**.
   * Chuyển đổi linh hoạt băng tần mô phỏng **2.4 GHz** (xuyên tường tốt) và **5.0 GHz** (tốc độ cao, suy hao vách ngăn lớn hơn 1.25 lần) theo mô hình **ITU-R P.1238 Log-Distance Path Loss Model**.
   * Mô phỏng suy hao thực tế qua 6 loại vật cản: Tường bê tông cốt thép ($-12\text{ dB}$), Lõi thang máy/Tủ sắt ($-15\text{ dB}$), Tường gạch ($-6\text{ dB}$), Vách gỗ/Thạch cao ($-4\text{ dB}$), Kính cường lực ($-3\text{ dB}$), Cửa phòng ($-2\text{ dB}$).
   * Tự động tính toán số lượng trạm phát tối thiểu, tọa độ $(x, y)$ và phân bổ kênh 2.4G/5G để đạt độ phủ sóng $\ge 90\%$ (ngưỡng sóng VoWiFi $\ge -65\text{ dBm}$).
 
-### 5. 📊 Bộ Phân Tích Phổ Tần Số & Biểu Đồ Thác Nước (RF Spectrum & Spectrogram Waterfall)
+### 5.  Bộ Phân Tích Phổ Tần Số & Biểu Đồ Thác Nước (RF Spectrum & Spectrogram Waterfall)
 * **Đồ thị chuông OFDM & Thác Nước Mật Độ Phổ trên HTML5 Canvas**:
   * Vẽ đường cong phổ phân bố công suất thực cho từng AP theo thời gian thực trên cả 2.4 GHz và 5 GHz.
   * **Biểu Đồ Thác Nước (Spectrogram Waterfall)**: Theo dõi mật độ năng lượng tích lũy trên các kênh 1-14 theo dòng thời gian.
   * **Phân Tích Chiếm Dụng Thời Gian Sóng (Airtime Utilization)** và **Kiểm Tra Chuyển Vùng Mesh / Thiết Bị Bám Sóng Yếu (Sticky Client Audit)**.
 
-### 6. 🛡️ Đánh Giá An Ninh Mạng & Khắc Phục Lỗ Hổng (Security Audit)
+### 6.  Đánh Giá An Ninh Mạng & Khắc Phục Lỗ Hổng (Security Audit)
 * **Phát hiện mạng không mã hóa (Open / Unencrypted) & Giả Mạo Trạm Phát (Evil Twin)**:
   * Nêu rõ **Nguyên nhân kỹ thuật**: Sóng vô tuyến truyền bản rõ không mã hóa.
   * Nêu rõ **Rủi ro thực tế**: Nguy cơ bị bắt gói tin (Packet Sniffing), tấn công trạm phát giả mạo (Evil Twin), truy cập trái phép thiết bị nội bộ (LAN).
@@ -61,7 +61,7 @@ Một bộ công cụ phân tích phổ vô tuyến (RF Spectrum Analyzer) và k
 
 ---
 
-## 🚀 Hướng Dẫn Khởi Chạy (Quick Start)
+##  Hướng Dẫn Khởi Chạy (Quick Start)
 
 ### Cách 1: Bấm Đúp Chuột
 Bấm đúp vào file `start.bat`.
@@ -74,7 +74,7 @@ Hệ thống sẽ khởi chạy server FastAPI tại `http://localhost:8000` và
 
 ---
 
-## 🛠️ Danh Sách REST API
+##  Danh Sách REST API
 
 | Phương Thức | Điểm Cuối (Endpoint) | Chức Năng |
 |---|---|---|
@@ -94,7 +94,7 @@ Hệ thống sẽ khởi chạy server FastAPI tại `http://localhost:8000` và
 
 ---
 
-## 📂 Cấu Trúc Mã Nguồn (Project Architecture)
+##  Cấu Trúc Mã Nguồn (Project Architecture)
 
 ```
 tool-NWC203/
