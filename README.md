@@ -1,6 +1,6 @@
 # MMQ./WifiScanner - Công Cụ Khảo Sát Và Phân Tích Mạng Wi-Fi 
 
-MMQ./WifiScanner là công cụ khảo sát sóng vô tuyến, đo lường thông số mạng Wi-Fi, phân tích phổ tần, mô phỏng bản đồ nhiệt suy hao sóng, đo tốc độ truyền dữ liệu internet và xuất báo cáo dữ liệu. Ứng dụng chạy trực tiếp trên máy tính cục bộ 
+MMQ./WifiScanner là công cụ khảo sát sóng vô tuyến, đo lường thông số mạng Wi-Fi, phân tích phổ tần, mô phỏng bản đồ nhiệt suy hao sóng, đo tốc độ truyền dữ liệu internet và xuất báo cáo dữ liệu. Ứng dụng chạy trực tiếp trên máy tính cục bộ bằng chính card Wifi trong máy bạn.
 
 
 
@@ -144,7 +144,6 @@ etsh wlan của hệ điều hành Windows.
 
 ## 4. Cấu Trúc Thư Mục Phân Cấp Của Dự Án
 
-\tool-NWC203/
 ├── api/                       # Tầng máy chủ web và các điểm cuối API
 │   ├── __init__.py
 │   └── server.py              # Máy chủ FastAPI, định tuyến REST API, WebSocket và SSE
@@ -181,7 +180,7 @@ etsh wlan của hệ điều hành Windows.
 ├── start.bat                  # Tập tin khởi động nhanh trên hệ điều hành Windows
 ├── README.md                  # Hướng dẫn tổng quan về dự án
 └── PROJECT_OVERVIEW.md        # Báo cáo kỹ thuật chi tiết toàn bộ hệ thống
-\
+
 
 
 *Created as part of the NWC303 Course at Danang FPT University (Oct 2026).* 
