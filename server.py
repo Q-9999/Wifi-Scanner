@@ -250,8 +250,14 @@ def get_channel_recommendations():
         "avg_snr_db": analysis.get("avg_snr_db", 0),
         "evaluation_24ghz": analysis.get("evaluation_24ghz", {}),
         "evaluation_5ghz": analysis.get("evaluation_5ghz", {}),
+        "evaluation_6ghz": analysis.get("evaluation_6ghz", {}),
+        "channels_24ghz": analysis.get("channels_24ghz", []),
+        "channels_5ghz": analysis.get("channels_5ghz", []),
+        "channels_6ghz": analysis.get("channels_6ghz", []),
+        "summary": analysis.get("summary", {}),
         "airtime_breakdown": analysis.get("airtime_breakdown", {}),
-        "roaming_audit": analysis.get("roaming_audit", [])
+        "roaming_audit": analysis.get("roaming_audit", []),
+        "troubleshooting_suite": analysis.get("troubleshooting_suite", {})
     }
 
 
@@ -268,6 +274,7 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
 
     rec_24 = analysis["evaluation_24ghz"]
     rec_5 = analysis["evaluation_5ghz"]
+    rec_6 = analysis.get("evaluation_6ghz", {})
 
     return {
         "autopick_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -296,23 +303,34 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
                 "reasons_vi": rec_5.get("reasons_breakdown_vi", rec_5["reasons_breakdown"]),
                 "reasons_en": rec_5.get("reasons_breakdown_en", rec_5["reasons_breakdown"]),
                 "best_80mhz_block": rec_5.get("best_80mhz_block")
+            },
+            "band_6ghz": {
+                "picked_channel": rec_6.get("recommended_channel", 37),
+                "score": rec_6.get("recommended_score", 95),
+                "recommended_160mhz_block": rec_6.get("recommended_160mhz_block", "UNII-5 Block B (33-61)"),
+                "channel_width": "160 MHz",
+                "reasons_vi": rec_6.get("reasons_breakdown_vi", []),
+                "reasons_en": rec_6.get("reasons_breakdown_en", [])
             }
         },
         "system_advice": [
             f"Thiết lập kênh chính 2.4 GHz thành kênh {rec_24['recommended_channel']} (độ rộng 20MHz) để tránh nhiễu lấn kênh ACI.",
             f"Thiết lập kênh 5 GHz thành kênh {rec_5['recommended_channel']} với độ rộng 80MHz trên khối {rec_5['recommended_80mhz_block']}.",
+            f"Nếu dùng bộ phát Wi-Fi 6E/7 (6 GHz), ưu tiên kênh PSC {rec_6.get('recommended_channel', 37)} trên khối 160MHz {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
             "Tắt các tốc độ phát sóng cũ 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng (Airtime).",
             "Bật tính năng chuyển vùng nhanh 802.11k/v nếu dùng hệ thống nhiều bộ phát Mesh."
         ],
         "system_advice_vi": [
             f"Thiết lập kênh chính 2.4 GHz thành kênh {rec_24['recommended_channel']} (độ rộng 20MHz) để tránh nhiễu lấn kênh ACI.",
             f"Thiết lập kênh 5 GHz thành kênh {rec_5['recommended_channel']} với độ rộng 80MHz trên khối {rec_5['recommended_80mhz_block']}.",
+            f"Nếu dùng bộ phát Wi-Fi 6E/7 (6 GHz), ưu tiên kênh PSC {rec_6.get('recommended_channel', 37)} trên khối 160MHz {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
             "Tắt các tốc độ phát sóng cũ 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng (Airtime).",
             "Bật tính năng chuyển vùng nhanh 802.11k/v nếu dùng hệ thống nhiều bộ phát Mesh."
         ],
         "system_advice_en": [
             f"Lock 2.4 GHz channel width to 20 MHz on Channel {rec_24['recommended_channel']} to prevent Adjacent Channel Interference (ACI).",
             f"Set 5 GHz to Channel {rec_5['recommended_channel']} (80 MHz width) on block {rec_5['recommended_80mhz_block']} for high speed.",
+            f"For Wi-Fi 6E/7 (6 GHz), select PSC Channel {rec_6.get('recommended_channel', 37)} on 160 MHz block {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
             "Disable legacy 802.11b rates (1, 2, 5.5, 11 Mbps) to save broadcast airtime.",
             "Enable 802.11k/v roaming assistance when running Mesh or multiple Access Points."
         ]
@@ -324,12 +342,30 @@ def get_vowifi_mos(target: str = "8.8.8.8", count: int = 5):
     return measure_network_quality(target_host=target, ping_count=max(1, min(count, 10)))
 
 
+@app.get("/api/troubleshooting/all-in-one")
+def get_all_in_one_troubleshooting(target: str = "8.8.8.8"):
+    networks = global_state["networks"] or scan_wifi_networks()
+    analysis = global_state["analysis"] or analyze_wifi_environment(networks)
+    path_quality = measure_network_quality(target_host=target, ping_count=3)
+    return {
+        "status": "success",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "global_score": analysis.get("global_score", 0),
+        "avg_snr_db": analysis.get("avg_snr_db", 0),
+        "troubleshooting_suite": analysis.get("troubleshooting_suite", {}),
+        "airtime_breakdown": analysis.get("airtime_breakdown", {}),
+        "roaming_audit": analysis.get("roaming_audit", []),
+        "path_quality": path_quality
+    }
+
+
 class AIPlannerRequest(BaseModel):
     width_m: float = 20.0
     height_m: float = 15.0
     walls: List[Dict[str, Any]] = []
     max_aps: Optional[int] = 3
     freq_ghz: Optional[float] = 2.4
+    sla_profile: Optional[str] = "voice"
 
 
 @app.post("/api/ai-planner/optimize")
@@ -340,12 +376,14 @@ def ai_planner_optimize(req: AIPlannerRequest):
         clean_walls = req.walls if isinstance(req.walls, list) else []
         max_aps = min(5, max(1, req.max_aps or 3))
         freq = float(req.freq_ghz or 2.4)
+        sla = str(req.sla_profile or "voice")
         return optimize_ap_placement(
             width_m=w_m,
             height_m=h_m,
             walls=clean_walls,
             max_aps=max_aps,
-            freq_ghz=freq
+            freq_ghz=freq,
+            sla_profile=sla
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Floorplan calculation error: {str(e)}")
@@ -359,6 +397,7 @@ class HeatmapCalculateRequest(BaseModel):
     resolution: Optional[int] = 28
     tx_power: Optional[float] = 20.0
     freq_ghz: Optional[float] = 2.4
+    sla_profile: Optional[str] = "voice"
 
 
 @app.post("/api/ai-planner/calculate-heatmap")
@@ -369,7 +408,9 @@ def ai_planner_heatmap(req: HeatmapCalculateRequest):
         aps=req.aps,
         walls=req.walls,
         resolution=min(40, max(15, req.resolution or 28)),
-        freq_ghz=float(req.freq_ghz or 2.4)
+        freq_ghz=float(req.freq_ghz or 2.4),
+        sla_profile=str(req.sla_profile or "voice"),
+        tx_power=float(req.tx_power or 20.0)
     )
 
 

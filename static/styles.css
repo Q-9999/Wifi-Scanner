@@ -1,18 +1,20 @@
 /* MMQ./NetScanner - Local Wi-Fi Spectrum & Site Survey Suite */
 :root {
-    --bg-main: #070a12;
-    --bg-card: #0d121f;
-    --bg-card-hover: #141c2e;
-    --bg-surface: #182238;
-    --bg-header: rgba(7, 10, 18, 0.92);
-    --border-color: #1e293b;
+    --bg-main: #060911;
+    --bg-card: rgba(13, 19, 34, 0.86);
+    --bg-card-solid: #0d1322;
+    --bg-card-hover: rgba(20, 29, 49, 0.94);
+    --bg-surface: rgba(24, 35, 58, 0.78);
+    --bg-header: rgba(6, 9, 17, 0.88);
+    --border-color: rgba(51, 65, 85, 0.65);
     --border-subtle: rgba(255, 255, 255, 0.07);
+    --border-highlight: rgba(56, 189, 248, 0.28);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
     --accent: #0ea5e9;
     --accent-hover: #38bdf8;
-    --accent-glow: rgba(14, 165, 233, 0.15);
+    --accent-glow: rgba(14, 165, 233, 0.18);
     --primary: #0284c7;
     --success: #10b981;
     --warning: #f59e0b;
@@ -20,28 +22,31 @@
     --purple: #8b5cf6;
     --font-stack: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.7);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.72);
+    --radius-card: 12px;
 }
 
 [data-theme="light"] {
     --bg-main: #f1f5f9;
-    --bg-card: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.92);
+    --bg-card-solid: #ffffff;
     --bg-card-hover: #f8fafc;
     --bg-surface: #e2e8f0;
-    --bg-header: rgba(255, 255, 255, 0.9);
+    --bg-header: rgba(255, 255, 255, 0.88);
     --border-color: #cbd5e1;
     --border-subtle: #e2e8f0;
+    --border-highlight: rgba(8, 145, 178, 0.35);
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-muted: #64748b;
     --accent: #0891b2;
     --accent-glow: rgba(8, 145, 178, 0.15);
     --primary: #2563eb;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 30px rgba(15, 23, 42, 0.12);
 }
 
 * {
@@ -53,6 +58,11 @@
 body {
     font-family: var(--font-stack);
     background-color: var(--bg-main);
+    background-image:
+        radial-gradient(at 12% 0%, rgba(14, 165, 233, 0.12) 0px, transparent 45%),
+        radial-gradient(at 88% 4%, rgba(99, 102, 241, 0.10) 0px, transparent 45%),
+        radial-gradient(at 50% 95%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+    background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.5;
     min-height: 100vh;
@@ -1535,8 +1545,274 @@ canvas {
 }
 
 .nav-tab.active {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--primary));
     color: #ffffff;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);
+    box-shadow: 0 3px 12px rgba(14, 165, 233, 0.32);
 }
+
+/* --- SaaS Analytics Dashboard Upgrades (uupm.cc Reference) --- */
+.card, .spectrum-card, .stat-card, .table-container {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: var(--radius-card, 12px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 15px 18px;
+}
+
+.stat-card:hover {
+    border-color: var(--border-highlight);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.stat-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.stat-card-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stat-trend-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    white-space: nowrap;
+}
+
+.stat-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(148, 163, 184, 0.16);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.stat-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+/* --- Ekahau Wi-Fi Design Solutions Heatmap Mode Bar & KPI Strip --- */
+.ekahau-mode-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+[data-theme="light"] .ekahau-mode-bar {
+    background: #f8fafc;
+}
+
+.ekahau-mode-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ekahau-mode-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.ekahau-mode-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.ekahau-mode-btn.active {
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    border-color: #38bdf8;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);
+}
+
+.ekahau-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.ekahau-kpi-card {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+[data-theme="light"] .ekahau-kpi-card {
+    background: #f8fafc;
+}
+
+.ekahau-kpi-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.ekahau-kpi-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+.ekahau-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* --- Oscium Device Finder Directional Signal Tracker & Troubleshooting Cards --- */
+.finder-meter-track {
+    width: 100%;
+    height: 18px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    overflow: hidden;
+    padding: 2px;
+}
+
+.finder-meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 45%, #10b981 100%);
+    transition: width 0.25s ease;
+}
+
+.oscium-diag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.oscium-diag-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.oscium-diag-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.oscium-diag-card.status-PASS,
+.oscium-diag-card.severity-ok {
+    border-left: 4px solid #10b981;
+}
+
+.oscium-diag-card.status-WARNING,
+.oscium-diag-card.severity-warn {
+    border-left: 4px solid #f59e0b;
+}
+
+.oscium-diag-card.status-CRITICAL,
+.oscium-diag-card.severity-crit {
+    border-left: 4px solid #ef4444;
+}
+
+.oscium-diag-card.status-INFO {
+    border-left: 4px solid #0ea5e9;
+}
+
+.oscium-diag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.oscium-diag-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.oscium-diag-metric {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: #38bdf8;
+}
+
+.oscium-diag-desc {
+    font-size: 0.77rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+/* uupm.cc SaaS Analytics Glow & Glassmorphism refinements */
+.stat-card {
+    background: rgba(13, 19, 34, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(56, 189, 248, 0.16);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius-card);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 12px 32px rgba(14, 165, 233, 0.12);
+}
+
+.stat-trend-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid currentColor;
+}
+

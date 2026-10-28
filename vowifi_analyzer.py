@@ -3,18 +3,71 @@ import time
 import math
 import platform
 import re
-from typing import Dict, Any, List
+import socket
+from typing import Dict, Any, List, Optional
+
+
+def _detect_default_gateway() -> str:
+    """Detect local default gateway IPv4 address on Windows/Linux/macOS with fallback"""
+    is_windows = platform.system().lower() == "windows"
+    try:
+        if is_windows:
+            res = subprocess.run(
+                ["ipconfig"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=1.5
+            )
+            matches = re.findall(r"Default Gateway[\s\.]+:\s*(\d+\.\d+\.\d+\.\d+)", res.stdout, re.IGNORECASE)
+            for ip in matches:
+                if ip and ip != "0.0.0.0":
+                    return ip
+        else:
+            res = subprocess.run(
+                ["ip", "route"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=1.5
+            )
+            m = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", res.stdout)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return "192.168.1.1"
+
+
+def measure_dns_resolution_ms(domain: str = "cloudflare.com") -> Dict[str, Any]:
+    """Measure DNS lookup latency in milliseconds using OS resolver"""
+    t0 = time.time()
+    try:
+        ip = socket.gethostbyname(domain)
+        elapsed_ms = round((time.time() - t0) * 1000.0, 2)
+        return {
+            "domain": domain,
+            "resolved_ip": ip,
+            "dns_latency_ms": elapsed_ms,
+            "status": "PASS" if elapsed_ms < 80 else "WARNING"
+        }
+    except Exception:
+        return {
+            "domain": domain,
+            "resolved_ip": None,
+            "dns_latency_ms": 999.0,
+            "status": "CRITICAL"
+        }
+
 
 def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -> Dict[str, Any]:
     """
     Measure real-time RTT latency, Jitter, and Packet Loss using native OS ping.
-    Zero external dependencies, minimal CPU/memory footprint.
     """
     rtts: List[float] = []
     lost_packets = 0
     is_windows = platform.system().lower() == "windows"
 
-    # Ping command: Windows uses -n, Unix uses -c; timeout 1000ms
     cmd = ["ping", "-n" if is_windows else "-c", "1", "-w" if is_windows else "-W", "1000", target_host]
 
     for _ in range(ping_count):
@@ -24,7 +77,6 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
             elapsed_ms = (time.time() - t0) * 1000.0
 
             if res.returncode == 0:
-                # Parse output time=XXms
                 match = re.search(r"time[=<](\d+(?:\.\d+)?)ms", res.stdout, re.IGNORECASE)
                 if match:
                     rtts.append(float(match.group(1)))
@@ -34,13 +86,12 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
                 lost_packets += 1
         except Exception:
             lost_packets += 1
-        time.sleep(0.05)
+        time.sleep(0.04)
 
-    total_attempts = ping_count
+    total_attempts = max(1, ping_count)
     packet_loss_pct = (lost_packets / total_attempts) * 100.0
 
     if not rtts:
-        # Complete packet loss
         avg_rtt = 999.0
         jitter = 999.0
         min_rtt = 999.0
@@ -49,8 +100,7 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
         avg_rtt = round(sum(rtts) / len(rtts), 2)
         min_rtt = round(min(rtts), 2)
         max_rtt = round(max(rtts), 2)
-        
-        # Calculate RFC 3550 style jitter (Mean absolute difference between consecutive packets)
+
         if len(rtts) > 1:
             diffs = [abs(rtts[i] - rtts[i - 1]) for i in range(1, len(rtts))]
             jitter = round(sum(diffs) / len(diffs), 2)
@@ -58,34 +108,27 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
             jitter = 0.0
 
     # Calculate ITU-T G.107 E-Model MOS Score (Mean Opinion Score: 1.0 to 4.5)
-    # Effective latency including buffer jitter
     effective_latency = avg_rtt + (jitter * 2.0)
-    
-    # Delay impairment factor (Id)
+
     if effective_latency < 160:
         id_factor = effective_latency / 40.0
     else:
         id_factor = (effective_latency - 120.0) / 10.0
 
-    # Equipment / Packet loss impairment factor (Ie)
-    # Burst loss model for typical G.711 / Opus voice codecs
     loss_factor = packet_loss_pct * 2.5
 
-    # Transmission Rating Factor R (Base 94.2 for pristine VoIP audio)
     r_val = 94.2 - id_factor - loss_factor
     r_val = max(0.0, min(100.0, r_val))
 
-    # Convert R to MOS (1.0 to 4.5 scale)
     if r_val < 0:
         mos = 1.0
     elif r_val > 100:
         mos = 4.5
     else:
         mos = 1.0 + (0.035 * r_val) + (r_val * (r_val - 60.0) * (100.0 - r_val) * 0.000007)
-    
+
     mos = round(max(1.0, min(4.5, mos)), 2)
 
-    # Classify User Experience
     if mos >= 4.3:
         rating = "Tuyệt Vời / Excellent (Pristine)"
         badge_color = "success"
@@ -107,6 +150,17 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
         badge_color = "danger"
         verdict = "Nghẽn mạng nghiêm trọng! Nguy cơ rớt cuộc gọi hoặc không thể thiết lập cuộc đàm thoại."
 
+    dns_check = measure_dns_resolution_ms("cloudflare.com")
+    gateway_ip = _detect_default_gateway()
+    gw_hop = measure_single_hop_fast(gateway_ip)
+
+    if gw_hop["latency_ms"] >= 25.0:
+        bottleneck_vi = f"Độ trễ nội bộ từ máy tới Router ({gateway_ip}) cao ({gw_hop['latency_ms']} ms) -> Nguyên nhân do nhiễu sóng Wi-Fi nội bộ."
+    elif avg_rtt >= 100.0:
+        bottleneck_vi = f"Kết nối tới Router nội bộ nhanh ({gw_hop['latency_ms']} ms) nhưng ra Internet chậm ({avg_rtt} ms) -> Nguyên nhân do đường truyền cáp quang ISP."
+    else:
+        bottleneck_vi = f"Toàn bộ chặng kết nối (Router nội bộ {gw_hop['latency_ms']} ms -> Internet {avg_rtt} ms -> DNS {dns_check['dns_latency_ms']} ms) đều thông suốt."
+
     return {
         "target": target_host,
         "packets_sent": total_attempts,
@@ -121,12 +175,34 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
         "rating": rating,
         "badge_color": badge_color,
         "verdict": verdict,
+        "gateway_ip": gateway_ip,
+        "gateway_latency_ms": gw_hop["latency_ms"],
+        "dns_latency_ms": dns_check["dns_latency_ms"],
+        "path_diagnosis_vi": bottleneck_vi,
         "supported_codecs": [
             {"codec": "Opus (HD Audio)", "status": "Khuyên dùng" if mos >= 4.0 else "Giảm bitrate"},
             {"codec": "G.711 (Toll Quality 64kbps)", "status": "Tốt" if packet_loss_pct < 2 else "Mất gói"},
             {"codec": "G.729 (Low Bandwidth 8kbps)", "status": "Phù hợp khi mạng yếu"}
         ]
     }
+
+
+def measure_single_hop_fast(host: str) -> Dict[str, Any]:
+    """Single fast 1-packet ping for local gateway hop verification"""
+    is_windows = platform.system().lower() == "windows"
+    cmd = ["ping", "-n" if is_windows else "-c", "1", "-w" if is_windows else "-W", "600", host]
+    t0 = time.time()
+    try:
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=0.9)
+        elapsed_ms = (time.time() - t0) * 1000.0
+        if res.returncode == 0:
+            match = re.search(r"time[=<](\d+(?:\.\d+)?)ms", res.stdout, re.IGNORECASE)
+            lat = float(match.group(1)) if match else round(elapsed_ms, 2)
+            return {"host": host, "reachable": True, "latency_ms": lat}
+    except Exception:
+        pass
+    return {"host": host, "reachable": False, "latency_ms": 0.0}
+
 
 if __name__ == "__main__":
     result = measure_network_quality("8.8.8.8", 3)

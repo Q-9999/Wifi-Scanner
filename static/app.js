@@ -29,11 +29,20 @@ document.addEventListener("DOMContentLoaded", () => {
         rationaleLang: localStorage.getItem("netscanner_lang") || "vi",
         vowifiTested: false,
         plannerLoaded: false,
+        deviceFinder: {
+            open: false,
+            targetBssid: null,
+            peakDbm: -100,
+            minDbm: 0,
+            history: []
+        },
         planner: {
             preset: "apartment",
             width_m: 12.0,
             height_m: 8.0,
             freq_ghz: 2.4,
+            heatmapMode: "primary_rssi", // "primary_rssi" | "secondary_rssi" | "snr" | "interference" | "throughput"
+            slaProfile: "voice", // "voice" | "office" | "high_density"
             view25D: false,
             unit: "m",
             walls: [],
@@ -64,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btn_scan_now: "Quét Ngay",
             btn_autopick: "Tính Kênh Tự Động",
             btn_export_csv: "Xuất CSV",
+            btn_device_finder: "🎯 Dò Hướng Tín Hiệu AP",
             stat_aps: "Bộ Phát / APs Found",
             stat_ssids: "Tên Mạng / Unique SSIDs",
             stat_health: "Điểm Môi Trường / Score",
@@ -71,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
             stat_best_5: "Kênh Tốt Nhất 5GHz",
             tab_survey: "Quét Sóng / Survey",
             tab_spectrum: "Phổ Sóng RF / Spectrum",
-            tab_optimizer: "Tối Ưu Kênh & Router / Optimizer",
+            tab_optimizer: "Tối Ưu Kênh & Chẩn Đoán / Optimizer",
             tab_vowifi: "Thoại VoWiFi & MOS",
             tab_planner: "Quy Hoạch AP & Bản Đồ Nhiệt RF / Planner",
             tab_security: "Đánh Giá An Ninh / Security Audit",
@@ -95,6 +105,12 @@ document.addEventListener("DOMContentLoaded", () => {
             th_security: "Bảo Mật (Security)",
             th_load: "Tải Kênh & Tốc Độ Thực",
             th_details: "Chi Tiết",
+            oscium_spec_title: "Phân Loại Nguồn Nhiễu Phổ Vô Tuyến & Độ Chiếm Dụng Kênh (RF Interference Classifier)",
+            oscium_spec_desc: "Tự động phân tích giao thoa kênh lân cận (ACI), mật độ băng tần 2.45GHz ISM, kênh Radar DFS 5GHz, khối kênh 6GHz PSC và tỷ lệ phát lại gói tin.",
+            oscium_spec_badge: "Giám Sát Phổ Tầng 1 & Tầng 2",
+            oscium_checklist_title: "Bảng Kiểm Tra & Chẩn Đoán Sự Cố Wi-Fi Toàn Diện 4 Tầng (4-Layer Troubleshooting Suite)",
+            oscium_checklist_desc: "Đánh giá tự động từ Tầng Vật Lý (RF Spectrum), Tầng Liên Kết (MAC Airtime & Retry), Chuyển Vùng Đa Trạm (Mesh Roaming) đến An Toàn Mã Hóa.",
+            oscium_checklist_badge: "Chẩn Đoán Tự Động",
             spec_24_pill: "Dải Tần 2.4 GHz ISM",
             spec_24_desc: "Kênh 1 đến 14 (3 kênh chuẩn không chồng lấn: 1, 6, 11)",
             spec_legend_active: "AP Đang Phát",
@@ -108,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
             spec_time_desc: "Lịch sử biến thiên độ mạnh tín hiệu RSSI (dBm) theo thời gian thực",
             spec_time_note: "Theo dõi độ ổn định sóng thu. Dao động lớn hơn 8 dBm cho thấy có vật cản di chuyển hoặc phản xạ sóng.",
             spec_waterfall_pill: "Biểu Đồ Thác Nước Mật Độ Phổ (Channel Spectrogram Waterfall)",
-            spec_waterfall_desc: "Mật độ năng lượng sóng tích lũy trên các kênh 1-14 theo dòng thời gian (Xanh: Rảnh • Vàng/Đỏ: Dày đặc sóng)",
+            spec_waterfall_desc: "Mật độ năng lượng sóng tích lũy trên các kênh 1-14 và 5GHz theo dòng thời gian (Xanh: Rảnh • Vàng/Đỏ: Dày đặc sóng)",
             spec_waterfall_note: "Giúp phát hiện ngay kênh nào bị chiếm dụng liên tục theo thời gian thực.",
             matrix_24_title: "Bảng Chấm Điểm Kênh 2.4 GHz (Channel Matrix)",
             matrix_24_desc: "Điểm chất lượng kênh tính theo số bộ phát trùng kênh (CCI) và lấn kênh kề (ACI).",
@@ -118,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rationale_card_title: "Giải Thích Kỹ Thuật & Lý Do Chọn Kênh",
             btn_calc_channel: "Tính Kênh Tự Động",
             heading_diag_24: "Chẩn Đoán Kênh Băng Tần 2.4 GHz",
-            heading_diag_5: "Chẩn Đoán Kênh Băng Tần 5 GHz",
+            heading_diag_5: "Chẩn Đoán Kênh Băng Tần 5 GHz & 6 GHz",
             heading_admin_rec: "Khuyến Nghị Cài Đặt Thực Tế",
             airtime_card_title: "Phân Tích Chiếm Dụng Thời Gian Sóng (Airtime Utilization & Overhead)",
             airtime_card_desc: "Tỷ lệ phần trăm thời gian kênh bị chiếm bởi gói tin quản lý (Beacon) và truyền dữ liệu trên các kênh chính.",
@@ -130,12 +146,12 @@ document.addEventListener("DOMContentLoaded", () => {
             router_step1_desc: "Mở trình duyệt nhập địa chỉ: <code>192.168.1.1</code> hoặc <code>192.168.0.1</code>. Tên đăng nhập và mật khẩu quản trị thường in ở tem dưới đáy router (thường là <code>admin / admin</code> hoặc mã nhà mạng).",
             router_step2_title: "Bước 2: Cài Đặt Sóng 2.4 GHz",
             router_step2_desc: "• <b>Độ rộng kênh (Channel Width):</b> Cố định <b>20 MHz</b> (Tránh dùng 40MHz vì sẽ chồng lấn chiếm gần hết 14 kênh gây suy giảm tốc độ toàn mạng).<br>• <b>Kênh phát (Channel):</b> Chọn kênh khuyến nghị <b>1, 6 hoặc 11</b> từ kết quả đo của NetScanner.",
-            router_step3_title: "Bước 3: Cài Đặt Sóng 5 GHz",
-            router_step3_desc: "• <b>Độ rộng kênh (Channel Width):</b> Chọn <b>80 MHz</b> để đạt tốc độ cao (433Mbps - 1200Mbps+).<br>• <b>Kênh phát (Channel):</b> Chọn khối UNII-1 sạch (Kênh 36, 40, 44, 48) hoặc UNII-3 (149, 153, 157, 161) để tránh bị ngắt kết nối do sóng Radar DFS.",
+            router_step3_title: "Bước 3: Cài Đặt Sóng 5 GHz & 6 GHz",
+            router_step3_desc: "• <b>Độ rộng kênh (Channel Width):</b> Chọn <b>80 MHz</b> trên 5GHz hoặc <b>160 MHz</b> trên 6GHz.<br>• <b>Kênh phát (Channel):</b> Chọn khối UNII-1 sạch (Kênh 36-48) hoặc UNII-3 (149-161) để tránh bị ngắt kết nối do sóng Radar DFS.",
             router_step4_title: "Bước 4: Mẹo Tách Tên Wi-Fi Tránh Nghẽn Sóng",
             router_step4_desc: "Nếu router đời cũ không hỗ trợ tự chuyển băng tần thông minh, hãy tách thành 2 tên riêng: <code>Nha_2.4G</code> và <code>Nha_5G</code>. Kết nối điện thoại và laptop vào sóng 5G khi ở gần để đạt tốc độ cao gấp 3-4 lần.",
-            vowifi_title: "🎙️ Đo Kiểm Chất Lượng Thoại VoWiFi & Họp Trực Tuyến (VoIP / MOS Score)",
-            vowifi_desc: "Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, Jitter và Packet Loss cho cuộc gọi Zalo, Teams, Zoom, VoWiFi.",
+            vowifi_title: "🎙️ Đo Kiểm Chất Lượng Thoại VoWiFi & Đường Truyền Đa Chặng (VoIP MOS & Multi-Hop Check)",
+            vowifi_desc: "Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, Jitter, Packet Loss và phân tách độ trễ nội bộ (Router Gateway) so với Internet bên ngoài.",
             btn_run_vowifi: "Đo Chất Lượng Ngay",
             stat_mos_score: "Điểm MOS Thoại (1.0 - 4.5)",
             stat_rtt_latency: "Độ Trễ Khứ Hồi / RTT Latency",
@@ -150,12 +166,27 @@ document.addEventListener("DOMContentLoaded", () => {
             vowifi_codec_g729: "Dự phòng tốt",
             vowifi_why_mos: "Tại Sao Chỉ Số MOS Lại Quyết Định Cuộc Gọi?",
             vowifi_why_mos_desc: "Trong thực tế sử dụng mạng, sóng Wi-Fi mạnh (<code>-50 dBm</code>) nhưng nếu <b>Jitter &gt; 25ms</b> hoặc <b>Packet Loss &gt; 1%</b> thì cuộc gọi thoại vẫn bị giật tiếng, rè giọng hoặc trễ lời. Điểm MOS từ <b>4.0 trở lên</b> đảm bảo cuộc họp trực tuyến mượt mà.",
-            planner_title: "🗺️ Quy Hoạch Vị Trí Trạm Phát & Bản Đồ Nhiệt Phủ Sóng (Floorplan & RF Heatmap)",
-            planner_desc: "Phác thảo nhanh bằng công cụ Vẽ Khung Phòng, Vẽ Tường, Đặt Cửa/Vật Cản hoặc Kéo Thả Cục Phát Wi-Fi trực quan (kế thừa thao tác của Sweet Home 3D & SketchUp).",
+            planner_title: "🗺️ Quy Hoạch Vị Trí Trạm Phát & Bản Đồ Nhiệt Đa Chế Độ (Floorplan & Multi-Mode RF Heatmap)",
+            planner_desc: "Thiết kế mặt bằng trực quan kết hợp 5 chế độ bản đồ nhiệt chuyên sâu (Sóng chính, Sóng dự phòng chuyển vùng, Tỷ số SNR, Nhiễu tranh chấp kênh, Tốc độ & Dung lượng tải) trên 3 băng tần 2.4GHz / 5GHz / 6GHz.",
             preset_apartment: "Căn Hộ 70m² (2 Phòng Ngủ)",
             preset_townhouse: "Nhà Phố Dài 120m²",
             preset_office: "Văn Phòng Mở 250m²",
             preset_custom: "🎨 Mặt Bằng Trống (Tự Vẽ Mới)",
+            sla_voice: "🎯 Chuẩn Thoại VoWiFi (-65 dBm / SNR 25dB)",
+            sla_office: "🏢 Chuẩn Văn Phòng (-67 dBm / SNR 20dB)",
+            sla_hd: "🏟️ Hội Trường Mật Độ Cao (-60 dBm / SNR 28dB)",
+            btn_import_aps: "📥 Nạp AP Thực Tế",
+            label_heatmap_mode: "Chế độ Bản đồ nhiệt:",
+            hm_mode_primary: "1. Sóng Chính (Primary Signal dBm)",
+            hm_mode_secondary: "2. Sóng Dự Phòng (Secondary Roaming)",
+            hm_mode_snr: "3. Tỷ Số Tín Hiệu/Nhiễu (SNR dB)",
+            hm_mode_interference: "4. Nhiễu Tranh Chấp Kênh (Interference)",
+            hm_mode_throughput: "5. Tốc Độ & Dung Lượng (Data Rate Mbps)",
+            kpi_pri_cov: "Độ Phủ Sóng Chính (Primary)",
+            kpi_sec_roam: "Dự Phòng Chuyển Vùng (Secondary)",
+            kpi_avg_snr: "Tỷ Số Tín Hiệu / Nhiễu (SNR)",
+            kpi_tp_cap: "Tốc Độ & Sức Chứa Thiết Bị",
+            kpi_conflict_dead: "Tranh Chấp Kênh & Góc Khuất",
             label_dimensions: "Khổ đất:",
             btn_apply_dim: "Đặt Khổ",
             label_wall_material: "Vật liệu:",
@@ -166,17 +197,18 @@ document.addEventListener("DOMContentLoaded", () => {
             mat_door: "🚪 Cửa Ra Vào Mỏng (-2 dB)",
             mat_metal: "🛡️ Tủ Sắt / Lõi Thang Máy (-15 dB)",
             label_sim_band: "Băng tần:",
-            band_opt_24: "Sóng 2.4 GHz (Xuyên tường tốt)",
-            band_opt_50: "Sóng 5.0 GHz (Tốc độ cao, suy hao lớn)",
-            btn_toggle_25d: "🧊 Phối Cảnh 2.5D",
+            band_opt_24: "📶 Sóng 2.4 GHz (Xuyên tường tốt)",
+            band_opt_5: "⚡ Sóng 5.0 GHz (80MHz Tốc độ cao)",
+            band_opt_6: "🚀 Sóng 6.0 GHz (Wi-Fi 6E/7 160MHz)",
+            label_toggle_25d: "🧊 Xem Khối 2.5D",
             tool_room: "🏠 Vẽ Khung Phòng",
             tool_draw: "✏️ Vẽ Tường Lẻ",
             tool_select: "👆 Chọn & Kéo Sửa",
             tool_place_ap: "📡 Đặt Thêm AP",
             tool_ruler: "📏 Thước Đo Suy Hao",
             tool_delete: "🗑️ Xóa",
-            btn_undo_wall: "Hoàn Tác",
-            btn_clear_all: "Xóa Hết",
+            btn_undo_wall: "↩️ Hoàn Tác",
+            btn_clear_all: "🗑️ Xóa Hết",
             label_signal_level: "Mức Sóng:",
             legend_strong: "Rất Mạnh (-30 dBm)",
             legend_good: "Tốt (-65 dBm)",
@@ -189,17 +221,22 @@ document.addEventListener("DOMContentLoaded", () => {
             unit_opt_cm: "Centimet (cm)",
             btn_apply_len: "Áp Dụng Độ Dài",
             btn_del_wall: "Xóa Vách Này",
-            obj_catalog_title: "📋 Danh Sách Vách Ngăn & Vật Cản Trên Mặt Bằng ( kiểu Sweet Home 3D Catalog )",
-            obj_catalog_hint: "Nhấp vào dòng bất kỳ để chọn nhanh trên bản vẽ",
             obj_th_type: "Loại Vách / Vật Cản",
             obj_th_coords: "Tọa Độ (m)",
             obj_th_len: "Chiều Dài",
-            obj_th_loss: "Suy Hao Sóng",
+            obj_th_loss: "Suy Hao",
             obj_th_action: "Thao Tác",
             btn_complete_planner: "✅ Tự Động Đặt AP & Tính Phủ Sóng",
-            btn_complete_bottom: "✅ Tự Động Bố Trí AP & Tính Độ Phủ Sóng",
+            btn_complete_planner_bottom: "✅ Tự Động Tìm Vị Trí Đặt Router & Tính Phủ Sóng",
+            btn_recalc_heatmap: "🔄 Tính Lại Bản Đồ Nhiệt Theo Vị Trí AP Hiện Tại",
             planner_results_heading: "Kết Quả Đánh Giá Độ Phủ Sóng",
             planner_placeholder: "Bấm nút Tự Động Tìm Vị Trí Đặt Router ở trên sau khi vẽ mặt bằng xong để hệ thống tính toán vị trí lắp đặt và hiển thị vùng phủ sóng.",
+            df_modal_title: "Bộ Dò Hướng & Định Vị Tín Hiệu Trạm Phát (Device Finder)",
+            df_select_target: "Chọn trạm phát BSSID cần dò tìm vị trí vật lý:",
+            df_reset_peak: "Đặt Lại Đỉnh Sóng",
+            df_peak_rssi: "Đỉnh Sóng Cao Nhất (Peak)",
+            df_min_rssi: "Mức Thấp Nhất (Min)",
+            df_est_dist: "Khoảng Cách Ước Tính",
             sec_open_title: "Cảnh Báo: Phát Hiện Mạng Wi-Fi Không Đặt Mật Khẩu (Open / Unencrypted)",
             sec_open_desc: "Đang kiểm tra các trạm phát sóng Wi-Fi không bật mã hóa WPA2/WPA3...",
             sec_dist_title: "Thống Kê Chuẩn Bảo Mật Trong Khu Vực (Security Protocol Distribution)",
@@ -247,6 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btn_scan_now: "Scan Now",
             btn_autopick: "Auto-Pick Channel",
             btn_export_csv: "Export CSV",
+            btn_device_finder: "🎯 Signal Finder",
             stat_aps: "Access Points Found",
             stat_ssids: "Unique SSIDs",
             stat_health: "Environment Score",
@@ -254,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
             stat_best_5: "Best 5GHz Channel",
             tab_survey: "Network Survey",
             tab_spectrum: "RF Spectrum",
-            tab_optimizer: "Channel & Router Optimizer",
+            tab_optimizer: "Channel & Diagnostics",
             tab_vowifi: "VoWiFi & MOS Voice",
             tab_planner: "AP & RF Heatmap Planner",
             tab_security: "Security Audit",
@@ -278,6 +316,12 @@ document.addEventListener("DOMContentLoaded", () => {
             th_security: "Security Protocol",
             th_load: "Channel Load & Speed",
             th_details: "Details",
+            oscium_spec_title: "RF Spectrum Interference & Contention Classifier",
+            oscium_spec_desc: "Automatically classifies Adjacent-Channel Interference (ACI), 2.45GHz ISM density, 5GHz DFS radar channels, 6GHz PSC blocks, and frame retry rates.",
+            oscium_spec_badge: "Layer 1 & Layer 2 Monitor",
+            oscium_checklist_title: "4-Layer All-in-One Wi-Fi Troubleshooting Checklist",
+            oscium_checklist_desc: "Automated health check across Physical RF Spectrum, MAC Airtime & Retries, Multi-AP Roaming, and Security Encryption.",
+            oscium_checklist_badge: "Automated Diagnostics",
             spec_24_pill: "2.4 GHz ISM Band",
             spec_24_desc: "Channels 1 to 14 (3 non-overlapping standard channels: 1, 6, 11)",
             spec_legend_active: "Active APs",
@@ -291,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
             spec_time_desc: "Real-time RSSI signal variation and link stability history",
             spec_time_note: "Monitors link stability. Fluctuations above 8 dBm indicate moving obstacles or multipath reflections.",
             spec_waterfall_pill: "Channel Spectrogram Waterfall",
-            spec_waterfall_desc: "Accumulated RF energy across channels 1-14 over time (Blue: Quiet • Yellow/Red: Busy)",
+            spec_waterfall_desc: "Accumulated RF energy across 2.4GHz and 5GHz channels over time (Blue: Quiet • Yellow/Red: Busy)",
             spec_waterfall_note: "Identifies persistent channel congestion over time.",
             matrix_24_title: "2.4 GHz Channel Quality Matrix",
             matrix_24_desc: "Channel scores calculated from Co-Channel (CCI) and Adjacent-Channel Interference (ACI).",
@@ -301,7 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rationale_card_title: "Technical Explanation & Channel Selection",
             btn_calc_channel: "Auto-Pick Channel",
             heading_diag_24: "2.4 GHz Band Channel Diagnosis",
-            heading_diag_5: "5 GHz Band Channel Diagnosis",
+            heading_diag_5: "5 GHz & 6 GHz Band Channel Diagnosis",
             heading_admin_rec: "Practical Setup Advice",
             airtime_card_title: "Airtime Utilization & Management Overhead",
             airtime_card_desc: "Percentage of channel time consumed by management beacons and data frames on primary channels.",
@@ -313,12 +357,12 @@ document.addEventListener("DOMContentLoaded", () => {
             router_step1_desc: "Open a browser and enter <code>192.168.1.1</code> or <code>192.168.0.1</code>. Login credentials are printed on the bottom label of the router.",
             router_step2_title: "Step 2: Configure 2.4 GHz Radio",
             router_step2_desc: "• <b>Channel Width:</b> Lock to <b>20 MHz</b> (Avoid 40MHz on 2.4GHz as it overlaps nearby channels).<br>• <b>Channel:</b> Select recommended channel <b>1, 6, or 11</b>.",
-            router_step3_title: "Step 3: Configure 5 GHz Radio",
-            router_step3_desc: "• <b>Channel Width:</b> Select <b>80 MHz</b> for high speed.<br>• <b>Channel:</b> Choose non-DFS UNII-1 (36-48) or UNII-3 (149-161) to prevent radar disconnects.",
+            router_step3_title: "Step 3: Configure 5 GHz & 6 GHz Radio",
+            router_step3_desc: "• <b>Channel Width:</b> Select <b>80 MHz</b> on 5GHz or <b>160 MHz</b> on 6GHz.<br>• <b>Channel:</b> Choose non-DFS UNII-1 (36-48) or UNII-3 (149-161) to prevent radar disconnects.",
             router_step4_title: "Step 4: Separate Band Names if Needed",
             router_step4_desc: "If an older router does not steer bands well, use separate names like <code>Home_2.4G</code> and <code>Home_5G</code>.",
-            vowifi_title: "🎙️ VoWiFi & Online Voice Quality Test (VoIP / MOS Score)",
-            vowifi_desc: "ITU-T G.107 E-model metric evaluating RTT latency, Jitter, and Packet Loss for Teams, Zoom, Zalo, and VoWiFi calls.",
+            vowifi_title: "🎙️ VoWiFi Voice Quality & Multi-Hop Path Test (VoIP MOS)",
+            vowifi_desc: "ITU-T G.107 E-model metric evaluating RTT latency, Jitter, Packet Loss, and separating local Gateway latency from WAN Internet latency.",
             btn_run_vowifi: "Run Quality Test",
             stat_mos_score: "Voice MOS Score (1.0 - 4.5)",
             stat_rtt_latency: "Round-Trip Latency (RTT)",
@@ -333,12 +377,27 @@ document.addEventListener("DOMContentLoaded", () => {
             vowifi_codec_g729: "Low-Bandwidth Fallback",
             vowifi_why_mos: "Why Does the MOS Score Matter?",
             vowifi_why_mos_desc: "Even with strong signal (<code>-50 dBm</code>), if <b>Jitter &gt; 25ms</b> or <b>Packet Loss &gt; 1%</b>, voice calls suffer audio drops or delay. A MOS score of <b>4.0 or higher</b> ensures smooth calls.",
-            planner_title: "🗺️ AP Placement Planner & 2D/2.5D RF Coverage Heatmap",
-            planner_desc: "Quickly sketch rooms using Draw Room Box, Draw Wall, Doors/Obstacles, or directly drag Wi-Fi APs (inspired by Sweet Home 3D & SketchUp).",
+            planner_title: "🗺️ AP Placement Planner & Multi-Mode RF Heatmap",
+            planner_desc: "Interactive floorplan design with 5 heatmap modes (Primary Signal, Secondary Roaming, SNR, Channel Interference, Data Rate & Capacity) across 2.4GHz / 5GHz / 6GHz.",
             preset_apartment: "Apartment 70m² (2 Bedrooms)",
             preset_townhouse: "Townhouse 120m²",
             preset_office: "Open Office 250m²",
             preset_custom: "🎨 Blank Floorplan (Draw from Scratch)",
+            sla_voice: "🎯 VoWiFi Voice Grade (-65 dBm / SNR 25dB)",
+            sla_office: "🏢 Standard Office (-67 dBm / SNR 20dB)",
+            sla_hd: "🏟️ High-Density Venue (-60 dBm / SNR 28dB)",
+            btn_import_aps: "📥 Import Live APs",
+            label_heatmap_mode: "Heatmap Mode:",
+            hm_mode_primary: "1. Primary Signal (dBm)",
+            hm_mode_secondary: "2. Secondary Roaming (dBm)",
+            hm_mode_snr: "3. Signal-to-Noise Ratio (SNR dB)",
+            hm_mode_interference: "4. Channel Interference",
+            hm_mode_throughput: "5. Data Rate & Capacity (Mbps)",
+            kpi_pri_cov: "Primary Coverage",
+            kpi_sec_roam: "Roaming Redundancy (Secondary)",
+            kpi_avg_snr: "Average SNR Margin",
+            kpi_tp_cap: "Throughput & Client Capacity",
+            kpi_conflict_dead: "Channel Conflict & Deadzones",
             label_dimensions: "Plot Size:",
             btn_apply_dim: "Apply Size",
             label_wall_material: "Material:",
@@ -349,17 +408,18 @@ document.addEventListener("DOMContentLoaded", () => {
             mat_door: "🚪 Interior Door (-2 dB)",
             mat_metal: "🛡️ Metal / Elevator Shaft (-15 dB)",
             label_sim_band: "Band:",
-            band_opt_24: "2.4 GHz (Better Wall Penetration)",
-            band_opt_50: "5.0 GHz (Higher Speed, Higher Loss)",
-            btn_toggle_25d: "🧊 2.5D Perspective",
+            band_opt_24: "📶 2.4 GHz (Wall Penetration)",
+            band_opt_5: "⚡ 5.0 GHz (80MHz High Speed)",
+            band_opt_6: "🚀 6.0 GHz (Wi-Fi 6E/7 160MHz)",
+            label_toggle_25d: "🧊 2.5D View",
             tool_room: "🏠 Draw Room Box",
             tool_draw: "✏️ Draw Wall",
             tool_select: "👆 Select & Drag",
             tool_place_ap: "📡 Place AP",
             tool_ruler: "📏 Measure Loss",
             tool_delete: "🗑️ Delete",
-            btn_undo_wall: "Undo",
-            btn_clear_all: "Clear All",
+            btn_undo_wall: "↩️ Undo",
+            btn_clear_all: "🗑️ Clear All",
             label_signal_level: "Signal Level:",
             legend_strong: "Strong (-30 dBm)",
             legend_good: "Good (-65 dBm)",
@@ -372,17 +432,22 @@ document.addEventListener("DOMContentLoaded", () => {
             unit_opt_cm: "Centimeters (cm)",
             btn_apply_len: "Apply Length",
             btn_del_wall: "Delete Wall",
-            obj_catalog_title: "📋 Floorplan Wall & Obstacle Catalog (Sweet Home 3D Style)",
-            obj_catalog_hint: "Click any row to select and highlight it on the canvas",
             obj_th_type: "Wall / Obstacle Type",
             obj_th_coords: "Coordinates (m)",
             obj_th_len: "Length",
             obj_th_loss: "RF Attenuation",
             obj_th_action: "Actions",
             btn_complete_planner: "✅ Auto-Place APs & Calculate Coverage",
-            btn_complete_bottom: "✅ Auto-Place APs & Compute Coverage",
+            btn_complete_planner_bottom: "✅ Auto-Place APs & Compute Coverage",
+            btn_recalc_heatmap: "🔄 Recalculate Heatmap for Current APs",
             planner_results_heading: "RF Coverage Results",
             planner_placeholder: "Click Auto-Place APs & Calculate Coverage above after sketching your floorplan to compute router locations.",
+            df_modal_title: "Directional AP Signal Tracker (Device Finder)",
+            df_select_target: "Select target BSSID to track physical location:",
+            df_reset_peak: "Reset Peak",
+            df_peak_rssi: "Peak Signal Recorded",
+            df_min_rssi: "Minimum Signal",
+            df_est_dist: "Estimated Distance",
             sec_open_title: "Warning: Unencrypted Wi-Fi Networks Detected (Open)",
             sec_open_desc: "Checking for nearby Access Points operating without WPA2/WPA3 password protection...",
             sec_dist_title: "Security Protocol Distribution in Area",
@@ -455,6 +520,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (state.analysis) {
             updateOverviewHeader();
             renderOptimizerChannels();
+            renderOsciumSpectrumClassifiers();
             renderSecurityAudit();
         }
         renderSurveyTable();
@@ -760,6 +826,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         updateOverviewHeader();
+        if (state.deviceFinder.open) {
+            updateDeviceFinderModal();
+        }
 
         if (document.hidden) return;
         renderCurrentTab();
@@ -803,7 +872,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-        document.querySelectorAll(".chip-filter").forEach(chip => {
+    document.querySelectorAll(".chip-filter").forEach(chip => {
         chip.addEventListener("click", () => {
             document.querySelectorAll(".chip-filter").forEach(c => c.classList.remove("active"));
             chip.classList.add("active");
@@ -853,6 +922,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".tab-pane").forEach(p => {
             p.classList.toggle("active", p.id === tabId);
         });
+        state.currentTab = tabId;
         if (tabId === "tab-spectrum") {
             setTimeout(drawSpectrumGraphs, 50);
         }
@@ -886,10 +956,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Update Top Overview Cards & Active Connection Bar
+    // Update Top Overview Cards (uupm.cc SaaS Analytics KPI Cards) & Active Connection Bar
     function updateOverviewHeader() {
         const stats = state.analysis;
         if (!stats) return;
+        const isVi = state.currentLang === "vi";
 
         document.getElementById("stat-total-aps").textContent = stats.total_aps;
         document.getElementById("stat-unique-ssids").textContent = stats.unique_ssids;
@@ -901,9 +972,54 @@ document.addEventListener("DOMContentLoaded", () => {
         else healthEl.style.color = "var(--danger)";
 
         const best24 = stats.evaluation_24ghz?.recommended_channel ?? "--";
+        const score24 = stats.evaluation_24ghz?.recommended_score ?? 80;
         const best5 = stats.evaluation_5ghz?.recommended_channel ?? "--";
+        const score5 = stats.evaluation_5ghz?.recommended_score ?? 90;
         document.getElementById("stat-best-24").textContent = `Ch ${best24}`;
         document.getElementById("stat-best-5").textContent = `Ch ${best5}`;
+
+        // Update SaaS KPI Trend Pills & Progress Bars
+        const trendAps = document.getElementById("stat-trend-aps");
+        if (trendAps) {
+            trendAps.textContent = stats.total_aps > 20 ? (isVi ? "Mật độ cao" : "High Density") : (isVi ? "Bình thường" : "Normal");
+            trendAps.className = `stat-trend-pill ${stats.total_aps > 20 ? "trend-warn" : "trend-info"}`;
+        }
+        const barAps = document.getElementById("stat-bar-aps");
+        if (barAps) barAps.style.width = `${Math.min(100, Math.round((stats.total_aps / 35) * 100))}%`;
+
+        const trendSsids = document.getElementById("stat-trend-ssids");
+        if (trendSsids) {
+            const clusterCount = (state.clusters || []).length || stats.unique_ssids;
+            trendSsids.textContent = `${clusterCount} ${isVi ? "Cụm" : "Clusters"}`;
+        }
+        const barSsids = document.getElementById("stat-bar-ssids");
+        if (barSsids) barSsids.style.width = `${Math.min(100, Math.round((stats.unique_ssids / 25) * 100))}%`;
+
+        const trendHealth = document.getElementById("stat-trend-health");
+        if (trendHealth) {
+            if (stats.global_score >= 80) {
+                trendHealth.textContent = isVi ? "Tốt" : "Optimal";
+                trendHealth.className = "stat-trend-pill trend-good";
+            } else if (stats.global_score >= 60) {
+                trendHealth.textContent = isVi ? "Khá" : "Fair";
+                trendHealth.className = "stat-trend-pill trend-warn";
+            } else {
+                trendHealth.textContent = isVi ? "Nhiễu" : "Congested";
+                trendHealth.className = "stat-trend-pill trend-crit";
+            }
+        }
+        const barHealth = document.getElementById("stat-bar-health");
+        if (barHealth) barHealth.style.width = `${Math.min(100, Math.max(8, stats.global_score))}%`;
+
+        const trend24 = document.getElementById("stat-trend-24");
+        if (trend24) trend24.textContent = `${score24}/100`;
+        const bar24 = document.getElementById("stat-bar-24");
+        if (bar24) bar24.style.width = `${Math.min(100, Math.max(10, score24))}%`;
+
+        const trend5 = document.getElementById("stat-trend-5");
+        if (trend5) trend5.textContent = `${score5}/100`;
+        const bar5 = document.getElementById("stat-bar-5");
+        if (bar5) bar5.style.width = `${Math.min(100, Math.max(10, score5))}%`;
 
         // Active Connection Bar & Roaming Advisor
         const conn = state.interface;
@@ -915,8 +1031,6 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("conn-ch").textContent = `Ch ${conn.channel || '?'}`;
             document.getElementById("conn-sig").textContent = `${conn.rssi ? conn.rssi + ' dBm' : (conn.signal ? conn.signal + '%' : '')}`;
             
-            // Check for Roaming / Band Steering opportunity:
-            // If connected to 2.4 GHz, see if there is an alternative AP broadcasting same SSID on 5 GHz
             let roamNotice = "";
             if (String(conn.band).includes("2.4")) {
                 const alt5g = (state.networks || []).find(n => n.ssid === conn.ssid && String(n.band).includes("5") && (n.signal_dbm || -100) > -75);
@@ -939,7 +1053,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let filtered = state.networks.filter(net => {
             if (state.filterBand !== "all" && !String(net.band).includes(state.filterBand)) return false;
-                        if (state.filterQuick && state.filterQuick !== "all") {
+            if (state.filterQuick && state.filterQuick !== "all") {
                 if (state.filterQuick === "connected" && !net.is_connected) return false;
                 if (state.filterQuick === "open") {
                     const auth = String(net.authentication || "").toLowerCase();
@@ -1104,9 +1218,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${estTp ? `<small style="display:block; font-size:0.72rem; color:#10b981; font-weight:600;">~${estTp}</small>` : ''}
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.inspectAP('${net.bssid}')">
-                            ${isVi ? 'Chi Tiết' : 'Details'}
-                        </button>
+                        <div style="display:flex; gap:5px; align-items:center;">
+                            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.inspectAP('${net.bssid}')">
+                                ${isVi ? 'Chi Tiết' : 'Details'}
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.openDeviceFinder('${net.bssid}')" title="${isVi ? 'Dò hướng tín hiệu vật lý của trạm phát này' : 'Track directional signal for this AP'}" style="border-color:rgba(14,165,233,0.4); color:#38bdf8;">
+                                🎯
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -1209,6 +1328,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             <button class="btn btn-sm btn-secondary" onclick="window.inspectAP('${m.bssid}')">
                                 ${isVi ? 'Chi Tiết' : 'Details'}
                             </button>
+                            <button class="btn btn-sm btn-secondary" onclick="window.openDeviceFinder('${m.bssid}')" title="Dò hướng tín hiệu">
+                                🎯
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -1269,6 +1391,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const nf = net.noise_floor_dbm !== undefined ? net.noise_floor_dbm : -95;
 
         body.innerHTML = `
+            <div style="margin-bottom: 12px;">
+                <button class="btn btn-primary btn-sm" style="width: 100%; justify-content: center;" onclick="window.openDeviceFinder('${net.bssid}')">
+                    🎯 ${isVi ? 'Dò Hướng & Định Vị Vật Lý Trạm Phát Này (Device Finder)' : 'Track Directional Signal for This AP (Device Finder)'}
+                </button>
+            </div>
             <div class="drawer-field">
                 <div class="drawer-field-label">${isVi ? 'Tên Mạng (SSID)' : 'Network Name (SSID)'}</div>
                 <div class="drawer-field-val">${escapeHtml(net.ssid)}</div>
@@ -1374,11 +1501,191 @@ document.addEventListener("DOMContentLoaded", () => {
         apDrawer.classList.remove("hidden");
     };
 
-    // Render Channel Matrix Grid & Bonding Blocks
+    // --- MODULE: Oscium Device Finder (Directional AP Signal Tracker) ---
+    window.openDeviceFinder = function(bssid) {
+        const modal = document.getElementById("device-finder-modal");
+        if (!modal) return;
+        state.deviceFinder.open = true;
+
+        const nets = state.networks || [];
+        let target = bssid;
+        if (!target && nets.length > 0) {
+            const connNet = nets.find(n => n.is_connected);
+            target = connNet ? connNet.bssid : nets[0].bssid;
+        }
+
+        if (target && target !== state.deviceFinder.targetBssid) {
+            state.deviceFinder.targetBssid = target;
+            state.deviceFinder.peakDbm = -100;
+            state.deviceFinder.minDbm = 0;
+            state.deviceFinder.history = [];
+        }
+
+        modal.classList.remove("hidden");
+        updateDeviceFinderModal();
+        safeCreateIcons();
+    };
+
+    window.closeDeviceFinder = function() {
+        state.deviceFinder.open = false;
+        const modal = document.getElementById("device-finder-modal");
+        if (modal) modal.classList.add("hidden");
+    };
+
+    window.changeDeviceFinderTarget = function(bssid) {
+        state.deviceFinder.targetBssid = bssid;
+        state.deviceFinder.peakDbm = -100;
+        state.deviceFinder.minDbm = 0;
+        state.deviceFinder.history = [];
+        updateDeviceFinderModal();
+    };
+
+    window.resetDeviceFinderPeak = function() {
+        state.deviceFinder.peakDbm = -100;
+        state.deviceFinder.minDbm = 0;
+        state.deviceFinder.history = [];
+        updateDeviceFinderModal();
+    };
+
+    function updateDeviceFinderModal() {
+        if (!state.deviceFinder.open) return;
+        const isVi = state.currentLang === "vi";
+        const nets = state.networks || [];
+        const selectEl = document.getElementById("df-target-select");
+
+        if (selectEl && nets.length > 0) {
+            const curTarget = state.deviceFinder.targetBssid || nets[0].bssid;
+            selectEl.innerHTML = nets.map(n => {
+                const name = n.is_hidden && n.decloaked_ssid ? n.decloaked_ssid : (n.ssid || "[Hidden]");
+                const sel = n.bssid === curTarget ? "selected" : "";
+                return `<option value="${n.bssid}" ${sel}>${escapeHtml(name)} (${n.bssid}) — Ch ${n.channel} [${n.signal_dbm} dBm]</option>`;
+            }).join("");
+            if (!state.deviceFinder.targetBssid) {
+                state.deviceFinder.targetBssid = curTarget;
+            }
+        }
+
+        const net = nets.find(n => n.bssid === state.deviceFinder.targetBssid) || nets[0];
+        if (!net) return;
+
+        const dbm = Number(net.signal_dbm ?? -95);
+        if (dbm > state.deviceFinder.peakDbm) state.deviceFinder.peakDbm = dbm;
+        if (state.deviceFinder.minDbm === 0 || dbm < state.deviceFinder.minDbm) state.deviceFinder.minDbm = dbm;
+
+        const prevDbm = state.deviceFinder.history.length > 0
+            ? state.deviceFinder.history[state.deviceFinder.history.length - 1]
+            : dbm;
+
+        state.deviceFinder.history.push(dbm);
+        if (state.deviceFinder.history.length > 40) state.deviceFinder.history.shift();
+
+        // Proximity percentage (-92 dBm = 0%, -32 dBm = 100%)
+        const proxPct = Math.max(2, Math.min(100, Math.round(((dbm - (-92)) / 60) * 100)));
+        // Free-Space & Indoor Path Loss distance estimation
+        const freqMhz = Number(net.frequency_mhz || (Number(net.channel) > 14 ? 5200 : 2437));
+        const txPower = 20.0;
+        const fspl1m = 20 * Math.log10(freqMhz) - 27.55;
+        const pathLossExp = freqMhz > 5000 ? 3.0 : 2.7;
+        const estDistM = Math.max(0.3, Math.min(80.0, Math.pow(10, (txPower - dbm - fspl1m) / (10 * pathLossExp)))).toFixed(1);
+
+        const metaEl = document.getElementById("df-target-meta");
+        if (metaEl) {
+            metaEl.textContent = `SSID: ${net.ssid || '[Hidden]'} | BSSID: ${net.bssid} | ${net.band} Ch ${net.channel} | Vendor: ${net.vendor || 'Unknown'}`;
+        }
+
+        const rssiEl = document.getElementById("df-current-rssi");
+        if (rssiEl) {
+            rssiEl.textContent = `${dbm} dBm`;
+            rssiEl.style.color = dbm >= -55 ? "#10b981" : (dbm >= -70 ? "#38bdf8" : (dbm >= -80 ? "#f59e0b" : "#ef4444"));
+        }
+
+        const barEl = document.getElementById("df-proximity-bar");
+        if (barEl) barEl.style.width = `${proxPct}%`;
+
+        const proxLabel = document.getElementById("df-proximity-label");
+        if (proxLabel) {
+            proxLabel.textContent = isVi
+                ? `Mức độ tiệm cận: ${proxPct}% (${proxPct >= 80 ? 'Rất gần trạm phát!' : (proxPct >= 55 ? 'Khoảng cách trung bình' : 'Ở xa / Khuất tường')})`
+                : `Proximity: ${proxPct}% (${proxPct >= 80 ? 'Very Close to AP!' : (proxPct >= 55 ? 'Moderate Distance' : 'Far / Behind Obstacles')})`;
+        }
+
+        const trendLabel = document.getElementById("df-trend-label");
+        if (trendLabel) {
+            const diff = dbm - prevDbm;
+            if (diff >= 2) {
+                trendLabel.textContent = isVi ? `▲ Sóng tăng +${diff} dB (Đang tiến lại gần AP)` : `▲ Signal +${diff} dB (Moving Closer)`;
+                trendLabel.style.color = "#10b981";
+            } else if (diff <= -2) {
+                trendLabel.textContent = isVi ? `▼ Sóng giảm ${diff} dB (Đang đi ra xa / Bị chắn)` : `▼ Signal ${diff} dB (Moving Away)`;
+                trendLabel.style.color = "#ef4444";
+            } else {
+                trendLabel.textContent = isVi ? `● Mức sóng ổn định (Giữ hướng di chuyển để dò đỉnh sóng)` : `● Signal steady (Move slowly to locate peak)`;
+                trendLabel.style.color = "#38bdf8";
+            }
+        }
+
+        const peakEl = document.getElementById("df-peak-rssi");
+        if (peakEl) peakEl.textContent = `${state.deviceFinder.peakDbm} dBm`;
+
+        const minEl = document.getElementById("df-min-rssi");
+        if (minEl) minEl.textContent = `${state.deviceFinder.minDbm} dBm`;
+
+        const distEl = document.getElementById("df-est-distance");
+        if (distEl) distEl.textContent = `~${estDistM} m`;
+
+        // Draw Device Finder Sparkline
+        const dfCanvas = document.getElementById("canvas-device-finder");
+        if (dfCanvas) {
+            const ctx = dfCanvas.getContext("2d");
+            const cw = dfCanvas.width;
+            const ch = dfCanvas.height;
+            ctx.fillStyle = "#060b16";
+            ctx.fillRect(0, 0, cw, ch);
+
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.14)";
+            ctx.lineWidth = 1;
+            for (let d = -40; d >= -90; d -= 15) {
+                const y = 14 + ((d - (-30)) / (-95 - (-30))) * (ch - 28);
+                ctx.beginPath();
+                ctx.moveTo(36, y);
+                ctx.lineTo(cw - 12, y);
+                ctx.stroke();
+                ctx.fillStyle = "#64748b";
+                ctx.font = "10px monospace";
+                ctx.textAlign = "right";
+                ctx.fillText(`${d}`, 32, y + 3);
+            }
+
+            const pts = state.deviceFinder.history;
+            if (pts.length > 0) {
+                ctx.beginPath();
+                pts.forEach((val, idx) => {
+                    const x = 36 + (idx / Math.max(1, 39)) * (cw - 48);
+                    const y = 14 + ((Math.max(-95, Math.min(-30, val)) - (-30)) / (-95 - (-30))) * (ch - 28);
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = "#0ea5e9";
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                const lastVal = pts[pts.length - 1];
+                const lx = 36 + ((pts.length - 1) / Math.max(1, 39)) * (cw - 48);
+                const ly = 14 + ((Math.max(-95, Math.min(-30, lastVal)) - (-30)) / (-95 - (-30))) * (ch - 28);
+                ctx.beginPath();
+                ctx.arc(lx, ly, 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = "#10b981";
+                ctx.fill();
+            }
+        }
+    }
+
+    // Render Channel Matrix Grid, Bonding Blocks & Oscium 4-Layer Checklist
     function renderOptimizerChannels() {
         if (!state.analysis) return;
         const ev24 = state.analysis.evaluation_24ghz;
         const ev5 = state.analysis.evaluation_5ghz;
+        const ev6 = state.analysis.evaluation_6ghz;
 
         const grid24 = document.getElementById("grid-channels-24");
         const isVi = state.currentLang === "vi";
@@ -1441,6 +1748,72 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }).join("");
 
+        // Render Oscium 6-Point All-in-One Troubleshooting Checklist & Non-Wi-Fi Signatures
+        const checklistEl = document.getElementById("oscium-checklist-grid");
+        const tsSuite = state.analysis.troubleshooting_suite;
+        if (tsSuite) {
+            const hsBadge = document.getElementById("oscium-health-score-badge");
+            if (hsBadge) {
+                const hScore = tsSuite.health_score !== undefined ? tsSuite.health_score : (state.analysis.global_score || 85);
+                hsBadge.textContent = isVi ? `Sức Khỏe Mạng: ${hScore} / 100` : `Network Health: ${hScore} / 100`;
+                hsBadge.style.color = hScore >= 80 ? "#10b981" : (hScore >= 60 ? "#f59e0b" : "#ef4444");
+                hsBadge.style.borderColor = hsBadge.style.color;
+                hsBadge.style.background = hScore >= 80 ? "rgba(16, 185, 129, 0.15)" : (hScore >= 60 ? "rgba(245, 158, 11, 0.15)" : "rgba(239, 68, 68, 0.15)");
+            }
+        }
+
+        if (checklistEl && tsSuite && tsSuite.checklist) {
+            checklistEl.innerHTML = tsSuite.checklist.map(item => {
+                const status = item.status || "PASS";
+                const sevClass = status === "PASS" ? "severity-ok" : (status === "WARNING" ? "severity-warn" : "severity-crit");
+                const badgeBg = status === "PASS" ? "#10b981" : (status === "WARNING" ? "#f59e0b" : "#ef4444");
+                const statusText = status === "PASS" ? (isVi ? "ĐẠT CHUẨN" : "PASS") : (status === "WARNING" ? (isVi ? "CẢNH BÁO" : "WARNING") : (isVi ? "NGHIÊM TRỌNG" : "CRITICAL"));
+                const title = isVi ? (item.category_vi || item.layer_vi) : (item.category_en || item.layer_en);
+                const desc = isVi ? (item.summary_vi || item.detail_vi) : (item.summary_en || item.detail_en);
+                const remed = isVi ? item.remediation_vi : (item.remediation_en || item.remediation_vi);
+
+                return `
+                    <div class="oscium-diag-card ${sevClass}">
+                        <div class="oscium-diag-header">
+                            <span class="oscium-diag-title">${escapeHtml(title)}</span>
+                            <span class="badge" style="background:${badgeBg}; color:#fff;">${statusText}</span>
+                        </div>
+                        <div class="oscium-diag-metric">${escapeHtml(item.metric || "")}</div>
+                        <div class="oscium-diag-desc">${escapeHtml(desc || "")}</div>
+                        ${remed ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #38bdf8; font-weight: 600;">💡 ${escapeHtml(remed)}</div>` : ''}
+                    </div>
+                `;
+            }).join("");
+        }
+
+        const nonWifiEl = document.getElementById("oscium-non-wifi-grid");
+        if (nonWifiEl && tsSuite && tsSuite.non_wifi_interferers) {
+            nonWifiEl.innerHTML = tsSuite.non_wifi_interferers.map(nw => {
+                const isDet = nw.detected;
+                const cardBorder = isDet ? (nw.severity === "WARNING" ? "#f59e0b" : "#0ea5e9") : "var(--border-color)";
+                const badgeColor = isDet ? (nw.severity === "WARNING" ? "#f59e0b" : "#0ea5e9") : "#10b981";
+                const badgeText = isDet ? (isVi ? "PHÁT HIỆN" : "ACTIVE") : (isVi ? "KHÔNG CÓ" : "CLEAR");
+
+                return `
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${cardBorder}; border-radius: 6px; padding: 10px 12px; font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-weight: 700; color: #f8fafc;">${escapeHtml(isVi ? nw.name_vi : nw.name_en)}</span>
+                            <span class="badge" style="background: ${badgeColor}; color: #fff; font-size: 0.7rem; padding: 2px 6px;">${badgeText}</span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 3px;">
+                            <span>${escapeHtml(nw.band)} &bull; ${escapeHtml(nw.freq_range)}</span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 0.76rem; line-height: 1.4; margin-bottom: 4px;">
+                            ${escapeHtml(isVi ? nw.impact_vi : nw.impact_en)}
+                        </div>
+                        <div style="color: #38bdf8; font-size: 0.74rem; font-weight: 600;">
+                            🛠️ ${escapeHtml(isVi ? nw.remediation_vi : (nw.remediation_en || nw.remediation_vi))}
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
         const auditBox = document.getElementById("roaming-airtime-audit-box");
         if (auditBox) {
             const at = state.analysis.airtime_breakdown || {};
@@ -1475,7 +1848,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }
 
-        updateRationaleDisplay(ev24, ev5);
+        updateRationaleDisplay(ev24, ev5, ev6);
     }
 
     // Trigger Full Auto-Pick
@@ -1498,6 +1871,7 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const p24 = data.recommendations.band_24ghz;
             const p5 = data.recommendations.band_5ghz;
+            const p6 = data.recommendations.band_6ghz;
 
             const r24 = (isVi ? p24.reasons_vi : p24.reasons_en) || p24.reasons || [];
             const r5 = (isVi ? p5.reasons_vi : p5.reasons_en) || p5.reasons || [];
@@ -1520,10 +1894,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             `;
 
+            const block6Html = p6
+                ? `<p style="margin-top:6px; color:#38bdf8;"><b>${isVi ? 'Dải 6 GHz (Wi-Fi 6E/7):' : '6 GHz Band (Wi-Fi 6E/7):'}</b> PSC Ch ${p6.picked_psc_channel} &bull; ${p6.recommended_160mhz_block}</p>`
+                : "";
+
             document.getElementById("rationale-5ghz-content").innerHTML = `
                 <p><b>${isVi ? 'Kênh Được Chọn:' : 'Selected Channel:'}</b> <span class="text-accent" style="font-size:1.1rem; font-weight:800;">${chLabel} ${p5.picked_channel}</span> (${ratingLabel}: <b>${p5.score}/100</b>)</p>
                 <p><b>${blockLabel}</b> ${p5.recommended_80mhz_block} (${isVi ? 'Các kênh:' : 'Channels:'} ${p5.recommended_80mhz_channels.join(', ')})</p>
                 <p><b>${bondLabel}</b> ${p5.channel_width}</p>
+                ${block6Html}
                 <div style="margin-top:8px;">
                     <b>${diagLabel}</b>
                     <ul style="margin-top:4px; padding-left:18px;">
@@ -1546,10 +1925,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function updateRationaleDisplay(ev24, ev5) {
+    function updateRationaleDisplay(ev24, ev5, ev6) {
         if (!ev24 || !ev5) return;
         const lang = state.rationaleLang || state.currentLang || "vi";
         const isVi = lang === "vi";
+        const eval6 = ev6 || state.analysis?.evaluation_6ghz;
 
         const list24 = (isVi ? ev24.reasons_breakdown_vi : ev24.reasons_breakdown_en) || ev24.reasons_breakdown || [];
         const list5 = (isVi ? ev5.reasons_breakdown_vi : ev5.reasons_breakdown_en) || ev5.reasons_breakdown || [];
@@ -1570,12 +1950,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const title5 = isVi ? "Kênh 5 GHz Tối Ưu:" : "Optimal 5 GHz Channel:";
         const blockLabel = isVi ? "Khối 80MHz Sạch Nhất:" : "Cleanest 80MHz Block:";
+        const info6Html = eval6
+            ? `<p style="margin-top:4px; color:#38bdf8;"><b>${isVi ? 'Khuyến nghị 6 GHz UNII-5:' : '6 GHz UNII-5 Recommendation:'}</b> PSC Ch ${eval6.recommended_channel} (${eval6.recommended_160mhz_block})</p>`
+            : "";
 
         const content5El = document.getElementById("rationale-5ghz-content");
         if (content5El) {
             content5El.innerHTML = `
                 <p><b>${title5}</b> <span class="text-accent" style="font-weight:700;">${chLabel} ${ev5.recommended_channel}</span> (${ratingLabel}: <b>${ev5.recommended_score}/100</b>)</p>
                 <p style="margin-top:4px;"><b>${blockLabel}</b> ${ev5.recommended_80mhz_block} (${ev5.best_80mhz_block?.avg_score ?? '--'}/100)</p>
+                ${info6Html}
                 <ul style="margin-top:6px; padding-left:18px;">
                     ${list5.map(r => `<li>${r}</li>`).join("")}
                 </ul>
@@ -1688,8 +2072,40 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     }
 
+    // Render Oscium Wi-Spy + Chanalyzer Spectrum Classifiers
+    function renderOsciumSpectrumClassifiers() {
+        const gridEl = document.getElementById("oscium-spectrum-classifier-grid");
+        if (!gridEl || !state.analysis) return;
+        const tsSuite = state.analysis.troubleshooting_suite;
+        if (!tsSuite || !tsSuite.spectrum_classifiers) return;
+
+        const isVi = state.currentLang === "vi";
+        gridEl.innerHTML = tsSuite.spectrum_classifiers.map(c => {
+            const sev = c.severity || "PASS";
+            const sevClass = (sev === "PASS" || sev === "OK" || sev === "INFO") ? "severity-ok" : (sev === "WARNING" ? "severity-warn" : "severity-crit");
+            const badgeBg = (sev === "PASS" || sev === "OK") ? "#10b981" : (sev === "INFO" ? "#0ea5e9" : (sev === "WARNING" ? "#f59e0b" : "#ef4444"));
+            const title = isVi ? (c.title_vi || c.title_en) : (c.title_en || c.title_vi);
+            const desc = isVi ? (c.detail_vi || c.diagnosis_vi || "") : (c.detail_en || c.diagnosis_en || "");
+            const action = isVi ? c.action_vi : (c.action_en || c.action_vi);
+
+            return `
+                <div class="oscium-diag-card ${sevClass}">
+                    <div class="oscium-diag-header">
+                        <span class="oscium-diag-title">${escapeHtml(title)}</span>
+                        <span class="badge" style="background:${badgeBg}; color:#fff;">${escapeHtml(c.band || "RF")}</span>
+                    </div>
+                    <div class="oscium-diag-desc">${escapeHtml(desc)}</div>
+                    ${action ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #38bdf8; font-weight: 600;">🛠️ ${escapeHtml(action)}</div>` : ''}
+                </div>
+            `;
+        }).join("");
+    }
+
     // DRAW RF SPECTRUM BELL-CURVES, CONTINUOUS SIGNAL GRAPH & WATERFALL
     function drawSpectrumGraphs() {
+        try {
+            renderOsciumSpectrumClassifiers();
+        } catch (e) {}
         try {
             drawSpectrum24();
         } catch (e) {
@@ -2377,20 +2793,21 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/'/g, "&#039;");
     }
 
-    // --- MODULE: VoWiFi & ITU-T G.107 MOS Score ---
+    // --- MODULE: VoWiFi & ITU-T G.107 MOS Score + Multi-Hop Path Audit ---
     window.runVoWifiTest = async function() {
         const btn = document.getElementById("btn-run-vowifi");
         const targetSelect = document.getElementById("vowifi-target-select");
         const target = targetSelect ? targetSelect.value : "8.8.8.8";
+        const isVi = state.currentLang === "vi";
 
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<div class="spinner mini"></div> Đang Đo VoWiFi...`;
+            btn.innerHTML = `<div class="spinner mini"></div> ${isVi ? 'Đang Đo VoWiFi...' : 'Measuring VoWiFi...'}`;
         }
 
         try {
             const res = await fetch(`/api/vowifi-mos?target=${encodeURIComponent(target)}&count=5`);
-            if (!res.ok) throw new Error("Không thể kết nối đo mạng");
+            if (!res.ok) throw new Error(isVi ? "Không thể kết nối đo mạng" : "Failed to run VoWiFi test");
             const data = await res.json();
             state.vowifiTested = true;
 
@@ -2407,7 +2824,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (jitterEl) jitterEl.textContent = `${data.jitter_ms} ms`;
             if (lossEl) lossEl.textContent = `${data.packet_loss_pct} %`;
 
-            if (titleEl) titleEl.textContent = `Chất Lượng Cuộc Gọi: ${data.rating}`;
+            if (titleEl) titleEl.textContent = `${isVi ? 'Chất Lượng Cuộc Gọi:' : 'Call Quality:'} ${data.rating}`;
             if (badgeEl) {
                 badgeEl.textContent = `MOS: ${data.mos_score}`;
                 if (data.mos_score >= 4.0) badgeEl.style.backgroundColor = "var(--success)";
@@ -2415,6 +2832,36 @@ document.addEventListener("DOMContentLoaded", () => {
                 else badgeEl.style.backgroundColor = "var(--danger)";
             }
             if (verdictEl) verdictEl.textContent = data.verdict;
+
+            // Populate Multi-Hop Latency Check strip
+            const hopGwVal = document.getElementById("hop-gateway-val");
+            const hopGwIp = document.getElementById("hop-gateway-ip");
+            const hopWanVal = document.getElementById("hop-wan-val");
+            const hopWanTarget = document.getElementById("hop-wan-target");
+            const hopDnsVal = document.getElementById("hop-dns-val");
+            const pathText = document.getElementById("vowifi-path-text");
+
+            if (hopGwVal) {
+                hopGwVal.textContent = data.gateway_latency_ms !== undefined ? `${data.gateway_latency_ms} ms` : "-- ms";
+                hopGwVal.style.color = (data.gateway_latency_ms || 0) <= 8 ? "#10b981" : ((data.gateway_latency_ms || 0) <= 20 ? "#f59e0b" : "#ef4444");
+            }
+            if (hopGwIp) {
+                hopGwIp.textContent = `Gateway IP: ${data.gateway_ip || "192.168.1.1"}`;
+            }
+            if (hopWanVal) {
+                hopWanVal.textContent = `${data.latency_avg_ms} ms`;
+                hopWanVal.style.color = data.latency_avg_ms <= 50 ? "#10b981" : (data.latency_avg_ms <= 120 ? "#f59e0b" : "#ef4444");
+            }
+            if (hopWanTarget) {
+                hopWanTarget.textContent = `Target: ${data.target || target} (Loss ${data.packet_loss_pct}%)`;
+            }
+            if (hopDnsVal) {
+                hopDnsVal.textContent = data.dns_latency_ms !== undefined ? `${data.dns_latency_ms} ms` : "-- ms";
+                hopDnsVal.style.color = (data.dns_latency_ms || 0) <= 45 ? "#10b981" : "#f59e0b";
+            }
+            if (pathText && data.path_diagnosis_vi) {
+                pathText.textContent = data.path_diagnosis_vi;
+            }
 
             const codecsList = document.getElementById("vowifi-codecs-list");
             if (codecsList && data.supported_codecs) {
@@ -2427,17 +2874,17 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (e) {
             console.error("VoWiFi test error:", e);
-            alert("Lỗi khi kiểm tra VoWiFi: " + e.message);
+            alert((isVi ? "Lỗi khi kiểm tra VoWiFi: " : "VoWiFi test error: ") + e.message);
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="play"></i> Đo Chất Lượng Ngay`;
+                btn.innerHTML = `<i data-lucide="play"></i> ${isVi ? 'Đo Chất Lượng Ngay' : 'Run Quality Test'}`;
                 safeCreateIcons();
             }
         }
     };
 
-    // --- MODULE: Interactive Floorplan & RF Heatmap Simulator (Sweet Home 3D + SketchUp UX) ---
+    // --- MODULE: Interactive Floorplan & RF Heatmap Simulator (Ekahau + Sweet Home 3D + SketchUp UX) ---
     const MATERIAL_DB_LOSS = {
         brick: 6.0,
         concrete: 12.0,
@@ -2456,6 +2903,205 @@ document.addEventListener("DOMContentLoaded", () => {
         metal: { vi: "Lõi thang máy / Tủ sắt", en: "Elevator / Metal" }
     };
 
+    function updateEkahauKpiStrip(hm) {
+        const isVi = state.currentLang === "vi";
+        const covEl = document.getElementById("ekahau-kpi-coverage");
+        const covTargetEl = document.getElementById("ekahau-kpi-coverage-target");
+        const roamEl = document.getElementById("ekahau-kpi-roaming");
+        const roamTargetEl = document.getElementById("ekahau-kpi-roaming-target");
+        const snrEl = document.getElementById("ekahau-kpi-snr");
+        const snrTargetEl = document.getElementById("ekahau-kpi-snr-target");
+        const tputEl = document.getElementById("ekahau-kpi-tput");
+        const capEl = document.getElementById("ekahau-kpi-capacity");
+        const slaEl = document.getElementById("ekahau-kpi-sla");
+        const confEl = document.getElementById("ekahau-kpi-conflict");
+
+        if (!hm) {
+            if (covEl) covEl.textContent = "--%";
+            if (roamEl) roamEl.textContent = "--%";
+            if (snrEl) snrEl.textContent = "-- dB";
+            if (tputEl) tputEl.textContent = "-- Mbps";
+            if (capEl) capEl.textContent = isVi ? "Sức chứa: -- thiết bị" : "Capacity: -- clients";
+            if (slaEl) {
+                slaEl.textContent = isVi ? "CHỜ TÍNH TOÁN" : "PENDING";
+                slaEl.style.color = "#cbd5e1";
+            }
+            if (confEl) confEl.textContent = isVi ? "Tranh chấp kênh: --%" : "Channel conflict: --%";
+            return;
+        }
+
+        const targets = hm.sla_targets || { min_primary_dbm: -65, min_secondary_dbm: -72, min_snr_db: 20 };
+        if (covEl) {
+            covEl.textContent = `${hm.coverage_pct !== undefined ? hm.coverage_pct : 0}%`;
+            covEl.style.color = (hm.coverage_pct || 0) >= 90 ? "#10b981" : "#f59e0b";
+        }
+        if (covTargetEl) covTargetEl.textContent = `Target ≥ ${targets.min_primary_dbm} dBm`;
+
+        if (roamEl) {
+            roamEl.textContent = `${hm.roaming_redundancy_pct !== undefined ? hm.roaming_redundancy_pct : 0}%`;
+            roamEl.style.color = (hm.roaming_redundancy_pct || 0) >= 65 ? "#38bdf8" : "#94a3b8";
+        }
+        if (roamTargetEl) roamTargetEl.textContent = `2nd AP ≥ ${targets.min_secondary_dbm} dBm`;
+
+        if (snrEl) {
+            snrEl.textContent = `${hm.avg_snr_db !== undefined ? hm.avg_snr_db : 0} dB`;
+        }
+        if (snrTargetEl) snrTargetEl.textContent = `Target ≥ ${targets.min_snr_db} dB`;
+
+        if (tputEl) {
+            tputEl.textContent = `${hm.avg_throughput_mbps || 0} Mbps (Peak ${hm.peak_throughput_mbps || 0})`;
+        }
+        if (capEl) {
+            capEl.textContent = isVi
+                ? `Sức chứa tối đa: ~${hm.capacity_max_clients || 0} thiết bị`
+                : `Max capacity: ~${hm.capacity_max_clients || 0} clients`;
+        }
+        if (slaEl) {
+            const passed = Boolean(hm.sla_pass);
+            slaEl.textContent = passed ? (isVi ? "ĐẠT CHUẨN SLA ✓" : "SLA PASS ✓") : (isVi ? "CHƯA ĐẠT SLA ⚠" : "SLA WARNING ⚠");
+            slaEl.style.color = passed ? "#10b981" : "#f59e0b";
+        }
+        if (confEl) {
+            confEl.textContent = isVi
+                ? `Tranh chấp kênh: ${hm.channel_conflict_pct || 0}%`
+                : `Channel conflict: ${hm.channel_conflict_pct || 0}%`;
+        }
+    }
+
+    function updateHeatmapLegendBanner() {
+        const legend = document.getElementById("planner-dynamic-legend");
+        if (!legend) return;
+        const mode = state.planner.heatmapMode || "primary_rssi";
+        const isVi = state.currentLang === "vi";
+
+        if (mode === "primary_rssi" || mode === "secondary_rssi") {
+            const title = mode === "primary_rssi"
+                ? (isVi ? "Cường Độ Sóng Chính (Primary RSSI):" : "Primary Signal (RSSI):")
+                : (isVi ? "Vùng Chuyển Vùng AP Phụ (Secondary RSSI):" : "Secondary Roaming Signal:");
+            legend.innerHTML = `
+                <strong style="color:#38bdf8;">${title}</strong>
+                <span><i class="dot" style="background:#10b981;"></i> &ge; -50 dBm (${isVi ? 'Rất mạnh' : 'Excellent'})</span>
+                <span><i class="dot" style="background:#eab308;"></i> -65 dBm (${isVi ? 'Chuẩn VoWiFi' : 'VoWiFi SLA'})</span>
+                <span><i class="dot" style="background:#f97316;"></i> -75 dBm (${isVi ? 'Yếu' : 'Weak'})</span>
+                <span><i class="dot" style="background:#ef4444;"></i> &lt; -80 dBm (${isVi ? 'Điểm mù' : 'Dead zone'})</span>
+            `;
+        } else if (mode === "snr") {
+            legend.innerHTML = `
+                <strong style="color:#a78bfa;">${isVi ? 'Tỷ Số Tín Hiệu / Nhiễu (SNR dB):' : 'Signal-to-Noise Ratio (SNR dB):'}</strong>
+                <span><i class="dot" style="background:#10b981;"></i> &ge; 35 dB (Wi-Fi 6/7 QAM-1024)</span>
+                <span><i class="dot" style="background:#38bdf8;"></i> 25 - 34 dB (${isVi ? 'Tốt / Chuẩn Voice' : 'Good / Voice SLA'})</span>
+                <span><i class="dot" style="background:#f59e0b;"></i> 15 - 24 dB (${isVi ? 'Trung bình' : 'Moderate'})</span>
+                <span><i class="dot" style="background:#ef4444;"></i> &lt; 15 dB (${isVi ? 'Nhiễu cao' : 'Low SNR'})</span>
+            `;
+        } else if (mode === "interference") {
+            legend.innerHTML = `
+                <strong style="color:#f43f5e;">${isVi ? 'Mức Độ Tranh Chấp Đồng Kênh (SIR / Contention):' : 'Channel Interference / Contention:'}</strong>
+                <span><i class="dot" style="background:#10b981;"></i> 0 dB (${isVi ? 'Sạch / Không đè kênh' : 'Clean / No conflict'})</span>
+                <span><i class="dot" style="background:#eab308;"></i> 1 - 2 AP (${isVi ? 'Can nhiễu nhẹ' : 'Mild contention'})</span>
+                <span><i class="dot" style="background:#ef4444;"></i> &ge; 2 AP đè kênh (${isVi ? 'Nghẽn Co-Channel' : 'High CCI conflict'})</span>
+            `;
+        } else if (mode === "throughput") {
+            legend.innerHTML = `
+                <strong style="color:#10b981;">${isVi ? 'Tốc Độ Dữ Liệu Ước Tính (PHY Data Rate):' : 'Estimated PHY Data Rate (Mbps):'}</strong>
+                <span><i class="dot" style="background:#10b981;"></i> &ge; 600 Mbps (${isVi ? 'Tốc độ Gigabit' : 'Gigabit MCS'})</span>
+                <span><i class="dot" style="background:#38bdf8;"></i> 250 - 599 Mbps (${isVi ? 'Cao / 4K Stream' : 'High Throughput'})</span>
+                <span><i class="dot" style="background:#eab308;"></i> 60 - 249 Mbps (${isVi ? 'Đủ dùng chuẩn HD' : 'Standard Data'})</span>
+                <span><i class="dot" style="background:#ef4444;"></i> &lt; 60 Mbps (${isVi ? ' Nghẽn / Chậm' : 'Low Rate'})</span>
+            `;
+        }
+    }
+
+    window.setHeatmapVisualizationMode = function(mode) {
+        state.planner.heatmapMode = mode || "primary_rssi";
+        document.querySelectorAll(".ekahau-mode-btn").forEach(btn => {
+            const m = btn.getAttribute("data-hm-mode") || btn.id.replace("btn-hm-mode-", "");
+            if (m === state.planner.heatmapMode) btn.classList.add("active");
+            else btn.classList.remove("active");
+        });
+        updateHeatmapLegendBanner();
+        drawFloorplanHeatmap();
+    };
+
+    window.updateSlaCutoff = function(val) {
+        state.planner.slaCutoff = parseFloat(val) || -65.0;
+        const valEl = document.getElementById("ekahau-sla-cutoff-val");
+        if (valEl) valEl.textContent = `${state.planner.slaCutoff} dBm`;
+        drawFloorplanHeatmap();
+    };
+
+    window.updateApTxPower = function(val) {
+        state.planner.txPowerDbm = parseFloat(val) || 20.0;
+        if (state.planner.aps && state.planner.aps.length > 0) {
+            window.recalculateCurrentAPHeatmap();
+        }
+    };
+
+    window.updateApAntenna = function(val) {
+        state.planner.antennaDbi = parseFloat(val) || 3.0;
+        if (state.planner.aps && state.planner.aps.length > 0) {
+            window.recalculateCurrentAPHeatmap();
+        }
+    };
+
+    window.changePlannerSlaProfile = function(profile) {
+        state.planner.slaProfile = profile || "office";
+        if (state.planner.aps && state.planner.aps.length > 0) {
+            window.recalculateCurrentAPHeatmap();
+        } else {
+            drawFloorplanHeatmap();
+        }
+    };
+
+    window.importScannedAPsToFloorplan = function() {
+        const isVi = state.currentLang === "vi";
+        const networks = state.networks || [];
+        if (networks.length === 0) {
+            alert(isVi ? "Chưa có dữ liệu quét thực tế để nạp lên bản vẽ." : "No scanned networks available to import.");
+            return;
+        }
+        // Pick up to 4 strongest unique SSID/BSSID clusters to place onto floorplan
+        const sorted = [...networks].sort((a, b) => (parseInt(b.signal) || 0) - (parseInt(a.signal) || 0));
+        const picked = [];
+        const usedKeys = new Set();
+        for (const net of sorted) {
+            const key = net.ssid || net.bssid;
+            if (!usedKeys.has(key)) {
+                usedKeys.add(key);
+                picked.push(net);
+            }
+            if (picked.length >= 4) break;
+        }
+
+        const W = state.planner.width_m || 12.0;
+        const H = state.planner.height_m || 8.0;
+        const positions = [
+            { x: +(W * 0.25).toFixed(1), y: +(H * 0.35).toFixed(1) },
+            { x: +(W * 0.75).toFixed(1), y: +(H * 0.65).toFixed(1) },
+            { x: +(W * 0.25).toFixed(1), y: +(H * 0.70).toFixed(1) },
+            { x: +(W * 0.75).toFixed(1), y: +(H * 0.30).toFixed(1) }
+        ];
+
+        state.planner.aps = picked.map((net, idx) => {
+            const ch = parseInt(net.channel) || 1;
+            const is5 = String(net.band || "").includes("5");
+            const is6 = String(net.band || "").includes("6");
+            return {
+                id: idx + 1,
+                name: `${(net.ssid || "AP").slice(0, 14)}`,
+                x: positions[idx % positions.length].x,
+                y: positions[idx % positions.length].y,
+                channel_24: (!is5 && !is6) ? ch : [1, 6, 11][idx % 3],
+                channel_5: is5 ? ch : [36, 52, 149, 161][idx % 4],
+                channel_6: is6 ? ch : [37, 69, 101, 133][idx % 4],
+                tx_power_dbm: 20.0,
+                role: net.vendor ? `${net.vendor.split(" ")[0]} AP` : "Scanned AP"
+            };
+        });
+
+        updateWallCountBadge();
+        window.recalculateCurrentAPHeatmap();
+    };
+
     function resetPlannerSummaryBox() {
         const isVi = state.currentLang === "vi";
         const badge = document.getElementById("planner-coverage-badge");
@@ -2467,6 +3113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (rationaleBox) {
             rationaleBox.innerHTML = `<span data-i18n="planner_placeholder">${I18N[state.currentLang]?.planner_placeholder || I18N.vi.planner_placeholder}</span>`;
         }
+        updateEkahauKpiStrip(null);
     }
 
     function cleanupOrphanRoomLabels() {
@@ -2525,7 +3172,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!tbody) return;
         const isVi = state.currentLang === "vi";
         const curUnit = state.planner.unit || "m";
-        const freqMult = (state.planner.freq_ghz || 2.4) >= 5.0 ? 1.25 : 1.0;
+        const curFreq = state.planner.freq_ghz || 2.4;
+        const freqMult = curFreq >= 6.0 ? 1.42 : (curFreq >= 5.0 ? 1.25 : 1.0);
 
         const hasWalls = state.planner.walls && state.planner.walls.length > 0;
         const hasAps = state.planner.aps && state.planner.aps.length > 0;
@@ -2540,7 +3188,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td style="padding:5px 8px; font-weight:700; color:#06b6d4;">📡 AP-${apIdx + 1}</td>
                 <td style="padding:5px 8px; font-weight:600;">${escapeHtml(ap.name || `AP-${apIdx + 1}`)} (${escapeHtml(ap.role || "Router")})</td>
                 <td style="padding:5px 8px; font-family:monospace;">(x=${ap.x}m, y=${ap.y}m)</td>
-                <td style="padding:5px 8px; font-weight:600;">Ch ${ap.channel_24 || 1} / Ch ${ap.channel_5 || 36}</td>
+                <td style="padding:5px 8px; font-weight:600;">Ch ${ap.channel_24 || 1} / ${ap.channel_5 || 36} / 6G:${ap.channel_6 || 37}</td>
                 <td style="padding:5px 8px; color:#10b981; font-weight:600;">+${ap.tx_power_dbm || 20} dBm TX</td>
                 <td style="padding:5px 8px; text-align:right;">
                     <button class="btn btn-sm btn-danger" style="padding:2px 6px; font-size:0.7rem; background:#dc2626; color:#fff;" onclick="event.stopPropagation(); window.deletePlacedAp(${apIdx});">${isVi ? 'Xóa AP' : 'Del AP'}</button>
@@ -2626,6 +3274,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })).filter(w => (w.x1 !== w.x2 || w.y1 !== w.y2));
 
             const curFreq = state.planner.freq_ghz || 2.4;
+            const curSla = state.planner.slaProfile || "office";
             const res = await fetch("/api/ai-planner/calculate-heatmap", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -2634,13 +3283,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     height_m: state.planner.height_m,
                     walls: cleanWalls,
                     aps: state.planner.aps,
-                    tx_power: 20.0,
-                    freq_ghz: curFreq
+                    tx_power: (parseFloat(state.planner.txPowerDbm) || 20.0) + (parseFloat(state.planner.antennaDbi) || 3.0) - 3.0,
+                    freq_ghz: curFreq,
+                    sla_profile: curSla
                 })
             });
             if (res.ok) {
                 const data = await res.json();
                 state.planner.heatmap = data;
+                updateEkahauKpiStrip(data);
                 const badge = document.getElementById("planner-coverage-badge");
                 const isVi = state.currentLang === "vi";
                 const covPct = data.coverage_pct !== undefined ? data.coverage_pct : 0;
@@ -2653,13 +3304,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     rationaleBox.innerHTML = `
                         <div style="margin-bottom:8px; font-weight:700; color:var(--text-primary);">
                             ${isVi
-                                ? `Kết quả mô phỏng trực tiếp: Đang bố trí <b>${state.planner.aps.length} Access Point</b> ở băng tần <b>${curFreq} GHz</b>, đạt độ phủ sóng <b>${covPct}%</b> diện tích (chuẩn ≥ -65 dBm).`
-                                : `Live Simulation Result: <b>${state.planner.aps.length} Access Point(s)</b> active on <b>${curFreq} GHz</b> band, covering <b>${covPct}%</b> of floor area (≥ -65 dBm).`}
+                                ? `Kết quả mô phỏng trực tiếp: Đang bố trí <b>${state.planner.aps.length} Access Point</b> ở băng tần <b>${curFreq} GHz</b>, đạt độ phủ sóng chính <b>${covPct}%</b>, vùng phủ chuyển vùng phụ <b>${data.roaming_redundancy_pct || 0}%</b>, tốc độ trung bình <b>${data.avg_throughput_mbps || 0} Mbps</b>.`
+                                : `Live Simulation Result: <b>${state.planner.aps.length} Access Point(s)</b> active on <b>${curFreq} GHz</b> band, achieving <b>${covPct}%</b> primary coverage, <b>${data.roaming_redundancy_pct || 0}%</b> secondary roaming coverage, and <b>${data.avg_throughput_mbps || 0} Mbps</b> average PHY rate.`}
                         </div>
                         <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap;">
                             ${state.planner.aps.map(a => `
                                 <span class="badge" style="background:#1e293b; border:1px solid #06b6d4; color:#fff; padding:6px 10px; font-size:0.82rem;">
-                                    📍 <b>${escapeHtml(a.name || "AP")}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24 || 1}</b> • 5G: <b>Ch ${a.channel_5 || 36}</b> (${escapeHtml(a.role || "Router")})
+                                    📍 <b>${escapeHtml(a.name || "AP")}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24 || 1}</b> • 5G: <b>Ch ${a.channel_5 || 36}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${escapeHtml(a.role || "Router")})
                                 </span>
                             `).join("")}
                         </div>
@@ -3010,8 +3661,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 width_m: state.planner.width_m,
                 height_m: state.planner.height_m,
                 walls: cleanWalls,
-                max_aps: 3,
-                freq_ghz: state.planner.freq_ghz || 2.4
+                max_aps: 4,
+                freq_ghz: state.planner.freq_ghz || 2.4,
+                sla_profile: state.planner.slaProfile || "office"
             };
 
             const res = await fetch("/api/ai-planner/optimize", {
@@ -3028,6 +3680,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             state.planner.aps = data.access_points || [];
             state.planner.heatmap = data.heatmap || null;
+            updateEkahauKpiStrip(state.planner.heatmap);
 
             const badge = document.getElementById("planner-coverage-badge");
             if (badge) {
@@ -3039,7 +3692,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (rationaleBox && data.ai_rationale) {
                 rationaleBox.innerHTML = `
                     <div style="margin-bottom:8px; font-weight:700; color:var(--text-primary);">
-                        ${isVi ? 'Kết quả tính toán tối ưu:' : 'RF Optimization Summary:'} Cần trang bị <b>${data.recommended_ap_count} Access Point</b> (băng tần mô phỏng <b>${state.planner.freq_ghz || 2.4} GHz</b>) để phủ sóng <b>${data.coverage_percentage}%</b> diện tích đạt chuẩn ≥ -65 dBm. Bạn có thể dùng chuột kéo trực tiếp các điểm AP trên bản vẽ để thử nghiệm vị trí khác.
+                        ${isVi ? 'Kết quả tính toán tối ưu:' : 'RF Optimization Summary:'} Cần trang bị <b>${data.recommended_ap_count} Access Point</b> (băng tần mô phỏng <b>${state.planner.freq_ghz || 2.4} GHz</b>) để phủ sóng <b>${data.coverage_percentage}%</b> diện tích đạt chuẩn SLA. Bạn có thể chuyển đổi 5 chế độ Bản Đồ Nhiệt bên trên hoặc kéo trực tiếp các điểm AP trên bản vẽ.
                     </div>
                     <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
                         ${data.ai_rationale.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
@@ -3047,7 +3700,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
                         ${data.access_points.map(a => `
                             <span class="badge" style="background:#1e293b; border:1px solid #06b6d4; color:#fff; padding:6px 10px; font-size:0.82rem;">
-                                📍 <b>${a.name}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24}</b> • 5G: <b>Ch ${a.channel_5}</b> (${a.role})
+                                📍 <b>${a.name}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24}</b> • 5G: <b>Ch ${a.channel_5}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${a.role})
                             </span>
                         `).join("")}
                     </div>
@@ -3572,20 +4225,104 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fillStyle = "#0a1324";
         ctx.fillRect(plotX, plotY, plotW, plotH);
 
-        // 2. DRAW HEATMAP (if calculated)
+        // 2. DRAW HEATMAP (Ekahau 5-Mode Matrix Renderer)
         const hm = state.planner.heatmap;
+        const activeMode = state.planner.heatmapMode || "primary_rssi";
         if (hm && hm.grid && hm.grid.length > 0) {
-            const gridH = hm.grid.length;
-            const gridW = hm.grid[0].length;
+            let activeGrid = hm.primary_rssi_grid || hm.grid;
+            if (activeMode === "secondary_rssi" && hm.secondary_rssi_grid) activeGrid = hm.secondary_rssi_grid;
+            else if (activeMode === "snr" && hm.snr_grid) activeGrid = hm.snr_grid;
+            else if (activeMode === "interference" && hm.interference_grid) activeGrid = hm.interference_grid;
+            else if (activeMode === "throughput" && hm.throughput_grid) activeGrid = hm.throughput_grid;
+
+            const gridH = activeGrid.length;
+            const gridW = activeGrid[0].length;
             const cellW = plotW / gridW;
             const cellH = plotH / gridH;
 
+            const slaCutoff = state.planner.slaCutoff !== undefined ? state.planner.slaCutoff : -65.0;
+            let compliantCells = 0;
+            const totalCells = gridH * gridW;
+
             for (let j = 0; j < gridH; j++) {
                 for (let i = 0; i < gridW; i++) {
-                    const rssi = hm.grid[j][i];
-                    ctx.fillStyle = getRssiColor(rssi);
-                    ctx.fillRect(plotX + i * cellW, plotY + j * cellH, cellW + 0.8, cellH + 0.8);
+                    const val = activeGrid[j][i];
+                    const cx = plotX + i * cellW;
+                    const cy = plotY + j * cellH;
+
+                    if (activeMode === "snr") ctx.fillStyle = getSnrColor(val);
+                    else if (activeMode === "interference") ctx.fillStyle = getInterferenceColor(val);
+                    else if (activeMode === "throughput") ctx.fillStyle = getThroughputColor(val);
+                    else ctx.fillStyle = getRssiColor(val);
+                    ctx.fillRect(cx, cy, cellW + 0.8, cellH + 0.8);
+
+                    // Ekahau SLA Requirement Cutoff Shading & Hazard Cross-Hatching
+                    if (activeMode === "primary_rssi" || activeMode === "secondary_rssi") {
+                        if (val >= slaCutoff) {
+                            compliantCells++;
+                        } else {
+                            // Darken non-compliant dead-zone
+                            ctx.fillStyle = "rgba(10, 16, 30, 0.78)";
+                            ctx.fillRect(cx, cy, cellW + 0.8, cellH + 0.8);
+                            // Subtle hazard cross-hatching
+                            ctx.strokeStyle = "rgba(239, 68, 68, 0.38)";
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(cx, cy);
+                            ctx.lineTo(cx + cellW, cy + cellH);
+                            ctx.stroke();
+                        }
+                    } else if (activeMode === "snr") {
+                        if (val >= 20.0) compliantCells++;
+                    } else if (activeMode === "interference") {
+                        if (val <= 1) compliantCells++;
+                    } else if (activeMode === "throughput") {
+                        if (val >= 100.0) compliantCells++;
+                    }
                 }
+            }
+
+            // Update Ekahau SLA Compliance Status Badge
+            const slaBadge = document.getElementById("ekahau-sla-status-badge");
+            if (slaBadge) {
+                const slaPct = totalCells > 0 ? ((compliantCells / totalCells) * 100).toFixed(1) : 0;
+                const isVi = state.currentLang === "vi";
+                if (activeMode === "primary_rssi") {
+                    slaBadge.textContent = isVi ? `SLA Sóng Chính: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)` : `Primary SLA: ${slaPct}% Pass (Cutoff ${slaCutoff} dBm)`;
+                } else if (activeMode === "secondary_rssi") {
+                    slaBadge.textContent = isVi ? `SLA Chuyển Vùng: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)` : `Roaming SLA: ${slaPct}% Pass (Cutoff ${slaCutoff} dBm)`;
+                } else if (activeMode === "snr") {
+                    slaBadge.textContent = isVi ? `SLA Tỷ Số SNR: Đạt ${slaPct}% (≥ 20 dB)` : `SNR SLA: ${slaPct}% Pass (≥ 20 dB)`;
+                } else if (activeMode === "interference") {
+                    slaBadge.textContent = isVi ? `SLA Không Nhiễu: Đạt ${slaPct}% (≤ 1 AP)` : `Clean Spectrum SLA: ${slaPct}% Pass`;
+                } else {
+                    slaBadge.textContent = isVi ? `SLA Băng Thông: Đạt ${slaPct}% (≥ 100 Mbps)` : `Throughput SLA: ${slaPct}% Pass`;
+                }
+                slaBadge.style.background = slaPct >= 85 ? "rgba(16, 185, 129, 0.2)" : (slaPct >= 65 ? "rgba(245, 158, 11, 0.2)" : "rgba(239, 68, 68, 0.2)");
+                slaBadge.style.color = slaPct >= 85 ? "#10b981" : (slaPct >= 65 ? "#f59e0b" : "#ef4444");
+                slaBadge.style.borderColor = slaPct >= 85 ? "#10b981" : (slaPct >= 65 ? "#f59e0b" : "#ef4444");
+            }
+        }
+
+        // Update Live Point Probe Readout badge on hover
+        const probeEl = document.getElementById("planner-hover-probe-readout");
+        const curProbeM = state.planner.cursorMeters;
+        if (probeEl) {
+            if (hm && hm.grid && hm.grid.length > 0 && curProbeM && curProbeM.x >= 0 && curProbeM.x <= width_m && curProbeM.y >= 0 && curProbeM.y <= height_m) {
+                const gH = hm.grid.length;
+                const gW = hm.grid[0].length;
+                const gi = Math.max(0, Math.min(gW - 1, Math.floor((curProbeM.x / width_m) * gW)));
+                const gj = Math.max(0, Math.min(gH - 1, Math.floor((curProbeM.y / height_m) * gH)));
+                const pRssi = (hm.primary_rssi_grid || hm.grid)[gj]?.[gi] ?? "--";
+                const sRssi = hm.secondary_rssi_grid?.[gj]?.[gi] ?? "--";
+                const pSnr = hm.snr_grid?.[gj]?.[gi] ?? "--";
+                const pInt = hm.interference_grid?.[gj]?.[gi] ?? 0;
+                const pTput = hm.throughput_grid?.[gj]?.[gi] ?? "--";
+                probeEl.textContent = `🎯 Probe (${curProbeM.x.toFixed(1)}m, ${curProbeM.y.toFixed(1)}m): Pri ${pRssi}dBm | Sec ${sRssi}dBm | SNR ${pSnr}dB | CCI ${pInt} | ${pTput}Mbps`;
+            } else {
+                probeEl.textContent = state.currentLang === "vi"
+                    ? "🎯 Điểm đo: Di chuột lên bản vẽ để xem thông số sóng tại chỗ"
+                    : "🎯 Point Probe: Move cursor over canvas to inspect live RF values";
             }
         }
 
@@ -3977,7 +4714,7 @@ document.addEventListener("DOMContentLoaded", () => {
             let wallHits = 0;
             let wallLoss = 0;
             const freqG = state.planner.freq_ghz || 2.4;
-            const freqMult = freqG >= 5.0 ? 1.25 : 1.0;
+            const freqMult = freqG >= 6.0 ? 1.42 : (freqG >= 5.0 ? 1.25 : 1.0);
 
             (state.planner.walls || []).forEach(w => {
                 if (segmentsIntersect(rm.x1, rm.y1, rm.x2, rm.y2, w.x1, w.y1, w.x2, w.y2)) {
@@ -3987,8 +4724,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            const fsplBase = freqG >= 5.0 ? 46.5 : 40.0;
-            const pathLossExp = freqG >= 5.0 ? 30.0 : 28.0;
+            const fsplBase = freqG >= 6.0 ? 48.2 : (freqG >= 5.0 ? 46.5 : 40.0);
+            const pathLossExp = freqG >= 6.0 ? 31.0 : (freqG >= 5.0 ? 30.0 : 28.0);
             const fspl = distM > 0.2 ? fsplBase + pathLossExp * Math.log10(Math.max(1.0, distM)) : 0;
             const totalLoss = (fspl + wallLoss).toFixed(1);
 
@@ -4059,7 +4796,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.stroke();
 
             ctx.font = "bold 11px sans-serif";
-            const label = `${ap.name} (Ch ${ap.channel_24} / ${ap.channel_5})`;
+            const label = `${ap.name} (Ch ${ap.channel_24}/${ap.channel_5}/6G:${ap.channel_6 || 37})`;
             const tw = ctx.measureText(label).width;
             ctx.fillStyle = "rgba(8, 14, 26, 0.90)";
             ctx.fillRect(cx - tw/2 - 6, cy - 38, tw + 12, 20);
@@ -4168,7 +4905,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.textAlign = "left";
         ctx.textBaseline = "bottom";
         ctx.fillStyle = "rgba(148, 163, 230, 0.7)";
-        ctx.fillText(`FLOORPLAN ${state.planner.view25D ? '2.5D' : '2D'} (${state.planner.freq_ghz || 2.4} GHz) • ${width_m}m × ${height_m}m (${(width_m * height_m).toFixed(0)} m²)`, plotX + 8, H - 6);
+        ctx.fillText(`FLOORPLAN ${state.planner.view25D ? '2.5D' : '2D'} (${state.planner.freq_ghz || 2.4} GHz • Mode: ${activeMode.toUpperCase()}) • ${width_m}m × ${height_m}m (${(width_m * height_m).toFixed(0)} m²)`, plotX + 8, H - 6);
 
         if (curM && curM.x >= 0 && curM.x <= width_m && curM.y >= 0 && curM.y <= height_m) {
             ctx.textAlign = "right";
@@ -4176,13 +4913,37 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.fillText(`X: ${curM.x.toFixed(2)}m  Y: ${curM.y.toFixed(2)}m (Snap: 0.25m)`, plotX + plotW - 8, H - 6);
         }
     }
+
     function getRssiColor(rssi) {
-        if (rssi >= -48) return "rgba(16, 185, 129, 0.55)";     // Excellent Green
+        if (rssi >= -48) return "rgba(16, 185, 129, 0.56)";     // Excellent Green
         if (rssi >= -58) return "rgba(52, 211, 153, 0.50)";     // Emerald
         if (rssi >= -65) return "rgba(234, 179, 8, 0.45)";      // Yellow (VoWiFi target)
         if (rssi >= -75) return "rgba(249, 115, 22, 0.40)";     // Orange
         if (rssi >= -85) return "rgba(239, 68, 68, 0.35)";      // Red
-        return "rgba(15, 23, 42, 0.80)";                        // Dead zone dark
+        return "rgba(15, 23, 42, 0.82)";                        // Dead zone dark
+    }
+
+    function getSnrColor(snr) {
+        if (snr >= 35) return "rgba(16, 185, 129, 0.56)";       // Ultra SNR (QAM-1024/4096)
+        if (snr >= 25) return "rgba(56, 189, 248, 0.50)";       // Voice/Enterprise SLA
+        if (snr >= 18) return "rgba(234, 179, 8, 0.45)";        // Moderate Data
+        if (snr >= 10) return "rgba(249, 115, 22, 0.40)";       // Marginal
+        return "rgba(239, 68, 68, 0.38)";                       // Poor SNR
+    }
+
+    function getInterferenceColor(conflictCount) {
+        if (conflictCount <= 0) return "rgba(16, 185, 129, 0.45)"; // Clean
+        if (conflictCount === 1) return "rgba(234, 179, 8, 0.50)"; // Mild contention
+        if (conflictCount === 2) return "rgba(249, 115, 22, 0.55)";// Moderate CCI
+        return "rgba(239, 68, 68, 0.62)";                          // Severe CCI contention
+    }
+
+    function getThroughputColor(mbps) {
+        if (mbps >= 600) return "rgba(16, 185, 129, 0.56)";     // Gigabit+
+        if (mbps >= 250) return "rgba(56, 189, 248, 0.50)";     // High speed
+        if (mbps >= 80)  return "rgba(234, 179, 8, 0.45)";      // Standard HD
+        if (mbps >= 20)  return "rgba(249, 115, 22, 0.40)";     // Slow
+        return "rgba(15, 23, 42, 0.80)";                        // Dead / Disconnected
     }
 
     window.addEventListener("resize", () => {
