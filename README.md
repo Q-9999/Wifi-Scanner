@@ -32,7 +32,7 @@ etsh wlan của hệ điều hành Windows.
 ### Các Bước Khởi Động
 1. Mở thư mục chứa mã nguồn trong cửa sổ dòng lệnh (CMD hoặc PowerShell).
 2. Cài đặt các gói thư viện cần thiết:
-   `ash
+   `bash
    pip install -r requirements.txt
    `
 3. Khởi động chương trình:
