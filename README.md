@@ -27,7 +27,7 @@ etsh wlan của hệ điều hành Windows.
 ### Yêu Cầu Hệ Thống
 - Hệ điều hành: Windows 10 hoặc Windows 11.
 - Python: Phiên bản 3.10 trở lên.
-- Thiết bị: Card mạng Wi-Fi hoạt động bình thường trên hệ điều hành.
+- Thiết bị: Card mạng Wi-Fi.
 
 ### Các Bước Khởi Động
 1. Mở thư mục chứa mã nguồn trong cửa sổ dòng lệnh (CMD hoặc PowerShell).
@@ -44,7 +44,7 @@ etsh wlan của hệ điều hành Windows.
 
 ## 3. Chi Tiết 8 Chức Năng Chính
 
-### Chức Năng 1: Khảo Sát Sóng Wi-Fi Thời Gian Thực (Tab Khảo Sát Sóng)
+### Chức Năng 1: Khảo Sát Sóng Wi-Fi Thời Gian Thực
 - Quét và liệt kê danh sách các trạm phát sóng (BSSID) mà card mạng thu nhận được.
 - Ghi nhận đầy đủ các thông số kỹ thuật:
   - Tên mạng (SSID), địa chỉ vật lý MAC (BSSID), tên nhà sản xuất phần cứng theo mã tra cứu IEEE OUI.
@@ -55,7 +55,7 @@ etsh wlan của hệ điều hành Windows.
 - Xác định tên mạng ẩn: Đối chiếu địa chỉ MAC để tìm tên mạng của các trạm phát ẩn hoạt động trên cùng thiết bị với trạm phát chính.
 - Công cụ dò tìm vị trí trạm phát: Theo dõi mức tín hiệu RSSI theo thời gian thực, khoảng cách ước tính tính bằng mét và tỷ lệ tiếp cận giúp người dùng xác định vị trí đặt thiết bị phát sóng.
 
-### Chức Năng 2: Đồ Thị Phổ Tần Vô Tuyến (Tab Phổ Tần Vô Tuyến)
+### Chức Năng 2: Đồ Thị Phổ Tần Vô Tuyến
 - Đồ thị phổ sóng OFDM: Hiển thị dạng công suất tín hiệu của từng trạm phát trên các băng tần 2.4 GHz và 5 GHz theo kênh trung tâm và độ rộng kênh.
 - Đồ thị biến thiên mức tín hiệu theo thời gian (RSSI History) giúp theo dõi độ ổn định của tín hiệu.
 - Đồ thị phổ tần theo thời gian (Spectrogram) giúp ghi lại biên độ tín hiệu theo trục thời gian để phát hiện sóng phát ngắt quãng.
@@ -63,19 +63,19 @@ etsh wlan của hệ điều hành Windows.
   - Nhận diện nhiễu kênh kề, trạm phát sử dụng độ rộng 40 MHz trên băng tần 2.4 GHz và cảnh báo các kênh radar DFS (kênh 52 đến 144).
   - Theo dõi tỷ lệ thời gian chiếm dụng kênh và tỷ lệ gửi lại gói tin.
 
-### Chức Năng 3: Tối Ưu Hóa Kênh Và Chẩn Đoán Sự Cố Oscium (Tab Tối Ưu Hóa Và Chẩn Đoán)
+### Chức Năng 3: Tối Ưu Hóa Kênh Và Chẩn Đoán Sự Cố Oscium
 - Chấm điểm và đề xuất kênh phát:
   - Đánh giá các kênh trên 3 băng tần: 2.4 GHz, 5 GHz và 6 GHz.
   - Đề xuất kênh ít bị trùng lặp: kênh 1, 6 hoặc 11 trên 2.4 GHz; khối kênh 80 MHz ít nhiễu trên 5 GHz; kênh ưu tiên quét (PSC) trên 6 GHz.
 - Bảng điều khiển chẩn đoán sự cố gồm 6 thẻ thông tin:
-  1. Điểm đánh giá kết nối: Chấm điểm trên thang từ 0 đến 100.
+  1. Điểm đánh giá kết nối: Chấm điểm trên thang từ 0 - 100.
   2. Thông số card mạng đang kết nối: Giao diện mạng, tên mạng đang kết nối, địa chỉ MAC trạm phát, kênh, băng tần, tốc độ truyền và nhận dữ liệu (Rx/Tx Rate).
   3. Kiểm tra độ trễ 3 chặng mạng: Độ trễ đến cổng bộ định tuyến nội bộ, độ trễ đến máy chủ internet và độ trễ phân giải tên miền DNS.
   4. Bảng kiểm 6 tiêu chuẩn kỹ thuật: Mức tín hiệu sóng, độ trùng lặp kênh, nguồn nhiễu không phải Wi-Fi, thời gian chiếm kênh, khả năng chuyển vùng và chuẩn mã hóa.
   5. Nhận diện 4 nguồn phát nhiễu không phải Wi-Fi: Lò vi sóng (2.45 GHz), thiết bị Bluetooth, camera không dây analog và radar DFS.
-  6. Hướng dẫn khắc phục sự cố: Tổng hợp lỗi kỹ thuật và đưa ra các bước xử lý cụ thể bằng tiếng Việt.
+  6. Hướng dẫn khắc phục sự cố: Tổng hợp lỗi kỹ thuật và đưa ra các bước xử lý cụ thể.
 
-### Chức Năng 4: Đánh Giá Chất Lượng Cuộc Gọi Thoại VoWiFi (Tab Chất Lượng Cuộc Gọi Thoại)
+### Chức Năng 4: Đánh Giá Chất Lượng Cuộc Gọi Thoại VoWiFi 
 - Tính toán thông số truyền âm thanh qua mạng không dây theo mô hình ITU-T G.107 E-Model.
 - Đo lường các chỉ số kỹ thuật: Độ trễ khứ hồi (RTT Latency tính bằng ms), độ biến thiên trễ (Jitter tính bằng ms), tỷ lệ mất gói tin (%) và quy đổi sang điểm MOS (từ 1.0 đến 4.5).
 - Đánh giá khả năng đáp ứng của mạng với 3 bộ mã hóa giọng nói: Opus HD Voice, G.711 PCM và G.729.
@@ -84,11 +84,10 @@ etsh wlan của hệ điều hành Windows.
   - Chặng 2: Độ trễ từ máy tính ra máy chủ internet ngoài.
   - Chặng 3: Thời gian phản hồi truy vấn của máy chủ tên miền DNS.
 
-### Chức Năng 5: Bản Đồ Nhiệt Vùng Phủ Sóng (Tab Bản Đồ Nhiệt Sóng)
-Ứng dụng cung cấp hai công cụ mô phỏng sóng không dây, chuyển đổi bằng nút bấm trên giao diện:
+### Chức Năng 5: Bản Đồ Nhiệt Vùng Phủ Sóng 
 
-#### Công Cụ 1: Mô Phỏng Tán Xạ Tia Sóng (Raytracing)
-- Mô phỏng dò tia 180 hướng: Từ mỗi trạm phát sóng (Access Point), hệ thống phát ra 180 tia quét xung quanh góc 360 độ, tính toán giao điểm hình học với từng đoạn tường chắn và tính độ suy hao truyền sóng theo khoảng cách và vật liệu cản sóng.
+#### Công Cụ 1: Mô Phỏng Tán Xạ Tia Sóng 
+- Mô phỏng dò tia 180 hướng: Từ mỗi Access Point, hệ thống phát ra 180 tia quét xung quanh góc 360 độ, tính toán giao điểm hình học với từng đoạn tường chắn và tính độ suy hao truyền sóng theo khoảng cách và vật liệu cản sóng.
 - Hỗ trợ 7 loại vật liệu tường cản sóng thực tế:
   1. Vách thạch cao / Vách ngăn nhẹ: Suy hao 2.0 dB.
   2. Tường gạch tiêu chuẩn: Suy hao 4.0 dB.
@@ -101,7 +100,7 @@ etsh wlan của hệ điều hành Windows.
 - Mô phỏng thiết bị người dùng (Laptop, PC) và phân tích đường truyền: Cho phép đặt thiết bị máy tính trên sơ đồ, tự động nối tia đến trạm phát tín hiệu tốt nhất, tính toán mức tín hiệu thu (dBm), số lượng bức tường chắn giữa đường và mức suy hao của từng bức tường.
 - Đo tín hiệu từ card Wi-Fi thực tế: Nút nạp card Wi-Fi kết nối với API /api/scan để đo cường độ tín hiệu thực tế của card mạng máy tính và hiển thị đối chiếu với kết quả mô phỏng.
 
-#### Công Cụ 2: Mô Phỏng Lưới Phủ Sóng Và Tiêu Chuẩn Nghiệm Thu SLA (Chuẩn Ekahau và Acrylic)
+#### Công Cụ 2: Mô Phỏng Lưới Phủ Sóng Và Tiêu Chuẩn Nghiệm Thu SLA
 - Thuật toán nội suy song tuyến tính (Bilinear Interpolation): Tính toán ma trận điểm trên canvas để tạo dải màu chuyển tiếp 5 mức tín hiệu từ trên -50 dBm đến dưới -85 dBm.
 - 5 chế độ hiển thị bản đồ nhiệt:
   1. Cường độ sóng chính: Mức tín hiệu mạnh nhất thu được tại mỗi tọa độ.
@@ -114,7 +113,7 @@ etsh wlan của hệ điều hành Windows.
 - Hiệu chuẩn tỷ lệ khoảng cách: Thước đo 2 điểm trên bản vẽ để quy đổi tỷ lệ pixel sang mét thực tế.
 - Nạp ảnh mặt bằng kiến trúc: Cho phép tải lên tập tin ảnh (PNG, JPG) làm nền sơ đồ với thanh trượt chỉnh độ mờ.
 
-### Chức Năng 6: Đo Tốc Độ Mạng Wi-Fi (Tab Đo Tốc Độ Mạng)
+### Chức Năng 6: Đo Tốc Độ Mạng Wi-Fi 
 - Đo lường trực tiếp 4 thông số internet: Tốc độ tải về (Download), tốc độ tải lên (Upload), độ trễ mạng (Ping) và biến động trễ (Jitter).
 - Kết nối trực tiếp đến mạng lưới máy chủ Anycast CDN của Cloudflare bằng thư viện httpx trên backend.
 - Cung cấp hai chế độ đo: Chế độ nhanh (5 giây) và Chế độ đầy đủ (10 giây).
@@ -122,16 +121,16 @@ etsh wlan của hệ điều hành Windows.
 - So sánh tốc độ internet thực tế với tốc độ liên kết vật lý của card mạng Wi-Fi để xác định điểm giới hạn băng thông là do nhà mạng hay do sóng không dây.
 - Lưu lại lịch sử các lần đo để tiện theo dõi.
 
-### Chức Năng 7: Kiểm Tra An Toàn Bảo Mật (Tab Kiểm Tra An Toàn Bảo Mật)
+### Chức Năng 7: Kiểm Tra An Toàn Bảo Mật 
 - Phát hiện các trạm phát không cài đặt mật khẩu mã hóa (mạng mở).
 - Cảnh báo các trạm phát sử dụng giao thức bảo mật cũ (WEP hoặc WPA sử dụng thuật toán TKIP).
 - Thống kê tỷ lệ sử dụng các chuẩn mã hóa: WPA2, WPA3, mạng không đặt mật khẩu.
 - Phát hiện các trạm phát có cùng tên SSID nhưng khác địa chỉ MAC hoặc khác hãng sản xuất để cảnh báo nguy cơ trạm phát giả mạo.
 
-### Chức Năng 8: Lưu Trữ Và Xuất Báo Cáo (Tab Lưu Trữ Báo Cáo)
-- Xuất báo cáo ra tập tin CSV theo chuẩn UTF-8 kèm BOM, mở trực tiếp trên Microsoft Excel hiển thị đúng tiếng Việt có dấu.
-- Xuất báo cáo ra tập tin định dạng JSON có cấu trúc.
-- Quy tắc đặt tên tập tin: NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv và NetScanner_Report_[MM-DD-YYYY]_[ID-01].json.
+### Chức Năng 8: Lưu Trữ Và Xuất Báo Cáo 
+- Xuất báo cáo ra tập tin CSV theo chuẩn UTF-8 kèm BOM, mở trực tiếp trên Microsoft Excel
+- Xuất báo cáo ra tập tin định dạng JSON.
+- Format tập tin: NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv và NetScanner_Report_[MM-DD-YYYY]_[ID-01].json.
 - Nội dung báo cáo gồm 6 phần:
   1. Thông số môi trường và card mạng đang kết nối.
   2. Bảng phân tích kênh và khuyến nghị kênh phát.
@@ -145,8 +144,6 @@ etsh wlan của hệ điều hành Windows.
 
 ## 4. Cấu Trúc Thư Mục Phân Cấp Của Dự Án
 
-Dự án được tổ chức theo cấu trúc phân cấp chuyên nghiệp, tách biệt rõ ràng các tầng logic, giao diện, kiểm thử và tài liệu:
-
 \tool-NWC203/
 ├── api/                       # Tầng máy chủ web và các điểm cuối API
 │   ├── __init__.py
@@ -159,9 +156,9 @@ Dự án được tổ chức theo cấu trúc phân cấp chuyên nghiệp, tá
 │   ├── ai_planner.py          # Mô phỏng suy hao sóng ITU-R P.1238 và tối ưu vị trí trạm phát
 │   ├── speedtest_runner.py    # Đo tốc độ internet qua mạng lưới máy chủ Cloudflare CDN
 │   └── report_generator.py    # Xuất báo cáo dữ liệu định dạng CSV và JSON
-├── static/                    # Tầng giao diện người dùng (Frontend thuần)
-│   ├── index.html             # Cấu trúc HTML5 giao diện trang đơn
-│   ├── styles.css             # Định dạng giao diện nền sáng (Light Mode thuần)
+├── static/                    # User front-end
+│   ├── index.html             # Cấu trúc HTML5 
+│   ├── styles.css             # Định dạng giao diện 
 │   ├── app.js                 # Xử lý tương tác, bảng dữ liệu và công cụ Ekahau Planner
 │   └── heatmap.js             # Động cơ mô phỏng tán xạ tia sóng vô tuyến (Raytracing)
 ├── tests/                     # Các bộ kiểm thử tự động toàn diện
@@ -176,7 +173,7 @@ Dự án được tổ chức theo cấu trúc phân cấp chuyên nghiệp, tá
 ├── docs/                      # Tài liệu kỹ thuật chi tiết
 │   ├── PROJECT.md
 │   └── TEST_INFRA.md
-├── assets/                    # Tệp hình ảnh mẫu phục vụ khảo sát kiến trúc
+├── assets/                    # Tệp hình ảnh mẫu 
 │   └── mau-ho-so-thiet-ke-kien-truc2-566x400.webp
 ├── reports/                   # Thư mục lưu trữ các tệp báo cáo khảo sát đã xuất
 ├── requirements.txt           # Danh mục thư viện phụ thuộc Python
@@ -185,3 +182,7 @@ Dự án được tổ chức theo cấu trúc phân cấp chuyên nghiệp, tá
 ├── README.md                  # Hướng dẫn tổng quan về dự án
 └── PROJECT_OVERVIEW.md        # Báo cáo kỹ thuật chi tiết toàn bộ hệ thống
 \
+
+
+*Created as part of the NWC303 Course at Danang FPT University (Oct 2026).* 
+
