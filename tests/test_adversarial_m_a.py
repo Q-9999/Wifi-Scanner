@@ -16,18 +16,18 @@ import json
 # Force UTF-8 encoding for standard output
 sys.stdout.reconfigure(encoding='utf-8')
 
-tool_dir = os.path.dirname(os.path.abspath(__file__))
+tool_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 if tool_dir not in sys.path:
     sys.path.append(tool_dir)
 
-import channel_analyzer
-import vowifi_analyzer
-import report_generator
-import wifi_scanner
-import ai_planner
-import speedtest_runner
+from core import channel_analyzer
+from core import vowifi_analyzer
+from core import report_generator
+from core import wifi_scanner
+from core import ai_planner
+from core import speedtest_runner
 from fastapi.testclient import TestClient
-import server
+from api import server
 
 test_results = {
     "total": 0,

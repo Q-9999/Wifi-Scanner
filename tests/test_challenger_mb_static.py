@@ -20,7 +20,7 @@ import subprocess
 from html.parser import HTMLParser
 
 sys.stdout.reconfigure(encoding='utf-8')
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 STATIC_DIR = os.path.join(ROOT_DIR, "static")
 
 STATIC_FILES = [
@@ -396,13 +396,13 @@ def challenge_6_regression_test_suite():
     ]
 
     for test_file, desc in test_files:
-        path = os.path.join(ROOT_DIR, test_file)
+        path = os.path.join(ROOT_DIR, "tests", test_file)
         if not os.path.exists(path):
             record_result(f"Regression Suite: {desc}", False, f"File {test_file} not found")
             continue
 
         try:
-            res = subprocess.run([sys.executable, test_file],
+            res = subprocess.run([sys.executable, os.path.join(ROOT_DIR, "tests", test_file)],
                                  capture_output=True, text=True, encoding="utf-8", errors="replace",
                                  timeout=90, cwd=ROOT_DIR)
             passed = (res.returncode == 0)

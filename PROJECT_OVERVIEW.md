@@ -275,13 +275,13 @@ Hệ thống cung cấp hai công cụ mô phỏng sóng không dây, chuyển �
 ### 5.2. Chạy Các Bộ Kiểm Thử Tự Động
 - Bộ kiểm thử đầy đủ các chức năng:
   ```bash
-  python test_full_suite.py
+  python tests/test_full_suite.py
   ```
 - Bộ kiểm thử tĩnh giao diện (kiểm tra không icon, không emoji, giao diện nền sáng):
   ```bash
-  python test_challenger_mb_static.py
+  python tests/test_challenger_mb_static.py
   ```
 - Bộ kiểm thử động thuật toán và luồng dữ liệu (kiểm tra Speed Test, Oscium, công thức suy hao):
   ```bash
-  python test_challenger_mb_dynamic.py
+  python tests/test_challenger_mb_dynamic.py
   ```

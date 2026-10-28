@@ -139,25 +139,49 @@ etsh wlan của hệ điều hành Windows.
   4. Kết quả đánh giá cuộc gọi thoại VoWiFi và độ trễ đa chặng.
   5. Kết quả kiểm tra an toàn bảo mật.
   6. Danh sách chi tiết toàn bộ các trạm phát BSSID thu thập được.
-- Quản lý danh sách các tập tin báo cáo trong thư mục 
-eports/, cho phép tải về máy tính hoặc xóa tập tin cũ trên giao diện web.
+- Quản lý danh sách các tập tin báo cáo trong thư mục reports/, cho phép tải về máy tính hoặc xóa tập tin cũ trên giao diện web.
 
 ---
 
-## 4. Danh Mục Tập Tin Mã Nguồn
+## 4. Cấu Trúc Thư Mục Phân Cấp Của Dự Án
 
-- server.py: Máy chủ FastAPI cung cấp các điểm cuối API và truyền dữ liệu SSE.
-- wifi_scanner.py: Giao tiếp card mạng, quét dữ liệu trạm phát, nhóm phần cứng và giải mã mạng ẩn.
-- channel_analyzer.py: Tính toán thông số phổ tần, chấm điểm kênh và đánh giá sự cố Oscium.
-- i_planner.py: Tính toán suy hao theo mô hình ITU-R P.1238 và tối ưu hóa vị trí đặt trạm phát.
-- owifi_analyzer.py: Tính toán độ trễ đa chặng và tính điểm chất lượng thoại MOS theo ITU-T G.107.
-- speedtest_runner.py: Xử lý tiến trình đo tốc độ mạng với máy chủ Cloudflare qua httpx.
-- 
-eport_generator.py: Xuất báo cáo dữ liệu ra tập tin CSV và JSON.
-- static/index.html: Cấu trúc giao diện người dùng.
-- static/styles.css: Định dạng giao diện nền sáng (Light Mode).
-- static/app.js: Xử lý tương tác giao diện người dùng trên trình duyệt.
-- static/heatmap.js: Động cơ mô phỏng tán xạ tia sóng (Raytracing).
-- start.bat: Tập tin khởi động ứng dụng trên hệ điều hành Windows.
-- 
-un.py: Điểm khởi chạy ứng dụng bằng ngôn ngữ Python.
+Dự án được tổ chức theo cấu trúc phân cấp chuyên nghiệp, tách biệt rõ ràng các tầng logic, giao diện, kiểm thử và tài liệu:
+
+\tool-NWC203/
+├── api/                       # Tầng máy chủ web và các điểm cuối API
+│   ├── __init__.py
+│   └── server.py              # Máy chủ FastAPI, định tuyến REST API, WebSocket và SSE
+├── core/                      # Tầng nghiệp vụ xử lý dữ liệu mạng vô tuyến
+│   ├── __init__.py
+│   ├── wifi_scanner.py        # Giao tiếp card mạng WLAN, quét sóng, nhóm phần cứng
+│   ├── channel_analyzer.py    # Phân tích phổ tần, chấm điểm kênh và chẩn đoán Oscium
+│   ├── vowifi_analyzer.py     # Đo trễ đa chặng và tính điểm chất lượng thoại ITU-T G.107 MOS
+│   ├── ai_planner.py          # Mô phỏng suy hao sóng ITU-R P.1238 và tối ưu vị trí trạm phát
+│   ├── speedtest_runner.py    # Đo tốc độ internet qua mạng lưới máy chủ Cloudflare CDN
+│   └── report_generator.py    # Xuất báo cáo dữ liệu định dạng CSV và JSON
+├── static/                    # Tầng giao diện người dùng (Frontend thuần)
+│   ├── index.html             # Cấu trúc HTML5 giao diện trang đơn
+│   ├── styles.css             # Định dạng giao diện nền sáng (Light Mode thuần)
+│   ├── app.js                 # Xử lý tương tác, bảng dữ liệu và công cụ Ekahau Planner
+│   └── heatmap.js             # Động cơ mô phỏng tán xạ tia sóng vô tuyến (Raytracing)
+├── tests/                     # Các bộ kiểm thử tự động toàn diện
+│   ├── __init__.py
+│   ├── test_full_suite.py     # Kiểm thử toàn diện 9 phần chức năng
+│   ├── test_challenger_mb_static.py   # Kiểm tra tính toàn vẹn giao diện nền sáng và từ ngữ
+│   ├── test_challenger_mb_dynamic.py  # Kiểm tra logic tính toán và các thuật toán
+│   ├── test_challenger_ma.py  # Kiểm thử tương thích môi trường và card mạng
+│   ├── test_adversarial_m_a.py        # Kiểm thử biên và trường hợp dữ liệu bất thường
+│   ├── test_repo_integrity_mc.py      # Kiểm tra toàn vẹn cấu trúc dự án
+│   └── test_stress_e2e_mc.py  # Kiểm thử tải và luồng dữ liệu liên tục
+├── docs/                      # Tài liệu kỹ thuật chi tiết
+│   ├── PROJECT.md
+│   └── TEST_INFRA.md
+├── assets/                    # Tệp hình ảnh mẫu phục vụ khảo sát kiến trúc
+│   └── mau-ho-so-thiet-ke-kien-truc2-566x400.webp
+├── reports/                   # Thư mục lưu trữ các tệp báo cáo khảo sát đã xuất
+├── requirements.txt           # Danh mục thư viện phụ thuộc Python
+├── run.py                     # Điểm khởi chạy ứng dụng bằng lệnh Python
+├── start.bat                  # Tập tin khởi động nhanh trên hệ điều hành Windows
+├── README.md                  # Hướng dẫn tổng quan về dự án
+└── PROJECT_OVERVIEW.md        # Báo cáo kỹ thuật chi tiết toàn bộ hệ thống
+\

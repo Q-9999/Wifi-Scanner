@@ -43,5 +43,9 @@ if __name__ == "__main__":
 
     threading.Thread(target=open_browser, args=(url,), daemon=True).start()
 
-    from server import app
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+    if ROOT_DIR not in sys.path:
+        sys.path.insert(0, ROOT_DIR)
+
+    from api.server import app
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")

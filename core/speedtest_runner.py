@@ -12,7 +12,13 @@ import threading
 from typing import Dict, Any, Optional, List
 import httpx
 
-import wifi_scanner
+try:
+    from . import wifi_scanner
+except ImportError:
+    try:
+        from core import wifi_scanner
+    except ImportError:
+        import wifi_scanner
 
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
