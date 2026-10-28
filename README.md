@@ -1,8 +1,8 @@
-# MMQ./WifiScanner - Công Cụ Khảo Sát Và Phân Tích Mạng Wi-Fi (tool-NWC203)
+# MMQ./WifiScanner - Công Cụ Khảo Sát Và Phân Tích Mạng Wi-Fi 
 
-MMQ./WifiScanner là công cụ khảo sát sóng vô tuyến, đo lường thông số mạng Wi-Fi, phân tích phổ tần, mô phỏng bản đồ nhiệt suy hao sóng, đo tốc độ truyền dữ liệu internet và xuất báo cáo dữ liệu. Ứng dụng chạy trực tiếp trên máy tính cục bộ và hiển thị giao diện tại địa chỉ http://localhost:8000.
+MMQ./WifiScanner là công cụ khảo sát sóng vô tuyến, đo lường thông số mạng Wi-Fi, phân tích phổ tần, mô phỏng bản đồ nhiệt suy hao sóng, đo tốc độ truyền dữ liệu internet và xuất báo cáo dữ liệu. Ứng dụng chạy trực tiếp trên máy tính cục bộ 
 
-Giao diện ứng dụng sử dụng bảng màu sáng (Light Mode) với nền xám nhạt (#f8fafc), nền thẻ trắng (#ffffff), đường viền (#e2e8f0) và chữ màu đen xám (#0f172a). Ứng dụng không sử dụng các biểu tượng trang trí hoặc biểu tượng cảm xúc. Toàn bộ thông số kỹ thuật, tiêu đề và hướng dẫn được viết bằng tiếng Việt chuyên ngành mạng máy tính.
+
 
 ---
 
