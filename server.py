@@ -1,10 +1,19 @@
 import os
+import sys
 import time
 import json
 import asyncio
 import threading
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
+
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
@@ -17,13 +26,15 @@ from channel_analyzer import analyze_wifi_environment
 from report_generator import export_report
 from vowifi_analyzer import measure_network_quality
 from ai_planner import optimize_ap_placement, generate_heatmap_grid
+from speedtest_runner import get_speedtest_runner, run_speedtest_sync
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 os.makedirs(REPORTS_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-app = FastAPI(title="MMQ./NetScanner - Wi-Fi Scanner, Spectrum & Floorplan Suite", version="3.0.0")
+app = FastAPI(title="Hệ thống Phân tích và Quy hoạch Mạng không dây", version="3.0.0")
+speedtest_runner = get_speedtest_runner()
 
 app.add_middleware(
     CORSMiddleware,
@@ -70,7 +81,7 @@ def broadcast_data(payload_str: str):
 def _update_scan_state() -> str:
     """Run a single-pass Wi-Fi scan and update global_state + cached JSON payload"""
     networks, interface_info, clusters, threats = scan_wifi_with_interface()
-    analysis = analyze_wifi_environment(networks)
+    analysis = analyze_wifi_environment(networks, connected_interface=interface_info, security_threats=threats)
 
     now_time = datetime.now().strftime("%H:%M:%S")
     now_ts = time.time()
@@ -85,7 +96,7 @@ def _update_scan_state() -> str:
         entry = sig_hist.get(bssid)
         if entry is None:
             entry = {
-                "ssid": net.get("ssid", "[Hidden]"),
+                "ssid": net.get("ssid", "[Mạng ẩn]"),
                 "channel": net.get("channel", 1),
                 "band": net.get("band", "2.4 GHz"),
                 "history": []
@@ -131,7 +142,10 @@ def _update_scan_state() -> str:
 
 
 def background_scanner_worker():
-    print("[MMQ./NetScanner] Bo quet song Wi-Fi nen da san sang (Background Wi-Fi Scanner Active).")
+    try:
+        print("[Hệ thống] Trình quét sóng Wi-Fi chạy nền đã sẵn sàng.")
+    except Exception:
+        pass
     while True:
         try:
             with ws_lock:
@@ -240,6 +254,75 @@ def get_clusters():
     }
 
 
+class SpeedTestStartRequest(BaseModel):
+    mode: Optional[str] = "quick"
+
+
+@app.post("/api/speedtest/start")
+def start_speedtest(req: Optional[SpeedTestStartRequest] = None):
+    mode = (req.mode if req else "quick") or "quick"
+    return speedtest_runner.start(mode=mode)
+
+
+@app.get("/api/speedtest/status")
+def get_speedtest_status():
+    st = speedtest_runner.get_state()
+    return {
+        "status": st["status"],
+        "stage": st["stage"],
+        "progress_pct": st["progress_pct"],
+        "ping_ms": st["ping_ms"],
+        "jitter_ms": st["jitter_ms"],
+        "download_mbps": st["download_mbps"],
+        "upload_mbps": st["upload_mbps"],
+        "link_speed_mbps": st["link_speed_mbps"],
+        "server_location": st["server_location"],
+        "error_message": st["error_message"],
+        "test_id": st.get("test_id"),
+        "phase_text_vi": st.get("phase_text_vi"),
+        "elapsed_seconds": st.get("elapsed_seconds", 0.0),
+        "diagnosis_vi": st.get("diagnosis_vi"),
+        "network_context": st.get("network_context", {})
+    }
+
+
+@app.post("/api/speedtest/stop")
+def stop_speedtest():
+    return speedtest_runner.stop()
+
+
+@app.get("/api/speedtest/stream")
+async def speedtest_stream():
+    async def speed_event_generator():
+        last_ver = -1
+        idle_count = 0
+        while True:
+            cur_state = speedtest_runner.get_state()
+            ver = cur_state.get("version", 0)
+            if ver != last_ver:
+                last_ver = ver
+                yield f"data: {json.dumps(cur_state, ensure_ascii=False)}\n\n"
+                idle_count = 0
+            else:
+                idle_count += 1
+
+            if cur_state.get("status") in ("completed", "error", "stopped"):
+                if idle_count > 5:
+                    break
+
+            await asyncio.sleep(0.15)
+
+    return StreamingResponse(
+        speed_event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 @app.get("/api/channel-recommendations")
 def get_channel_recommendations():
     networks = global_state["networks"] or scan_wifi_networks()
@@ -276,6 +359,18 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
     rec_5 = analysis["evaluation_5ghz"]
     rec_6 = analysis.get("evaluation_6ghz", {})
 
+    reasons_24 = rec_24.get("reasons_breakdown_vi", rec_24.get("reasons_breakdown", []))
+    reasons_5 = rec_5.get("reasons_breakdown_vi", rec_5.get("reasons_breakdown", []))
+    reasons_6 = rec_6.get("reasons_breakdown_vi", [])
+
+    advice_items = [
+        f"Thiết lập kênh chính 2.4 GHz thành kênh {rec_24['recommended_channel']} (độ rộng 20 MHz) để tránh nhiễu lấn kênh ACI.",
+        f"Thiết lập kênh 5 GHz thành kênh {rec_5['recommended_channel']} với độ rộng 80 MHz trên khối {rec_5.get('recommended_80mhz_block', '')}.",
+        f"Nếu dùng bộ phát Wi-Fi 6E hoặc Wi-Fi 7 (6 GHz), ưu tiên kênh PSC {rec_6.get('recommended_channel', 37)} trên khối 160 MHz {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
+        "Tắt các tốc độ phát sóng cũ 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng.",
+        "Bật tính năng chuyển vùng nhanh 802.11k/v nếu dùng hệ thống nhiều bộ phát Mesh."
+    ]
+
     return {
         "autopick_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "recommendations": {
@@ -284,9 +379,9 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
                 "score": rec_24["recommended_score"],
                 "channel_width": "20 MHz",
                 "technical_rationale": rec_24["recommendation_reason"],
-                "reasons": rec_24.get("reasons_breakdown_vi", rec_24["reasons_breakdown"]),
-                "reasons_vi": rec_24.get("reasons_breakdown_vi", rec_24["reasons_breakdown"]),
-                "reasons_en": rec_24.get("reasons_breakdown_en", rec_24["reasons_breakdown"]),
+                "reasons": reasons_24,
+                "reasons_vi": reasons_24,
+                "reasons_en": reasons_24,
                 "alternatives": [
                     item for item in rec_24.get("ranked_preferred", [])
                     if item["channel"] != rec_24["recommended_channel"]
@@ -299,9 +394,9 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
                 "recommended_80mhz_channels": rec_5.get("recommended_80mhz_channels"),
                 "channel_width": "80 MHz",
                 "technical_rationale": rec_5["recommendation_reason"],
-                "reasons": rec_5.get("reasons_breakdown_vi", rec_5["reasons_breakdown"]),
-                "reasons_vi": rec_5.get("reasons_breakdown_vi", rec_5["reasons_breakdown"]),
-                "reasons_en": rec_5.get("reasons_breakdown_en", rec_5["reasons_breakdown"]),
+                "reasons": reasons_5,
+                "reasons_vi": reasons_5,
+                "reasons_en": reasons_5,
                 "best_80mhz_block": rec_5.get("best_80mhz_block")
             },
             "band_6ghz": {
@@ -309,31 +404,13 @@ def autopick_channel(req: Optional[AutoPickRequest] = None):
                 "score": rec_6.get("recommended_score", 95),
                 "recommended_160mhz_block": rec_6.get("recommended_160mhz_block", "UNII-5 Block B (33-61)"),
                 "channel_width": "160 MHz",
-                "reasons_vi": rec_6.get("reasons_breakdown_vi", []),
-                "reasons_en": rec_6.get("reasons_breakdown_en", [])
+                "reasons_vi": reasons_6,
+                "reasons_en": reasons_6
             }
         },
-        "system_advice": [
-            f"Thiết lập kênh chính 2.4 GHz thành kênh {rec_24['recommended_channel']} (độ rộng 20MHz) để tránh nhiễu lấn kênh ACI.",
-            f"Thiết lập kênh 5 GHz thành kênh {rec_5['recommended_channel']} với độ rộng 80MHz trên khối {rec_5['recommended_80mhz_block']}.",
-            f"Nếu dùng bộ phát Wi-Fi 6E/7 (6 GHz), ưu tiên kênh PSC {rec_6.get('recommended_channel', 37)} trên khối 160MHz {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
-            "Tắt các tốc độ phát sóng cũ 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng (Airtime).",
-            "Bật tính năng chuyển vùng nhanh 802.11k/v nếu dùng hệ thống nhiều bộ phát Mesh."
-        ],
-        "system_advice_vi": [
-            f"Thiết lập kênh chính 2.4 GHz thành kênh {rec_24['recommended_channel']} (độ rộng 20MHz) để tránh nhiễu lấn kênh ACI.",
-            f"Thiết lập kênh 5 GHz thành kênh {rec_5['recommended_channel']} với độ rộng 80MHz trên khối {rec_5['recommended_80mhz_block']}.",
-            f"Nếu dùng bộ phát Wi-Fi 6E/7 (6 GHz), ưu tiên kênh PSC {rec_6.get('recommended_channel', 37)} trên khối 160MHz {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
-            "Tắt các tốc độ phát sóng cũ 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng (Airtime).",
-            "Bật tính năng chuyển vùng nhanh 802.11k/v nếu dùng hệ thống nhiều bộ phát Mesh."
-        ],
-        "system_advice_en": [
-            f"Lock 2.4 GHz channel width to 20 MHz on Channel {rec_24['recommended_channel']} to prevent Adjacent Channel Interference (ACI).",
-            f"Set 5 GHz to Channel {rec_5['recommended_channel']} (80 MHz width) on block {rec_5['recommended_80mhz_block']} for high speed.",
-            f"For Wi-Fi 6E/7 (6 GHz), select PSC Channel {rec_6.get('recommended_channel', 37)} on 160 MHz block {rec_6.get('recommended_160mhz_block', 'UNII-5 Block B (33-61)')}.",
-            "Disable legacy 802.11b rates (1, 2, 5.5, 11 Mbps) to save broadcast airtime.",
-            "Enable 802.11k/v roaming assistance when running Mesh or multiple Access Points."
-        ]
+        "system_advice": advice_items,
+        "system_advice_vi": advice_items,
+        "system_advice_en": advice_items
     }
 
 
@@ -345,13 +422,28 @@ def get_vowifi_mos(target: str = "8.8.8.8", count: int = 5):
 @app.get("/api/troubleshooting/all-in-one")
 def get_all_in_one_troubleshooting(target: str = "8.8.8.8"):
     networks = global_state["networks"] or scan_wifi_networks()
-    analysis = global_state["analysis"] or analyze_wifi_environment(networks)
+    interface_info = global_state.get("interface")
+    if not interface_info or not isinstance(interface_info, dict) or not interface_info.get("interface_name"):
+        try:
+            from wifi_scanner import get_connected_interface_info
+            interface_info = get_connected_interface_info()
+        except Exception:
+            interface_info = interface_info or {}
+
+    threats = global_state.get("threats")
+
+    analysis = global_state.get("analysis")
+    ts_cached = (analysis or {}).get("troubleshooting_suite", {})
+    if not analysis or "adapter_diagnostics" not in ts_cached or "automated_root_cause" not in ts_cached:
+        analysis = analyze_wifi_environment(networks, connected_interface=interface_info, security_threats=threats)
+
     path_quality = measure_network_quality(target_host=target, ping_count=3)
     return {
         "status": "success",
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "global_score": analysis.get("global_score", 0),
         "avg_snr_db": analysis.get("avg_snr_db", 0),
+        "connected_interface": interface_info,
         "troubleshooting_suite": analysis.get("troubleshooting_suite", {}),
         "airtime_breakdown": analysis.get("airtime_breakdown", {}),
         "roaming_audit": analysis.get("roaming_audit", []),
@@ -386,7 +478,7 @@ def ai_planner_optimize(req: AIPlannerRequest):
             sla_profile=sla
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Floorplan calculation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi tính toán sơ đồ mặt bằng: {str(e)}")
 
 
 class HeatmapCalculateRequest(BaseModel):
@@ -443,7 +535,7 @@ def download_report(filename: str):
     clean_name = os.path.basename(filename)
     filepath = os.path.join(REPORTS_DIR, clean_name)
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Report file not found")
+        raise HTTPException(status_code=404, detail="Tệp tin báo cáo không tồn tại")
 
     media_types = {
         ".csv": "text/csv; charset=utf-8",
@@ -486,7 +578,7 @@ def delete_report(filename: str):
     clean_name = os.path.basename(filename)
     filepath = os.path.join(REPORTS_DIR, clean_name)
     if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="File không tồn tại")
+        raise HTTPException(status_code=404, detail="Tệp tin báo cáo không tồn tại")
     try:
         os.remove(filepath)
         return {"status": "success", "deleted": clean_name}
@@ -524,10 +616,10 @@ def serve_index():
                 "Expires": "0"
             }
         )
-    return HTMLResponse("<h1>MMQ./NetScanner Localhost</h1><p>Frontend loading...</p>")
+    return HTMLResponse("<h1>Hệ thống Phân tích Mạng Wi-Fi</h1><p>Đang tải giao diện...</p>")
 
 
 if __name__ == "__main__":
     import uvicorn
-    print("[MMQ./NetScanner] Dang khoi dong may chu tai dia chi http://localhost:8000 ...")
+    print("[Hệ thống] Đang khởi động máy chủ tại địa chỉ http://localhost:8000 ...")
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False)

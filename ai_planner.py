@@ -15,8 +15,8 @@ WALL_ATTENUATION = {
 SLA_PROFILES = {
     "office": {
         "id": "office",
-        "name_vi": "Văn Phòng Tiêu Chuẩn (Standard Office -67 dBm)",
-        "name_en": "Standard Office Data (-67 dBm / SNR 20 dB)",
+        "name_vi": "Văn phòng tiêu chuẩn (-67 dBm)",
+        "name_en": "Văn phòng tiêu chuẩn (-67 dBm / SNR 20 dB)",
         "target_rssi_dbm": -67.0,
         "secondary_rssi_dbm": -75.0,
         "min_snr_db": 20.0,
@@ -26,8 +26,8 @@ SLA_PROFILES = {
     },
     "voice": {
         "id": "voice",
-        "name_vi": "Thoại VoWiFi & Họp Trực Tuyến (VoWiFi & Video -65 dBm)",
-        "name_en": "VoWiFi & Video Conferencing (-65 dBm / SNR 25 dB)",
+        "name_vi": "Thoại qua Wi-Fi và họp trực tuyến (-65 dBm)",
+        "name_en": "Thoại qua Wi-Fi và họp trực tuyến (-65 dBm / SNR 25 dB)",
         "target_rssi_dbm": -65.0,
         "secondary_rssi_dbm": -70.0,
         "min_snr_db": 25.0,
@@ -37,8 +37,8 @@ SLA_PROFILES = {
     },
     "high_density": {
         "id": "high_density",
-        "name_vi": "Hội Trường Mật Độ Cao (High-Density -60 dBm)",
-        "name_en": "High-Density Auditorium (-60 dBm / SNR 28 dB)",
+        "name_vi": "Hội trường mật độ cao (-60 dBm)",
+        "name_en": "Hội trường mật độ cao (-60 dBm / SNR 28 dB)",
         "target_rssi_dbm": -60.0,
         "secondary_rssi_dbm": -67.0,
         "min_snr_db": 28.0,
@@ -543,17 +543,17 @@ def optimize_ap_placement(
         ch6 = channels_6[idx % len(channels_6)]
         if target_freq >= 5.8:
             active_ch = ch6
-            ap_channel_labels.append(f"AP{idx+1}: Kênh 6GHz {ch6} (160MHz)")
+            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 6 GHz {ch6} (độ rộng 160 MHz)")
         elif target_freq >= 4.0:
             active_ch = ch5
-            ap_channel_labels.append(f"AP{idx+1}: Kênh 5GHz {ch5} (80MHz)")
+            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 5 GHz {ch5} (độ rộng 80 MHz)")
         else:
             active_ch = ch24
-            ap_channel_labels.append(f"AP{idx+1}: Kênh 2.4GHz {ch24} (20MHz)")
+            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 2.4 GHz {ch24} (độ rộng 20 MHz)")
 
         result_aps.append({
             "id": idx + 1,
-            "name": f"MMQ-AP-{idx+1}",
+            "name": f"Trạm phát {idx+1}",
             "x": round(cx, 2),
             "y": round(cy, 2),
             "channel": active_ch,
@@ -562,7 +562,7 @@ def optimize_ap_placement(
             "channel_6": ch6,
             "tx_power": tx_power,
             "freq_ghz": target_freq,
-            "role": "Bộ Phát Chính (Gateway AP)" if idx == 0 else f"Bộ Phát Mở Rộng (Mesh Node {idx})"
+            "role": "Trạm phát chính (Cổng kết nối)" if idx == 0 else f"Trạm phát phụ (Nút mở rộng {idx})"
         })
 
     final_hm = generate_heatmap_grid(
@@ -570,7 +570,7 @@ def optimize_ap_placement(
         resolution=28, freq_ghz=target_freq, sla_profile=sla_profile
     )
 
-    band_label = "6.0 GHz (Wi-Fi 6E/7)" if target_freq >= 5.8 else ("5.0 GHz (Wi-Fi 5/6)" if target_freq >= 4.0 else "2.4 GHz")
+    band_label = "6 GHz (chuẩn Wi-Fi 6E/7)" if target_freq >= 5.8 else ("5 GHz (chuẩn Wi-Fi 5/6)" if target_freq >= 4.0 else "2.4 GHz")
 
     return {
         "status": "success",
@@ -585,12 +585,12 @@ def optimize_ap_placement(
         "capacity_max_clients": final_hm["capacity_max_clients"],
         "sla_profile": final_hm["sla_profile"],
         "sla_pass": final_hm["sla_pass"],
-        "quality_rating": "Rất Tốt / Excellent" if final_hm["coverage_pct"] >= 90 else ("Tốt / Good" if final_hm["coverage_pct"] >= 75 else "Khá / Fair"),
+        "quality_rating": "Rất tốt" if final_hm["coverage_pct"] >= 90 else ("Tốt" if final_hm["coverage_pct"] >= 75 else "Khá"),
         "access_points": result_aps,
         "heatmap": final_hm,
         "ai_rationale": [
-            f"Đề xuất lắp đặt {len(result_aps)} bộ phát trên băng tần {band_label} để phủ sóng {final_hm['coverage_pct']}% diện tích mặt bằng (ngưỡng {final_hm['target_threshold_dbm']} dBm), mức sóng trung bình đạt {final_hm['avg_rssi_dbm']} dBm và SNR trung bình {final_hm['avg_snr_db']} dB.",
-            f"Phân bổ kênh tự động lệch nhau ({', '.join(ap_channel_labels)}) giúp giảm tranh chấp kênh và đạt tốc độ dự kiến trung bình {final_hm['avg_throughput_mbps']} Mbps (đáp ứng tối đa ~{final_hm['capacity_max_clients']} thiết bị kết nối đồng thời).",
-            f"Đã tính toán suy hao xuyên qua {len(walls)} vách ngăn trên bản vẽ (vùng sóng dự phòng chuyển vùng Secondary Signal đạt {final_hm['roaming_redundancy_pct']}%, góc khuất sóng yếu: {final_hm['dead_zone_pct']}%)."
+            f"Đề xuất bố trí {len(result_aps)} trạm phát trên băng tần {band_label} nhằm bao phủ {final_hm['coverage_pct']}% diện tích mặt bằng (đáp ứng ngưỡng {final_hm['target_threshold_dbm']} dBm), mức tín hiệu trung bình đạt {final_hm['avg_rssi_dbm']} dBm và SNR trung bình {final_hm['avg_snr_db']} dB.",
+            f"Phân bổ kênh tự động không trùng lặp ({', '.join(ap_channel_labels)}) giúp giảm thiểu xung đột kênh và đạt tốc độ truyền dự kiến trung bình {final_hm['avg_throughput_mbps']} Mbps (đáp ứng tối đa khoảng {final_hm['capacity_max_clients']} thiết bị kết nối đồng thời).",
+            f"Đã tính toán độ suy hao xuyên qua {len(walls)} vách ngăn trên sơ đồ (tỷ lệ vùng phủ sóng dự phòng chuyển vùng đạt {final_hm['roaming_redundancy_pct']}%, tỷ lệ vùng góc khuất tín hiệu yếu: {final_hm['dead_zone_pct']}%)."
         ]
     }

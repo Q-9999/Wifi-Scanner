@@ -130,36 +130,36 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
     mos = round(max(1.0, min(4.5, mos)), 2)
 
     if mos >= 4.3:
-        rating = "Tuyệt Vời / Excellent (Pristine)"
+        rating = "Tuyệt vời (Tối ưu)"
         badge_color = "success"
-        verdict = "Đường truyền hoàn hảo! Cuộc gọi Zalo, Teams, Zoom, VoIP không hề giật lag hay mất tiếng."
+        verdict = "Đường truyền hoàn hảo, cuộc gọi thoại và video trực tuyến rất ổn định, không gián đoạn hoặc mất tiếng."
     elif mos >= 4.0:
-        rating = "Tốt / Good"
+        rating = "Tốt"
         badge_color = "success"
-        verdict = "Chất lượng thoại rõ ràng, ổn định, độ trễ thấp phù hợp đàm thoại công việc."
+        verdict = "Chất lượng thoại rõ ràng, ổn định, độ trễ thấp phù hợp hội họp và đàm thoại công việc."
     elif mos >= 3.6:
-        rating = "Khá / Fair"
+        rating = "Khá (Trung bình)"
         badge_color = "warning"
-        verdict = "Có thể gặp hiện tượng giật giọng hoặc ngắt quãng ngắn khi di chuyển giữa các phòng."
+        verdict = "Có thể gặp hiện tượng giật tiếng hoặc ngắt quãng ngắn khi di chuyển giữa các phòng."
     elif mos >= 3.0:
-        rating = "Kém / Poor"
+        rating = "Kém"
         badge_color = "danger"
-        verdict = "Độ trễ cao hoặc rớt gói tin. Cuộc gọi thoại sẽ bị rè tiếng, méo giọng hoặc trễ hơn 1 giây."
+        verdict = "Độ trễ cao hoặc mất gói tin. Cuộc gọi thoại có thể bị rè tiếng, méo giọng hoặc trễ tiếng."
     else:
-        rating = "Rất Kém / Bad"
+        rating = "Rất kém"
         badge_color = "danger"
-        verdict = "Nghẽn mạng nghiêm trọng! Nguy cơ rớt cuộc gọi hoặc không thể thiết lập cuộc đàm thoại."
+        verdict = "Nghẽn mạng nghiêm trọng, nguy cơ gián đoạn cuộc gọi hoặc không thể thiết lập cuộc đàm thoại."
 
     dns_check = measure_dns_resolution_ms("cloudflare.com")
     gateway_ip = _detect_default_gateway()
     gw_hop = measure_single_hop_fast(gateway_ip)
 
     if gw_hop["latency_ms"] >= 25.0:
-        bottleneck_vi = f"Độ trễ nội bộ từ máy tới Router ({gateway_ip}) cao ({gw_hop['latency_ms']} ms) -> Nguyên nhân do nhiễu sóng Wi-Fi nội bộ."
+        bottleneck_vi = f"Độ trễ từ máy tới bộ định tuyến Router ({gateway_ip}) cao ({gw_hop['latency_ms']} ms), nguyên nhân do suy hao hoặc nhiễu sóng Wi-Fi nội bộ."
     elif avg_rtt >= 100.0:
-        bottleneck_vi = f"Kết nối tới Router nội bộ nhanh ({gw_hop['latency_ms']} ms) nhưng ra Internet chậm ({avg_rtt} ms) -> Nguyên nhân do đường truyền cáp quang ISP."
+        bottleneck_vi = f"Kết nối tới bộ định tuyến nội bộ tốt ({gw_hop['latency_ms']} ms) nhưng ra Internet chậm ({avg_rtt} ms), nguyên nhân do đường truyền internet của nhà mạng ISP."
     else:
-        bottleneck_vi = f"Toàn bộ chặng kết nối (Router nội bộ {gw_hop['latency_ms']} ms -> Internet {avg_rtt} ms -> DNS {dns_check['dns_latency_ms']} ms) đều thông suốt."
+        bottleneck_vi = f"Toàn bộ các chặng kết nối (Bộ định tuyến nội bộ {gw_hop['latency_ms']} ms, Cổng Internet {avg_rtt} ms, Máy chủ tên miền DNS {dns_check['dns_latency_ms']} ms) đều thông suốt và ổn định."
 
     return {
         "target": target_host,
@@ -180,9 +180,9 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
         "dns_latency_ms": dns_check["dns_latency_ms"],
         "path_diagnosis_vi": bottleneck_vi,
         "supported_codecs": [
-            {"codec": "Opus (HD Audio)", "status": "Khuyên dùng" if mos >= 4.0 else "Giảm bitrate"},
-            {"codec": "G.711 (Toll Quality 64kbps)", "status": "Tốt" if packet_loss_pct < 2 else "Mất gói"},
-            {"codec": "G.729 (Low Bandwidth 8kbps)", "status": "Phù hợp khi mạng yếu"}
+            {"codec": "Opus (Âm thanh độ nét cao HD)", "status": "Khuyên dùng" if mos >= 4.0 else "Cần giảm băng thông"},
+            {"codec": "G.711 (Chất lượng chuẩn 64kbps)", "status": "Tốt" if packet_loss_pct < 2 else "Mất gói tin"},
+            {"codec": "G.729 (Băng thông thấp 8kbps)", "status": "Phù hợp khi mạng yếu"}
         ]
     }
 

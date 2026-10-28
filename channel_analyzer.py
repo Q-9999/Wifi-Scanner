@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import math
 
 # Standard non-overlapping channels
@@ -40,8 +40,14 @@ def calculate_overlap_24ghz(target_ch: int, active_ch: int) -> float:
     return OVERLAP_FACTORS_24[diff] if diff < 5 else 0.0
 
 
-def rssi_to_linear_power(rssi_dbm: float) -> float:
-    return 10.0 ** (rssi_dbm / 10.0)
+def rssi_to_linear_power(rssi_dbm: Optional[float]) -> float:
+    if rssi_dbm is None:
+        rssi_dbm = -90.0
+    try:
+        val = float(rssi_dbm)
+    except (ValueError, TypeError):
+        val = -90.0
+    return 10.0 ** (val / 10.0)
 
 
 def evaluate_24ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -70,7 +76,8 @@ def evaluate_24ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         net_ch = net.get("channel")
         if not isinstance(net_ch, int) or net_ch < 1 or net_ch > 14:
             continue
-        signal_dbm = net.get("signal_dbm", -90)
+        raw_dbm = net.get("signal_dbm")
+        signal_dbm = float(raw_dbm) if raw_dbm is not None else -90.0
         power_factor = rssi_to_linear_power(signal_dbm) * 1e6
         util = net.get("channel_utilization_pct") or 20
         clients = net.get("connected_stations", 0)
@@ -161,7 +168,7 @@ def evaluate_24ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         "recommended_score": best_score,
         "recommendation_reason": " ".join(reasons_vi),
         "reasons_breakdown": reasons_vi,
-        "reasons_breakdown_en": reasons_en,
+        "reasons_breakdown_en": reasons_vi,
         "reasons_breakdown_vi": reasons_vi,
         "ranked_preferred": [
             {"channel": ch, "score": score, "aps_count": len(channel_evals[ch]["same_channel_aps"])}
@@ -197,7 +204,8 @@ def evaluate_5ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         net_ch = net.get("channel")
         if not isinstance(net_ch, int) or net_ch not in channel_evals:
             continue
-        signal_dbm = net.get("signal_dbm", -90)
+        raw_dbm = net.get("signal_dbm")
+        signal_dbm = float(raw_dbm) if raw_dbm is not None else -90.0
         power_factor = rssi_to_linear_power(signal_dbm) * 1e6
         util = net.get("channel_utilization_pct") or 15
         clients = net.get("connected_stations", 0)
@@ -293,7 +301,7 @@ def evaluate_5ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         "recommended_80mhz_channels": best_block["primary_channels"],
         "recommendation_reason": " ".join(reasons_vi),
         "reasons_breakdown": reasons_vi,
-        "reasons_breakdown_en": reasons_en,
+        "reasons_breakdown_en": reasons_vi,
         "reasons_breakdown_vi": reasons_vi,
         "best_80mhz_block": best_block,
         "channel_evaluations": channel_evals,
@@ -325,7 +333,8 @@ def evaluate_6ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         net_ch = net.get("channel")
         if not isinstance(net_ch, int) or net_ch not in channel_evals:
             continue
-        signal_dbm = net.get("signal_dbm", -90)
+        raw_dbm = net.get("signal_dbm")
+        signal_dbm = float(raw_dbm) if raw_dbm is not None else -90.0
         power_factor = rssi_to_linear_power(signal_dbm) * 1e6
         util = net.get("channel_utilization_pct") or 10
         clients = net.get("connected_stations", 0)
@@ -377,10 +386,242 @@ def evaluate_6ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         "recommended_160mhz_block": best_block["block_name"],
         "reasons_breakdown": reasons_vi,
         "reasons_breakdown_vi": reasons_vi,
-        "reasons_breakdown_en": reasons_en,
+        "reasons_breakdown_en": reasons_vi,
         "best_160mhz_block": best_block,
         "channel_evaluations": channel_evals,
         "all_160mhz_blocks": block_evals
+    }
+
+
+def _evaluate_adapter_diagnostics(connected_interface: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Xay dung chan doan phan cung card mang Wi-Fi va lien ket vo tuyen (Oscium Adapter Diagnostics).
+    Bao dam luon tra ve cac truong: status, rx_tx_symmetry, signal_adequacy, recommendations.
+    """
+    is_connected = bool(connected_interface and (connected_interface.get("connected") or connected_interface.get("ssid")))
+    if not is_connected:
+        return {
+            "status": "NGẮT KẾT NỐI",
+            "rx_tx_symmetry": "KHÔNG CÓ DỮ LIỆU",
+            "signal_adequacy": "CHƯA KẾT NỐI",
+            "recommendations": [
+                "Card mạng hiện chưa kết nối vào mạng Wi-Fi nào. Hãy kết nối vào một mạng khả dụng để đo lường thông số phần cứng."
+            ],
+            "adapter_name": None,
+            "device_description": None,
+            "connected_ssid": None,
+            "connected_bssid": None,
+            "band": None,
+            "channel": None,
+            "signal_pct": 0,
+            "rssi_dbm": -100,
+            "rx_rate_mbps": 0.0,
+            "tx_rate_mbps": 0.0,
+            "radio_standard": None,
+            "is_connected": False
+        }
+
+    ssid = connected_interface.get("ssid") or "[Ẩn]"
+    bssid = connected_interface.get("bssid") or ""
+    adapter_name = connected_interface.get("interface_name") or connected_interface.get("interface") or "Wi-Fi"
+    description = connected_interface.get("description") or "Bộ chuyển đổi Wi-Fi"
+    band = str(connected_interface.get("band") or "Không rõ")
+    channel = connected_interface.get("channel")
+    raw_sig = connected_interface.get("signal") if connected_interface.get("signal") is not None else connected_interface.get("signal_pct")
+    try:
+        signal_pct = int(float(raw_sig)) if raw_sig is not None else 0
+    except (ValueError, TypeError):
+        signal_pct = 0
+
+    raw_rssi = connected_interface.get("rssi") if connected_interface.get("rssi") is not None else connected_interface.get("rssi_dbm")
+    try:
+        rssi_dbm = int(float(raw_rssi)) if raw_rssi is not None else -100
+    except (ValueError, TypeError):
+        rssi_dbm = -100
+    radio_type = connected_interface.get("radio_type") or "Wi-Fi"
+    rx_rate = float(connected_interface.get("rx_rate") or connected_interface.get("rx_rate_mbps") or 0.0)
+    tx_rate = float(connected_interface.get("tx_rate") or connected_interface.get("tx_rate_mbps") or 0.0)
+
+    # 1. Danh gia muc tin hieu (signal_adequacy)
+    if rssi_dbm >= -65 or signal_pct >= 70:
+        sig_verdict = "ĐẠT CHUẨN XUẤT SẮC"
+    elif rssi_dbm >= -75 or signal_pct >= 45:
+        sig_verdict = "CHẤP NHẬN ĐƯỢC"
+    else:
+        sig_verdict = "KHÔNG ĐẠT YÊU CẦU"
+
+    # 2. Danh gia tinh doi xung thu/phat (rx_tx_symmetry)
+    recs: List[str] = []
+    if rx_rate > 0 and tx_rate > 0:
+        ratio = max(rx_rate, tx_rate) / max(min(rx_rate, tx_rate), 1.0)
+        if ratio <= 1.5:
+            sym_verdict = f"CÂN BẰNG ĐỐI XỨNG (Rx: {rx_rate:.0f} Mbps, Tx: {tx_rate:.0f} Mbps)"
+        elif rx_rate > tx_rate:
+            sym_verdict = f"BẤT ĐỐI XỨNG CHIỀU PHÁT (Tải lên {tx_rate:.0f} Mbps thấp hơn tải xuống {rx_rate:.0f} Mbps)"
+            recs.append("Tốc độ tải lên (Tx) thấp hơn đáng kể so với chiều thu. Cân nhắc hạ công suất phát Router về mức 17-20 dBm để cân bằng với máy tính.")
+        else:
+            sym_verdict = f"BẤT ĐỐI XỨNG CHIỀU THU (Tải xuống {rx_rate:.0f} Mbps thấp hơn tải lên {tx_rate:.0f} Mbps)"
+            recs.append("Tốc độ tải xuống (Rx) thấp hơn chiều phát. Kiểm tra môi trường xung quanh có nguồn phát xung can nhiễu vào card mạng.")
+    else:
+        sym_verdict = "CÂN BẰNG CƠ BẢN"
+
+    # 3. Trang thai tong quan card mang (status)
+    if sig_verdict == "KHÔNG ĐẠT YÊU CẦU":
+        status_verdict = "CẢNH BÁO SÓNG YẾU"
+        recs.append(f"Mức tín hiệu tại card mạng ({rssi_dbm} dBm) quá yếu. Khuyến nghị di chuyển lại gần bộ phát hoặc bổ sung bộ mở rộng sóng Mesh.")
+    elif "BẤT ĐỐI XỨNG" in sym_verdict and (rx_rate > 2.5 * tx_rate or tx_rate > 2.5 * rx_rate):
+        status_verdict = "CẢNH BÁO BẤT ĐỐI XỨNG"
+    else:
+        status_verdict = "HOẠT ĐỘNG TỐT"
+
+    # 4. Them khuyen nghi dai tan
+    if "2.4" in band:
+        recs.append("Máy tính đang kết nối ở dải 2.4 GHz có mật độ can nhiễu cao. Khuyến nghị chuyển sang dải 5 GHz hoặc 6 GHz nếu router hỗ trợ.")
+
+    if not recs:
+        recs.append("Thông số card mạng và liên kết vô tuyến đang ở trạng thái tối ưu, không cần can thiệp cấu hình.")
+
+    return {
+        "status": status_verdict,
+        "rx_tx_symmetry": sym_verdict,
+        "signal_adequacy": sig_verdict,
+        "recommendations": recs,
+        "adapter_name": adapter_name,
+        "device_description": description,
+        "connected_ssid": ssid,
+        "connected_bssid": bssid,
+        "band": band,
+        "channel": channel,
+        "signal_pct": signal_pct,
+        "rssi_dbm": rssi_dbm,
+        "rx_rate_mbps": rx_rate,
+        "tx_rate_mbps": tx_rate,
+        "radio_standard": radio_type,
+        "is_connected": True
+    }
+
+
+def _evaluate_automated_root_cause(
+    checklist: List[Dict[str, Any]],
+    non_wifi_interferers: List[Dict[str, Any]],
+    adapter_diag: Dict[str, Any],
+    eval_24: Dict[str, Any],
+    eval_5: Dict[str, Any],
+    free_air: int,
+    est_retry_rate_pct: float,
+    non_std_24_count: int,
+    wide_24_count: int
+) -> Dict[str, Any]:
+    """
+    Dong co tu dong phan tich va xac dinh nguyen nhan goc re chinh (Automated Root-Cause Engine).
+    Bao dam luon tra ve cac truong: primary_issue_vi, severity, action_steps_vi.
+    """
+    # 1. An ninh mang nghiem trong (Mang mo khong mat khau)
+    open_item = next((item for item in checklist if item.get("id") == "POINT_6_SECURITY"), None)
+    if open_item and open_item.get("status") == "CRITICAL":
+        return {
+            "primary_issue_vi": "Phát hiện mạng Wi-Fi không đặt mật khẩu mã hóa (mạng mở) trong khu vực, tiềm ẩn nguy cơ nghe lén và đánh cắp dữ liệu nghiêm trọng.",
+            "severity": "critical",
+            "action_steps_vi": [
+                "1. Đăng nhập trang quản trị router tại địa chỉ IP của Default Gateway (thường là 192.168.1.1).",
+                "2. Kích hoạt chế độ mã hóa bảo mật WPA2-Personal (AES) hoặc WPA3-SAE cho tất cả các tên mạng SSID.",
+                "3. Đặt mật khẩu mạng mạnh có độ dài tối thiểu 12 ký tự gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.",
+                "4. Vô hiệu hóa tính năng Wi-Fi Protected Setup (WPS) để tránh nguy cơ tấn công dò mã PIN."
+            ]
+        }
+
+    # 2. Tin hieu card mang qua yeu
+    if adapter_diag.get("is_connected") and adapter_diag.get("signal_adequacy") == "KHÔNG ĐẠT YÊU CẦU":
+        rssi = adapter_diag.get("rssi_dbm") if adapter_diag.get("rssi_dbm") is not None else -80
+        return {
+            "primary_issue_vi": f"Mức thu sóng tại card mạng máy trạm rất yếu ({rssi} dBm), là điểm nghẽn chính làm giảm tốc độ thực tế và gây chập chờn liên lạc.",
+            "severity": "warning",
+            "action_steps_vi": [
+                "1. Di chuyển máy tính cá nhân lại gần bộ phát Wi-Fi hơn hoặc đổi góc làm việc thông thoáng.",
+                "2. Kiểm tra và loại bỏ các vật cản hấp thụ sóng mạnh nằm giữa máy tính và router (tường bê tông cốt thép, tủ kim loại).",
+                "3. Bổ sung thêm một thiết bị phát sóng phụ (Mesh node) đặt tại vị trí trung gian giữa router chính và phòng làm việc.",
+                "4. Điều chỉnh anten của router hướng vuông góc với vị trí đặt máy tính để tối ưu búp sóng."
+            ]
+        }
+
+    # 3. Lech toc do truyen nhan doi xung nang
+    if adapter_diag.get("is_connected") and "BẤT ĐỐI XỨNG" in str(adapter_diag.get("rx_tx_symmetry", "")):
+        rx = adapter_diag.get("rx_rate_mbps", 0)
+        tx = adapter_diag.get("tx_rate_mbps", 0)
+        return {
+            "primary_issue_vi": f"Tốc độ truyền nhận vô tuyến bất đối xứng đáng kể (Tải xuống: {rx:.0f} Mbps, Tải lên: {tx:.0f} Mbps) do chênh lệch công suất phát giữa AP và card mạng.",
+            "severity": "warning",
+            "action_steps_vi": [
+                "1. Vào trang quản trị router điều chỉnh công suất phát (Tx Power) xuống mức 17 dBm - 20 dBm (50-100mW) để tương thích với máy trạm.",
+                "2. Cập nhật driver card mạng Wi-Fi của máy tính lên phiên bản mới nhất từ website nhà sản xuất bo mạch/card mạng.",
+                "3. Tắt tính năng tiết kiệm điện năng của card Wi-Fi trong Windows Device Manager (Power Management -> bỏ tích Allow computer to turn off device)."
+            ]
+        }
+
+    # 4. Nhieu kenh ke ACI dai 2.4 GHz
+    if non_std_24_count > 0 or wide_24_count > 0:
+        rec_ch = eval_24.get("recommended_channel", 1)
+        return {
+            "primary_issue_vi": f"Hiện tượng can nhiễu kênh kề (ACI) nặng nề tại dải 2.4 GHz do {non_std_24_count} bộ phát dùng kênh lệch (2-5, 7-10) và {wide_24_count} bộ phát bật độ rộng 40 MHz.",
+            "severity": "warning",
+            "action_steps_vi": [
+                f"1. Cố định kênh phát sóng 2.4 GHz của router về Kênh {rec_ch} (kênh không chồng lấn tối ưu nhất hiện nay).",
+                "2. Khóa độ rộng kênh (Channel Width) dải 2.4 GHz cố định ở 20 MHz (tắt chế độ tự động 20/40 MHz).",
+                "3. Tắt chuẩn hỗ trợ cổ xưa 802.11b (1, 2, 5.5, 11 Mbps) để giải phóng thời lượng phát sóng bị lãng phí.",
+                "4. Ưu tiên cấu hình cho các thiết bị hiện đại chuyển sang sử dụng dải tần 5 GHz hoặc 6 GHz."
+            ]
+        }
+
+    # 5. Nguon nhieu phi Wi-Fi hoat dong
+    microwave_item = next((item for item in non_wifi_interferers if item.get("id") == "MICROWAVE_OVEN"), None)
+    if microwave_item and microwave_item.get("detected"):
+        return {
+            "primary_issue_vi": "Phát hiện nguy cơ xung nhiễu điện từ phi Wi-Fi từ lò vi sóng hoạt động trên dải tần 2.45 GHz làm nghẽn kênh 8-11.",
+            "severity": "warning",
+            "action_steps_vi": [
+                "1. Chuyển kết nối của các thiết bị máy tính, điện thoại sang băng tần 5 GHz hoặc 6 GHz.",
+                "2. Bố trí router Wi-Fi cách xa lò vi sóng, tủ lạnh và các thiết bị phát sóng không dây ngoại vi tối thiểu 2 mét.",
+                f"3. Nếu bắt buộc sử dụng dải 2.4 GHz, chuyển kênh phát của router sang Kênh {eval_24.get('recommended_channel', 1)} để tránh dải 2.45 GHz."
+            ]
+        }
+
+    # 6. Nghen thoi luong song Airtime
+    if free_air < 45 or est_retry_rate_pct >= 18.0:
+        return {
+            "primary_issue_vi": f"Thời lượng phát sóng (Airtime) bị chiếm dụng cao (chỉ còn trống {free_air}%), tỷ lệ gửi lại gói tin ước tính ~{est_retry_rate_pct:.1f}%.",
+            "severity": "warning",
+            "action_steps_vi": [
+                "1. Giới hạn tối đa 2 đến 3 tên mạng SSID phát sóng trên mỗi thiết bị router/AP.",
+                "2. Tắt các tên mạng SSID khách (Guest Network) nếu không có nhu cầu sử dụng thường xuyên.",
+                "3. Nâng tốc độ truyền gói tin quảng bá cơ bản (Basic Beacon Rate) lên tối thiểu 12 Mbps.",
+                "4. Kiểm tra và ngắt kết nối các thiết bị IoT đời cũ phát sóng liên tục làm nghẽn kênh."
+            ]
+        }
+
+    # 7. Tram bam song yeu khi chuyen vung (Sticky Client)
+    roaming_item = next((item for item in checklist if item.get("id") == "POINT_5_ROAMING"), None)
+    if roaming_item and roaming_item.get("status") == "WARNING":
+        return {
+            "primary_issue_vi": "Thiết bị gặp hiện tượng bám trạm phát sóng yếu (Sticky Client) dù trong nhà có điểm phát khác cùng tên mạng có sóng mạnh hơn.",
+            "severity": "warning",
+            "action_steps_vi": [
+                "1. Đăng nhập trang cấu hình router bật tính năng hỗ trợ chuyển vùng nhanh 802.11k, 802.11v và 802.11r.",
+                "2. Giảm bớt công suất phát (Tx Power) của các điểm phát phụ để tạo ranh giới chuyển vùng rõ ràng hơn.",
+                "3. Ngắt và bật lại Wi-Fi trên máy tính để card mạng kết nối lại với điểm phát gần nhất có tín hiệu mạnh nhất."
+            ]
+        }
+
+    # 8. Moi truong toi uu, song tot
+    rec_24 = eval_24.get("recommended_channel", 1)
+    rec_5 = eval_5.get("recommended_channel", 36)
+    return {
+        "primary_issue_vi": "Môi trường sóng vô tuyến và thông số card mạng đạt chuẩn ổn định cao, không phát hiện xung đột hay nghẽn nghẽn kỹ thuật.",
+        "severity": "info",
+        "action_steps_vi": [
+            f"1. Duy trì cấu hình hiện tại ở Kênh {rec_24} (2.4 GHz) và Kênh {rec_5} (5 GHz).",
+            "2. Thực hiện quét lại môi trường sóng định kỳ mỗi tháng một lần để phát hiện nếu hàng xóm đổi kênh gây nhiễu.",
+            "3. Đảm bảo cập nhật firmware router và driver card mạng máy tính lên phiên bản ổn định mới nhất."
+        ]
     }
 
 
@@ -391,7 +632,8 @@ def _build_oscium_troubleshooting_suite(
     eval_6: Dict[str, Any],
     airtime_summary: Dict[str, Any],
     roaming_groups: List[Dict[str, Any]],
-    security_audit: Dict[str, List[Dict[str, Any]]]
+    security_audit: Dict[str, List[Dict[str, Any]]],
+    connected_interface: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Build All-in-One RF & Layer-2 Troubleshooting Diagnostics inspired by Oscium Complete Bundle
@@ -429,7 +671,7 @@ def _build_oscium_troubleshooting_suite(
     non_wifi_interferers = [
         {
             "id": "MICROWAVE_OVEN",
-            "name_vi": "Lò Vi Sóng (Microwave Oven)",
+            "name_vi": "Lò vi sóng",
             "name_en": "Microwave Oven",
             "detected": microwave_detected,
             "band": "2.4 GHz ISM",
@@ -442,7 +684,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "BLUETOOTH_HOPPING",
-            "name_vi": "Tai Nghe / Chuột Bluetooth (FHSS Coexistence)",
+            "name_vi": "Thiết bị Bluetooth không dây",
             "name_en": "Bluetooth Low Energy / Classic (FHSS)",
             "detected": bluetooth_detected,
             "band": "2.4 GHz ISM",
@@ -455,7 +697,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "WIRELESS_CCTV",
-            "name_vi": "Camera Không Dây Tương Tự (Wireless CCTV Transmitter)",
+            "name_vi": "Camera tương tự truyền sóng liên tục",
             "name_en": "Wireless CCTV Transmitter",
             "detected": cctv_detected,
             "band": "2.4 GHz / 5.8 GHz",
@@ -468,7 +710,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "RADAR_DFS",
-            "name_vi": "Radar Khí Tượng & Hàng Không (DFS Radar Pulses)",
+            "name_vi": "Sóng radar thời tiết và hàng không",
             "name_en": "DFS Radar Pulses",
             "detected": radar_detected,
             "band": "5 GHz UNII-2 / UNII-2e",
@@ -596,14 +838,26 @@ def _build_oscium_troubleshooting_suite(
     # 6-Point Automated Wi-Fi Health Check (Oscium Complete Bundle Suite)
     sticky_count = sum(1 for r in roaming_groups if r.get("status") == "STICKY_CLIENT_RISK")
     open_count = len(security_audit.get("open_unsecured", []))
-    strong_aps_count = sum(1 for n in networks if (int(n.get("rssi") or -100) >= -65))
+
+    def _extract_net_rssi(n: Dict[str, Any]) -> int:
+        val = n.get("rssi") if n.get("rssi") is not None else (
+            n.get("signal_dbm") if n.get("signal_dbm") is not None else n.get("rssi_dbm")
+        )
+        if val is not None:
+            try:
+                return int(float(val))
+            except (ValueError, TypeError):
+                pass
+        return -100
+
+    strong_aps_count = sum(1 for n in networks if _extract_net_rssi(n) >= -65)
     total_aps_count = max(1, len(networks))
     coverage_rate_pct = round((strong_aps_count / total_aps_count) * 100, 1)
 
     checklist = [
         {
             "id": "POINT_1_COVERAGE",
-            "category_vi": "1. Mức Sóng & Phủ Sóng (Layer 1 Coverage & Primary RSSI)",
+            "category_vi": "1. Cường độ tín hiệu và mức độ phủ sóng",
             "category_en": "1. Layer 1 Coverage & Primary RSSI",
             "status": "PASS" if coverage_rate_pct >= 50.0 else "WARNING",
             "metric": f"{coverage_rate_pct}% AP đạt mức mạnh ≥ -65 dBm ({strong_aps_count}/{total_aps_count} trạm)",
@@ -612,7 +866,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "POINT_2_SPECTRUM",
-            "category_vi": "2. Phổ Tần & Can Nhiễu Kênh (Layer 1 RF Spectrum Quality)",
+            "category_vi": "2. Chất lượng phổ tần và can nhiễu kênh",
             "category_en": "2. Layer 1 RF Spectrum Quality",
             "status": "PASS" if (eval_24["recommended_score"] >= 70 and not non_std_24_aps) else "WARNING",
             "metric": f"2.4G: {eval_24['recommended_score']}/100 | 5G: {eval_5['recommended_score']}/100 | 6G: {eval_6['recommended_score']}/100",
@@ -621,7 +875,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "POINT_3_NON_WIFI",
-            "category_vi": "3. Nguồn Nhiễu Phi Wi-Fi (Non-Wi-Fi Interference Detection)",
+            "category_vi": "3. Nguồn can nhiễu ngoài luồng Wi-Fi",
             "category_en": "3. Non-Wi-Fi RF Interference Detection",
             "status": "WARNING" if microwave_detected else "PASS",
             "metric": f"{'Cảnh báo xung lò vi sóng Kênh 8-11' if microwave_detected else 'Không phát hiện xung lò vi sóng'} | Bluetooth FHSS ổn định",
@@ -630,7 +884,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "POINT_4_AIRTIME",
-            "category_vi": "4. Thời Lượng Sóng & Gửi Lại Gói Tin (Layer 2 Airtime & Frame Retry)",
+            "category_vi": "4. Thời lượng chiếm dụng sóng và gửi lại gói tin",
             "category_en": "4. Layer 2 Airtime & Frame Retry",
             "status": "PASS" if (free_air >= 50 and est_retry_rate_pct < 15.0) else "WARNING",
             "metric": f"Trống {free_air}% | Beacon {beacon_oh}% | Tỷ lệ gửi lại gói tin ~{est_retry_rate_pct}%",
@@ -639,7 +893,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "POINT_5_ROAMING",
-            "category_vi": "5. Chuyển Vùng & Trạm Bám Sóng (Layer 2 Roaming & Sticky Client)",
+            "category_vi": "5. Chuyển vùng và xử lý thiết bị bám sóng yếu",
             "category_en": "5. Layer 2 Multi-AP Roaming & Sticky Client",
             "status": "WARNING" if sticky_count > 0 else "PASS",
             "metric": f"{len(roaming_groups)} Hệ thống đa trạm | {sticky_count} Nguy cơ bám sóng yếu",
@@ -648,7 +902,7 @@ def _build_oscium_troubleshooting_suite(
         },
         {
             "id": "POINT_6_SECURITY",
-            "category_vi": "6. An Toàn Mã Hóa & Mạng Mở (Layer 2 WLAN Security)",
+            "category_vi": "6. An toàn mã hóa và kiểm soát mạng mở",
             "category_en": "6. Layer 2 WLAN Security & Encryption",
             "status": "CRITICAL" if open_count > 0 else "PASS",
             "metric": f"{open_count} Mạng không mật khẩu | {len(security_audit.get('cutting_edge_wpa3', []))} Trạm chuẩn WPA3",
@@ -666,6 +920,19 @@ def _build_oscium_troubleshooting_suite(
             score_deductions += 25
     health_score = max(20, min(100, 100 - score_deductions))
 
+    adapter_diag = _evaluate_adapter_diagnostics(connected_interface)
+    root_cause = _evaluate_automated_root_cause(
+        checklist=checklist,
+        non_wifi_interferers=non_wifi_interferers,
+        adapter_diag=adapter_diag,
+        eval_24=eval_24,
+        eval_5=eval_5,
+        free_air=free_air,
+        est_retry_rate_pct=est_retry_rate_pct,
+        non_std_24_count=len(non_std_24_aps),
+        wide_24_count=len(wide_24_aps)
+    )
+
     return {
         "health_score": health_score,
         "estimated_retry_rate_pct": est_retry_rate_pct,
@@ -674,14 +941,16 @@ def _build_oscium_troubleshooting_suite(
         "dfs_5ghz_count": len(dfs_5_aps),
         "non_wifi_interferers": non_wifi_interferers,
         "spectrum_classifiers": spectrum_classifiers,
-        "checklist": checklist
+        "checklist": checklist,
+        "adapter_diagnostics": adapter_diag,
+        "automated_root_cause": root_cause
     }
 
 
 def analyze_wifi_environment(
     networks: List[Dict[str, Any]],
-    connected_interface: Dict[str, Any] = None,
-    security_threats: Dict[str, Any] = None,
+    connected_interface: Optional[Dict[str, Any]] = None,
+    security_threats: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
     """Full RF, SNR/MCS, Airtime, Roaming, Security, and Oscium All-in-One Troubleshooting Analysis"""
@@ -726,13 +995,17 @@ def analyze_wifi_environment(
 
         util = n.get("channel_utilization_pct")
         if util is None:
-            sig_pct = n.get("signal_percent", 20)
+            raw_sig_pct = n.get("signal_percent")
+            try:
+                sig_pct = float(raw_sig_pct) if raw_sig_pct is not None else 20.0
+            except (ValueError, TypeError):
+                sig_pct = 20.0
             base_air = 8 if "Wi-Fi 6" in gen or "Wi-Fi 7" in gen else (12 if "Wi-Fi 5" in gen else 18)
             util = min(65, max(3, round(base_air * (sig_pct / 60.0))))
         airtime_list.append({
             "ssid": n.get("ssid", "[Hidden]"),
             "bssid": n.get("bssid", ""),
-            "channel": n.get("channel", 1),
+            "channel": n.get("channel") if n.get("channel") is not None else 1,
             "band": b,
             "generation": gen,
             "airtime_pct": util,
@@ -753,8 +1026,8 @@ def analyze_wifi_environment(
             "auth": n.get("authentication"),
             "channel": n.get("channel"),
             "band": b,
-            "signal_percent": n.get("signal_percent", 0),
-            "signal_dbm": n.get("signal_dbm", -100)
+            "signal_percent": n.get("signal_percent") if n.get("signal_percent") is not None else 0,
+            "signal_dbm": n.get("signal_dbm") if n.get("signal_dbm") is not None else -100
         }
 
         if "open" in auth or "none" in str(n.get("encryption", "")).lower():
@@ -771,11 +1044,26 @@ def analyze_wifi_environment(
     roaming_groups = []
     for ssid_name, members in ssid_groups.items():
         if len(members) >= 2:
-            bands_present = sorted(list({str(m.get("band", "2.4 GHz")) for m in members}))
-            channels_present = sorted(list({m.get("channel", 1) for m in members}))
-            signals = [m.get("signal_dbm", -100) for m in members]
-            max_sig = max(signals)
-            min_sig = min(signals)
+            bands_present = sorted(list({str(m.get("band") or "2.4 GHz") for m in members}))
+            valid_channels = []
+            for m in members:
+                ch = m.get("channel")
+                if ch is not None:
+                    try:
+                        valid_channels.append(int(float(ch)))
+                    except (ValueError, TypeError):
+                        pass
+            channels_present = sorted(list(set(valid_channels))) if valid_channels else [1]
+
+            signals = []
+            for m in members:
+                raw_sig = m.get("signal_dbm") if m.get("signal_dbm") is not None else m.get("rssi")
+                try:
+                    signals.append(int(float(raw_sig)) if raw_sig is not None else -100)
+                except (ValueError, TypeError):
+                    signals.append(-100)
+            max_sig = max(signals) if signals else -100
+            min_sig = min(signals) if signals else -100
             spread = max_sig - min_sig
             has_sticky = any(m.get("roaming_status") == "STICKY_CLIENT" for m in members)
             status = "STICKY_CLIENT_RISK" if (has_sticky or (max_sig >= -62 and min_sig < -72)) else "OPTIMAL_ROAMING"
@@ -818,7 +1106,8 @@ def analyze_wifi_environment(
     }
 
     troubleshooting_suite = _build_oscium_troubleshooting_suite(
-        networks, eval_24, eval_5, eval_6, airtime_summary, roaming_groups, security_audit
+        networks, eval_24, eval_5, eval_6, airtime_summary, roaming_groups, security_audit,
+        connected_interface=connected_interface
     )
     airtime_summary["estimated_retry_rate_pct"] = troubleshooting_suite["estimated_retry_rate_pct"]
 

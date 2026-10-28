@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-<html lang="vi" data-theme="light">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MMQ. / NetScanner - Công Cụ Quét Sóng, Phân Tích Phổ & Quy Hoạch Mạng Wi-Fi</title>
-    <!-- Local Offline Lucide Icons -->
-    <script src="/static/lucide.min.js?v=3.0.0"></script>
-    <link rel="stylesheet" href="/static/styles.css?v=3.9.0">
+    <title>MMQ./WifiScanner - Phân Tích Phổ Tần và Quy Hoạch Mạng Wi-Fi</title>
+    <link rel="stylesheet" href="/static/styles.css?v=4.0.0">
 </head>
 <body>
     <!-- Top Navigation Header -->
@@ -14,27 +12,27 @@
         <div class="header-left">
             <div class="brand">
                 <div class="brand-logo">
-                    <i data-lucide="radar" class="icon-pulse"></i>
+                    <span style="font-weight:900; font-size:1.1rem; color:#fff;">RF</span>
                 </div>
                 <div class="brand-text">
                     <div class="brand-title">
-                        <span>MMQ.</span> <span class="badge-pro" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">NetScanner</span>
+                        <span>MMQ./WifiScanner</span> <span class="badge-pro">Chuyên sâu</span>
                     </div>
-                    <div class="brand-subtitle" data-i18n="brand_subtitle">Công Cụ Quét Sóng, Phân Tích Kênh & Quy Hoạch Mạng Wi-Fi</div>
+                    <div class="brand-subtitle">Phân tích phổ tần và quy hoạch vùng phủ sóng không dây</div>
                 </div>
             </div>
 
             <!-- Active Connection Quick Badge -->
             <div id="active-connection-card" class="active-connection-card hidden">
-                <div class="conn-icon"><i data-lucide="wifi"></i></div>
                 <div class="conn-details">
                     <div class="conn-title">
-                        <span id="conn-ssid">Connecting...</span>
+                        <span style="color:var(--text-secondary); font-size:0.75rem; font-weight:600;">Wi-Fi:</span>
+                        <span id="conn-ssid">Đang kết nối...</span>
                         <span id="conn-band-badge" class="badge-band">5 GHz</span>
                     </div>
                     <div class="conn-meta">
-                        <span id="conn-ch">Ch 36</span> • 
-                        <span id="conn-sig">-56 dBm (88%)</span> • 
+                        <span id="conn-ch">Kênh 36</span> &bull; 
+                        <span id="conn-sig">-56 dBm (88%)</span> &bull; 
                         <span id="conn-rates">488 Mbps</span>
                     </div>
                 </div>
@@ -45,151 +43,121 @@
             <!-- Continuous Live Status Indicator -->
             <div class="continuous-badge-wrapper">
                 <span class="live-dot pulse-animation"></span>
-                <span class="live-text" data-i18n="badge_stream_live">ĐANG QUÉT TRỰC TIẾP</span>
+                <span class="live-text">Đang quét trực tiếp</span>
                 <span class="scan-pill" id="scan-count-badge">#0</span>
             </div>
 
             <!-- Auto Scan Toggle -->
             <div class="action-group">
                 <select id="auto-scan-interval" class="select-control highlight-continuous" title="Chu kỳ quét tín hiệu">
-                    <option value="3" selected data-i18n="scan_opt_balanced">⚖️ Cân bằng (3s - Khuyên dùng)</option>
-                    <option value="5" data-i18n="scan_opt_eco">🌱 Tiết kiệm pin (5s)</option>
-                    <option value="1" data-i18n="scan_opt_fast">⚡ Quét nhanh (1s)</option>
-                    <option value="0" data-i18n="scan_opt_pause">⏸️ Tạm dừng (Quét thủ công)</option>
+                    <option value="3" selected>Cân bằng (3 giây - khuyên dùng)</option>
+                    <option value="5">Tiết kiệm pin (5 giây)</option>
+                    <option value="1">Quét nhanh (1 giây)</option>
+                    <option value="0">Tạm dừng quét</option>
                 </select>
             </div>
 
             <!-- Scan Now Button -->
-            <button id="btn-scan" class="btn btn-primary" title="Quét ngay lập tức / Scan Now">
-                <i data-lucide="scan" id="scan-icon"></i>
-                <span data-i18n="btn_scan_now">Quét Ngay</span>
+            <button id="btn-scan" class="btn btn-primary" title="Quét ngay lập tức">
+                <span id="scan-icon" style="display:none;"></span>
+                <span>Quét ngay</span>
             </button>
 
             <!-- Export CSV Direct Button -->
-            <button id="btn-export-csv" class="btn btn-export" title="Xuất báo cáo ra bảng tính CSV mở trực tiếp bằng Excel / Export CSV">
-                <i data-lucide="file-spreadsheet"></i>
-                <span data-i18n="btn_export_csv">Xuất CSV</span>
-            </button>
-
-            <!-- Language Switcher Toggle -->
-            <button id="btn-lang-toggle" class="btn-lang" title="Chuyển đổi ngôn ngữ / Switch Language (Tiếng Việt / English)">
-                <i data-lucide="languages"></i>
-                <span id="lang-current-label" class="lang-tag">VI</span>
-            </button>
-
-            <!-- Theme Toggle -->
-            <button id="btn-theme-toggle" class="btn btn-icon" title="Chuyển giao diện Sáng / Tối">
-                <i data-lucide="moon" id="theme-icon"></i>
+            <button id="btn-export-csv" class="btn btn-export" title="Xuất báo cáo ra bảng tính CSV">
+                <span>Xuất bảng tính</span>
             </button>
         </div>
     </header>
 
-    <!-- Global Stats Overview Banner (SaaS Analytics Dashboard Style) -->
+    <!-- Global Stats Overview Banner -->
     <section class="stats-overview-bar">
         <div class="stat-card">
             <div class="stat-card-top">
                 <div class="stat-card-main">
-                    <div class="stat-icon icon-blue"><i data-lucide="radio"></i></div>
                     <div class="stat-info">
-                        <div class="stat-label" data-i18n="stat_aps">Bộ Phát / APs Found</div>
+                        <div class="stat-label">Số lượng trạm phát</div>
                         <div class="stat-value" id="stat-total-aps">--</div>
                     </div>
                 </div>
-                <span class="stat-trend-pill" id="stat-trend-aps">2.4 / 5 / 6G</span>
+                <span class="stat-trend-pill" id="stat-trend-aps">2.4 / 5 / 6 GHz</span>
             </div>
             <div class="stat-progress-track">
-                <div class="stat-progress-fill" id="stat-bar-aps" style="width: 45%; background: linear-gradient(90deg, #3b82f6, #06b6d4);"></div>
+                <div class="stat-progress-fill" id="stat-bar-aps" style="width: 45%; background: linear-gradient(90deg, #0284c7, #0ea5e9);"></div>
             </div>
         </div>
 
         <div class="stat-card">
             <div class="stat-card-top">
                 <div class="stat-card-main">
-                    <div class="stat-icon icon-cyan"><i data-lucide="network"></i></div>
                     <div class="stat-info">
-                        <div class="stat-label" data-i18n="stat_ssids">Tên Mạng / Unique SSIDs</div>
+                        <div class="stat-label">Số tên mạng phát hiện</div>
                         <div class="stat-value" id="stat-unique-ssids">--</div>
                     </div>
                 </div>
-                <span class="stat-trend-pill" id="stat-trend-ssids">WLAN</span>
+                <span class="stat-trend-pill" id="stat-trend-ssids">Mạng WLAN</span>
             </div>
             <div class="stat-progress-track">
-                <div class="stat-progress-fill" id="stat-bar-ssids" style="width: 50%; background: linear-gradient(90deg, #06b6d4, #10b981);"></div>
+                <div class="stat-progress-fill" id="stat-bar-ssids" style="width: 50%; background: linear-gradient(90deg, #0284c7, #10b981);"></div>
             </div>
         </div>
 
         <div class="stat-card">
             <div class="stat-card-top">
                 <div class="stat-card-main">
-                    <div class="stat-icon icon-green"><i data-lucide="gauge"></i></div>
                     <div class="stat-info">
-                        <div class="stat-label" data-i18n="stat_health">Điểm Môi Trường / Score</div>
+                        <div class="stat-label">Điểm chất lượng môi trường</div>
                         <div class="stat-value" id="stat-health-score">-- <span class="score-max">/ 100</span></div>
                     </div>
                 </div>
-                <span class="stat-trend-pill" id="stat-trend-health" style="background: rgba(16, 185, 129, 0.14); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">SNR -- dB</span>
+                <span class="stat-trend-pill" id="stat-trend-health" style="background: rgba(16, 185, 129, 0.14); color: #059669; border-color: rgba(16, 185, 129, 0.3);">Chỉ số SNR</span>
             </div>
             <div class="stat-progress-track">
-                <div class="stat-progress-fill" id="stat-bar-health" style="width: 75%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                <div class="stat-progress-fill" id="stat-bar-health" style="width: 75%; background: linear-gradient(90deg, #10b981, #059669);"></div>
             </div>
         </div>
 
         <div class="stat-card">
             <div class="stat-card-top">
                 <div class="stat-card-main">
-                    <div class="stat-icon icon-purple"><i data-lucide="cpu"></i></div>
                     <div class="stat-info">
-                        <div class="stat-label" data-i18n="stat_best_24">Kênh Tốt Nhất 2.4GHz</div>
-                        <div class="stat-value text-accent" id="stat-best-24">Ch --</div>
+                        <div class="stat-label">Kênh tối ưu 2.4 GHz</div>
+                        <div class="stat-value text-accent" id="stat-best-24">Kênh --</div>
                     </div>
                 </div>
-                <span class="stat-trend-pill" id="stat-trend-24" style="background: rgba(168, 85, 247, 0.14); color: #c084fc; border-color: rgba(168, 85, 247, 0.3);">20 MHz</span>
+                <span class="stat-trend-pill" id="stat-trend-24" style="background: rgba(124, 58, 237, 0.14); color: #7c3aed; border-color: rgba(124, 58, 237, 0.3);">Độ rộng 20 MHz</span>
             </div>
             <div class="stat-progress-track">
-                <div class="stat-progress-fill" id="stat-bar-24" style="width: 80%; background: linear-gradient(90deg, #8b5cf6, #06b6d4);"></div>
+                <div class="stat-progress-fill" id="stat-bar-24" style="width: 80%; background: linear-gradient(90deg, #7c3aed, #0284c7);"></div>
             </div>
         </div>
 
         <div class="stat-card">
             <div class="stat-card-top">
                 <div class="stat-card-main">
-                    <div class="stat-icon icon-amber"><i data-lucide="zap"></i></div>
                     <div class="stat-info">
-                        <div class="stat-label" data-i18n="stat_best_5">Kênh Tốt Nhất 5GHz</div>
-                        <div class="stat-value text-accent" id="stat-best-5">Ch --</div>
+                        <div class="stat-label">Kênh tối ưu 5 GHz</div>
+                        <div class="stat-value text-accent" id="stat-best-5">Kênh --</div>
                     </div>
                 </div>
-                <span class="stat-trend-pill" id="stat-trend-5" style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3);">80 MHz</span>
+                <span class="stat-trend-pill" id="stat-trend-5" style="background: rgba(217, 119, 6, 0.14); color: #d97706; border-color: rgba(217, 119, 6, 0.3);">Độ rộng 80 MHz</span>
             </div>
             <div class="stat-progress-track">
-                <div class="stat-progress-fill" id="stat-bar-5" style="width: 90%; background: linear-gradient(90deg, #f59e0b, #10b981);"></div>
+                <div class="stat-progress-fill" id="stat-bar-5" style="width: 90%; background: linear-gradient(90deg, #d97706, #10b981);"></div>
             </div>
         </div>
     </section>
 
     <!-- Main Navigation Tabs -->
     <nav class="nav-tabs">
-        <button class="nav-tab active" data-tab="tab-survey">
-            <i data-lucide="table"></i> <span data-i18n="tab_survey">Quét Sóng / Survey</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-spectrum">
-            <i data-lucide="activity"></i> <span data-i18n="tab_spectrum">Phổ Sóng RF / Spectrum</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-optimizer">
-            <i data-lucide="sliders"></i> <span data-i18n="tab_optimizer">Tối Ưu Kênh & Router / Optimizer</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-vowifi">
-            <i data-lucide="phone-call"></i> <span data-i18n="tab_vowifi">Thoại VoWiFi & MOS</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-planner">
-            <i data-lucide="map-pin"></i> <span data-i18n="tab_planner">Quy Hoạch AP & Bản Đồ Nhiệt RF / Planner</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-security">
-            <i data-lucide="shield-alert"></i> <span data-i18n="tab_security">Đánh Giá An Ninh / Security Audit</span>
-        </button>
-        <button class="nav-tab" data-tab="tab-reports">
-            <i data-lucide="file-text"></i> <span data-i18n="tab_reports">Kho Báo Cáo / Reports</span>
-        </button>
+        <button class="nav-tab active" data-tab="tab-survey">Khảo sát sóng</button>
+        <button class="nav-tab" data-tab="tab-spectrum">Phổ tần vô tuyến</button>
+        <button class="nav-tab" data-tab="tab-optimizer">Tối ưu hóa và chẩn đoán</button>
+        <button class="nav-tab" data-tab="tab-speedtest">Đo tốc độ mạng</button>
+        <button class="nav-tab" data-tab="tab-vowifi">Chất lượng cuộc gọi thoại</button>
+        <button class="nav-tab" data-tab="tab-planner">Bản đồ nhiệt sóng</button>
+        <button class="nav-tab" data-tab="tab-security">Kiểm tra an toàn bảo mật</button>
+        <button class="nav-tab" data-tab="tab-reports">Lưu trữ báo cáo</button>
     </nav>
 
     <!-- Main App Content Area -->
@@ -200,183 +168,177 @@
             <!-- Filter & Search Toolbar -->
             <div class="toolbar">
                 <div class="search-box">
-                    <i data-lucide="search"></i>
-                    <input type="text" id="network-search" placeholder="Tìm theo tên mạng SSID, địa chỉ MAC hoặc hãng sản xuất (Cisco, Aruba, Viettel, FPT)..." data-i18n-placeholder="search_placeholder">
+                    <input type="text" id="search-input" data-alt-id="network-search" placeholder="Tìm theo tên mạng SSID, địa chỉ MAC hoặc hãng sản xuất..." autocomplete="off">
                 </div>
 
                 <div class="filter-group">
-                    <span class="filter-label" data-i18n="filter_band">Băng Tần:</span>
-                    <button class="filter-pill active" data-filter-band="all" data-i18n="filter_all">Tất Cả</button>
-                    <button class="filter-pill" data-filter-band="2.4 GHz">2.4 GHz</button>
-                    <button class="filter-pill" data-filter-band="5 GHz">5 GHz</button>
-                    <button class="filter-pill" data-filter-band="6 GHz">6 GHz</button>
+                    <span class="filter-label">Băng tần:</span>
+                    <div class="filter-pills" id="filter-chips">
+                        <button class="filter-pill active" data-band="all">Tất cả</button>
+                        <button class="filter-pill" data-band="2.4 GHz">2.4 GHz</button>
+                        <button class="filter-pill" data-band="5 GHz">5 GHz</button>
+                        <button class="filter-pill" data-band="6 GHz">6 GHz</button>
+                    </div>
                 </div>
 
                 <div class="filter-group">
-                    <span class="filter-label" data-i18n="filter_security">Bảo Mật:</span>
-                    <select id="filter-security" class="select-control">
-                        <option value="all" data-i18n="filter_sec_all">Tất Cả Bảo Mật</option>
-                        <option value="open" data-i18n="filter_sec_open">Mạng Mở (Không Mật Khẩu)</option>
-                        <option value="wpa2">WPA2</option>
-                        <option value="wpa3">WPA3</option>
-                        <option value="enterprise" data-i18n="filter_sec_ent">Doanh Nghiệp (Enterprise)</option>
-                    </select>
+                    <span class="filter-label">Bảo mật:</span>
+                    <div class="filter-pills" id="sec-chips">
+                        <button class="filter-pill active" data-sec="all">Tất cả bao mat</button>
+                        <button class="filter-pill" data-sec="open">Mạng không mật khẩu</button>
+                        <button class="filter-pill" data-sec="enterprise">Doanh nghiệp</button>
+                    </div>
                 </div>
 
-                <!-- Fast Filter Chips -->
-                <div class="quick-filter-chips">
-                    <span class="filter-label" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700;">Lọc Nhanh:</span>
-                    <button class="chip-filter active" data-quick-filter="all">Tất Cả</button>
-                    <button class="chip-filter" data-quick-filter="connected"><i data-lucide="link-2" style="width:12px; height:12px;"></i> Đang Nối</button>
-                    <button class="chip-filter" data-quick-filter="open"><i data-lucide="unlock" style="width:12px; height:12px;"></i> Mạng Mở</button>
-                    <button class="chip-filter" data-quick-filter="hidden"><i data-lucide="eye-off" style="width:12px; height:12px;"></i> Mạng Ẩn</button>
-                    <button class="chip-filter" data-quick-filter="threats"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> Cảnh Báo</button>
+                <div class="quick-filters">
+                    <button class="chip-filter" data-filter="connected">Đang kết nối</button>
+                    <button class="chip-filter" data-filter="open">Mạng không mật khẩu</button>
+                    <button class="chip-filter" data-filter="hidden">Mạng ẩn</button>
+                    <button class="chip-filter" data-filter="threat">Cảnh báo bất thường</button>
+                </div>
+
+                <div class="view-toggles">
+                    <div class="view-pill-group">
+                        <button class="view-btn active" id="btn-view-list" onclick="window.switchSurveyView('list')">
+                            <span>Danh sách trạm phát</span>
+                        </button>
+                        <button class="view-btn" id="btn-view-cluster" onclick="window.switchSurveyView('cluster')">
+                            <span>Nhóm theo thiết bị vật lý</span>
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-open-finder" onclick="window.openDeviceFinder()">
+                        <span>Dò tìm vị trí trạm phát</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- View Mode Bar (List View vs Hardware Topology Clusters + Oscium Device Finder) -->
-            <div class="view-mode-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                <div class="view-toggles" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-sm btn-primary active" id="btn-view-list" onclick="window.switchSurveyView('list')">
-                        <i data-lucide="list"></i> <span data-i18n="view_list">Danh Sách BSSID</span>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" id="btn-view-cluster" onclick="window.switchSurveyView('cluster')">
-                        <i data-lucide="network"></i> <span data-i18n="view_cluster">Gom Nhóm Theo Thiết Bị Vật Lý (Hardware Grouping)</span>
-                    </button>
-                    <button class="btn btn-sm btn-accent" id="btn-open-device-finder" onclick="window.openDeviceFinder()" title="Mở bộ dò hướng tín hiệu để tìm vị trí vật lý của bộ phát Wi-Fi">
-                        <i data-lucide="compass"></i> <span data-i18n="btn_device_finder">🎯 Bộ Dò Hướng Tín Hiệu AP (Device Finder)</span>
-                    </button>
-                </div>
-                <div id="survey-threat-indicator" style="display: flex; align-items: center; font-size: 0.8rem; color: #10b981; gap: 6px; padding: 4px 10px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px;">
-                    <i data-lucide="shield-check" style="width:16px; height:16px;"></i> <span id="threat-status-text">An Toàn Bảo Mật: Không phát hiện trạm giả mạo</span>
-                </div>
+            <!-- Global Security Status Banner -->
+            <div class="global-sec-banner" id="global-sec-status-bar" style="display:none; margin-bottom: 12px; padding: 10px 16px; border-radius: 8px; font-size: 0.84rem; font-weight: 600;">
+                <span id="global-sec-status-text">An toàn bảo mật: Đang phân tích...</span>
             </div>
 
-            <!-- Survey Table (Flat BSSID List) -->
-            <div class="table-container" id="table-container-view">
+            <!-- Survey Table View -->
+            <div class="table-container" id="view-list-container">
                 <table class="survey-table" id="survey-table">
                     <thead>
                         <tr>
-                            <th data-sort="connected" style="width: 40px;"><i data-lucide="link-2"></i></th>
-                            <th data-sort="ssid"><span data-i18n="th_ssid">Tên Mạng (SSID)</span> <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
-                            <th data-sort="bssid" data-i18n="th_bssid">Địa Chỉ MAC (BSSID)</th>
-                            <th data-sort="vendor" data-i18n="th_vendor">Hãng Sản Xuất (Vendor)</th>
-                            <th data-sort="signal"><span data-i18n="th_signal">Cường Độ Sóng & SNR</span> <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
-                            <th data-sort="channel"><span data-i18n="th_channel">Kênh (Channel)</span> <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
-                            <th data-sort="band" data-i18n="th_band">Băng Tần (Band)</th>
-                            <th data-sort="generation" data-i18n="th_gen">Chuẩn & Điều Chế MCS</th>
-                            <th data-sort="security" data-i18n="th_security">Bảo Mật (Security)</th>
-                            <th data-sort="utilization" data-i18n="th_load">Tải Kênh & Tốc Độ Thực</th>
-                            <th data-i18n="th_details">Chi Tiết</th>
+                            <th style="width: 40px; text-align: center;">Kết nối</th>
+                            <th class="sortable" data-sort="ssid">Tên mạng</th>
+                            <th style="width: 145px;">Địa chỉ vật lý (MAC)</th>
+                            <th style="width: 130px;">Hãng sản xuất</th>
+                            <th class="sortable" data-sort="signal" style="width: 135px;">Mức tín hiệu và SNR</th>
+                            <th class="sortable" data-sort="channel" style="width: 75px; text-align: center;">Kênh phát</th>
+                            <th style="width: 85px; text-align: center;">Băng tần</th>
+                            <th style="width: 120px;">Chuẩn mạng và điều chế</th>
+                            <th style="width: 130px;">Bảo mật</th>
+                            <th style="width: 110px;">Chiếm dụng và tốc độ</th>
+                            <th style="width: 60px; text-align: center;">Chi tiết</th>
                         </tr>
                     </thead>
-                    <tbody id="survey-table-body">
+                    <tbody id="survey-tbody">
                         <tr>
                             <td colspan="11" class="loading-row">
-                                <div class="spinner"></div> Đang quét các trạm phát sóng Wi-Fi xung quanh...
+                                <div class="spinner"></div>
+                                <span>Đang quét tín hiệu sóng Wi-Fi...</span>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Hardware Topology Clusters Container -->
-            <div id="cluster-container" class="cluster-container hidden" style="display:flex; flex-direction:column; gap:16px;">
+            <!-- Physical Clusters View -->
+            <div class="clusters-container hidden" id="view-cluster-container">
+                <div class="cluster-summary-bar" id="cluster-summary-banner">
+                    Đang gom nhóm theo phần cứng phát sóng...
+                </div>
+                <div class="clusters-grid" id="clusters-grid"></div>
             </div>
         </section>
 
-        <!-- TAB 2: RF SPECTRUM ANALYZER (CANVAS BELL-CURVE GRAPHS + WATERFALL + AIRTIME) -->
+        <!-- TAB 2: SPECTRUM & WATERFALL VISUALIZATION -->
         <section id="tab-spectrum" class="tab-pane">
             <div class="spectrum-grid">
                 <!-- 2.4 GHz Spectrum Card -->
-                <div class="spectrum-card">
-                    <div class="spectrum-header">
-                        <div class="spectrum-title">
-                            <span class="spectrum-band-pill" data-i18n="spec_24_pill">Dải Tần 2.4 GHz ISM</span>
-                            <span class="spectrum-desc" data-i18n="spec_24_desc">Kênh 1 đến 14 (3 kênh chuẩn không chồng lấn: 1, 6, 11)</span>
+                <div class="card spectrum-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Phổ Sóng Băng Tần 2.4 GHz (Kênh 1 đến 14)</h3>
+                            <p class="card-subtitle">Biểu đồ mật độ phổ tín hiệu Parabolic thể hiện độ rộng kênh 20MHz/40MHz và vùng giao thoa kênh kề.</p>
                         </div>
-                        <div class="spectrum-legend">
-                            <span class="legend-item"><span class="legend-dot color-curr"></span> <span data-i18n="spec_legend_active">AP Đang Phát</span></span>
-                            <span class="legend-item"><span class="legend-dot color-rec"></span> <span data-i18n="spec_legend_rec">Kênh Khuyên Dùng</span></span>
-                        </div>
+                        <span class="badge badge-band">2.4 GHz ISM</span>
                     </div>
-                    <div class="canvas-wrapper">
-                        <canvas id="canvas-spectrum-24" height="240"></canvas>
+                    <div class="canvas-container">
+                        <canvas id="canvas-spectrum-24" width="800" height="260"></canvas>
                     </div>
-                    <div class="spectrum-footer">
-                        <div class="spectrum-analysis-note" id="spectrum-note-24" data-i18n="spec_note_24">
-                            Đang phân tích độ trùng kênh (CCI) và giao thoa kênh kề (ACI)...
-                        </div>
+                    <div class="spectrum-analysis-note" id="spectrum-note-24">
+                        Đang phân tích mật độ kênh 1, 6, 11...
                     </div>
                 </div>
 
                 <!-- 5 GHz Spectrum Card -->
-                <div class="spectrum-card">
-                    <div class="spectrum-header">
-                        <div class="spectrum-title">
-                            <span class="spectrum-band-pill pill-5g" data-i18n="spec_5_pill">Dải Tần 5 GHz UNII</span>
-                            <span class="spectrum-desc" data-i18n="spec_5_desc">UNII-1 (Kênh 36-48), UNII-2A/2C DFS (52-144), UNII-3 (149-165)</span>
+                <div class="card spectrum-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Phổ Sóng Băng Tần 5 GHz (UNII-1, UNII-2 DFS, UNII-3)</h3>
+                            <p class="card-subtitle">Trực quan hóa các kênh 20MHz, 40MHz và khối kênh rộng 80MHz/160MHz với cảnh báo vùng radar thời tiết.</p>
                         </div>
-                        <div class="spectrum-legend">
-                            <span class="legend-item"><span class="legend-dot color-curr"></span> <span data-i18n="spec_legend_active">AP Đang Phát</span></span>
-                            <span class="legend-item"><span class="legend-dot color-rec"></span> <span data-i18n="spec_legend_block">Khối Kênh Sạch</span></span>
-                        </div>
+                        <span class="badge badge-band" style="background:#4f46e5; color:#fff;">5 GHz UNII</span>
                     </div>
-                    <div class="canvas-wrapper">
-                        <canvas id="canvas-spectrum-5" height="240"></canvas>
+                    <div class="canvas-container">
+                        <canvas id="canvas-spectrum-50" width="800" height="260"></canvas>
                     </div>
-                    <div class="spectrum-footer">
-                        <div class="spectrum-analysis-note" id="spectrum-note-5" data-i18n="spec_note_5">
-                            Đang đánh giá phân bổ gộp kênh 20MHz, 40MHz và 80MHz...
-                        </div>
+                    <div class="spectrum-analysis-note" id="spectrum-note-50">
+                        Đang phân tích các khối kênh 80MHz không bị trùng DFS...
                     </div>
                 </div>
 
-                <!-- Continuous Signal Strength vs Time Live Chart -->
-                <div class="spectrum-card">
-                    <div class="spectrum-header">
-                        <div class="spectrum-title">
-                            <span class="spectrum-band-pill" style="background: linear-gradient(135deg, #10b981, #06b6d4);" data-i18n="spec_time_pill">Biểu Đồ Sóng Theo Thời Gian</span>
-                            <span class="spectrum-desc" data-i18n="spec_time_desc">Lịch sử biến thiên độ mạnh tín hiệu RSSI (dBm) theo thời gian thực</span>
+                <!-- 6 GHz Wi-Fi 6E/7 Spectrum Card -->
+                <div class="card spectrum-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Phổ Sóng Băng Tần 6 GHz (Wi-Fi 6E & Wi-Fi 7)</h3>
+                            <p class="card-subtitle">Băng tần rong 1200MHz tu 5925 den 7125MHz voi 59 kenh 20MHz va cac kenh uu tien quet PSC (Preferred Scanning Channels).</p>
                         </div>
-                        <div class="spectrum-legend" id="signal-history-legend">
-                        </div>
+                        <span class="badge badge-band" style="background:#7c3aed; color:#fff;">6 GHz Wi-Fi 6E/7</span>
                     </div>
-                    <div class="canvas-wrapper">
-                        <canvas id="canvas-signal-history" height="210"></canvas>
+                    <div class="canvas-container">
+                        <canvas id="canvas-spectrum-60" width="800" height="240"></canvas>
                     </div>
-                    <div class="spectrum-footer">
-                        <div class="spectrum-analysis-note" data-i18n="spec_time_note">
-                            Theo dõi độ ổn định sóng thu. Dao động lớn hơn 8 dBm cho thấy có vật cản di chuyển hoặc phản xạ sóng.
-                        </div>
+                    <div class="spectrum-analysis-note" id="spectrum-note-60">
+                        Đang quét dải phổ 6GHz và các kênh PSC (37, 53, 69, 85, 101, 117, 133, 149)...
                     </div>
                 </div>
 
-                <!-- Real-Time Channel Spectrogram Waterfall (MetaGeek Chanalyzer Parity) -->
-                <div class="spectrum-card">
-                    <div class="spectrum-header">
-                        <div class="spectrum-title">
-                            <span class="spectrum-band-pill" style="background: linear-gradient(135deg, #f59e0b, #ef4444);" data-i18n="spec_waterfall_pill">Biểu Đồ Thác Nước Mật Độ Phổ (Channel Spectrogram Waterfall)</span>
-                            <span class="spectrum-desc" data-i18n="spec_waterfall_desc">Mật độ năng lượng sóng tích lũy trên các kênh 1-14 và 5GHz theo dòng thời gian (Xanh: Rảnh • Vàng/Đỏ: Dày đặc sóng)</span>
+                <!-- Spectrogram Waterfall Card -->
+                <div class="card spectrum-card">
+                    <div class="card-header flex-between" style="flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <h3 class="card-title">Biểu Đồ Thác Nước Phổ Tần Thời Gian Thực (Waterfall)</h3>
+                            <p class="card-subtitle">Lưu vết mật độ năng lượng tín hiệu theo thời gian giúp phát hiện xung nhiễu đột biến và nguồn phát ngắt quãng.</p>
+                        </div>
+                        <div class="flex-center gap-2">
+                            <span class="action-label">Tốc độ cuộn:</span>
+                            <select id="waterfall-speed-select" class="select-control" style="font-size: 0.78rem; padding: 3px 8px;">
+                                <option value="1" selected>Bình thường</option>
+                                <option value="2">Nhanh</option>
+                                <option value="0.5">Chậm</option>
+                            </select>
+                            <span id="waterfall-history-count" class="badge" style="background:var(--bg-surface); color:var(--text-secondary); border:1px solid var(--border-color); font-size:0.75rem;">0 hàng dữ liệu</span>
                         </div>
                     </div>
-                    <div class="canvas-wrapper">
-                        <canvas id="canvas-spectrum-waterfall" height="170"></canvas>
-                    </div>
-                    <div class="spectrum-footer">
-                        <div class="spectrum-analysis-note" data-i18n="spec_waterfall_note">
-                            Giúp phát hiện ngay kênh nào bị chiếm dụng liên tục theo thời gian thực.
-                        </div>
+                    <div class="canvas-container">
+                        <canvas id="canvas-waterfall" width="800" height="220"></canvas>
                     </div>
                 </div>
 
-                <!-- Oscium Chanalyzer & Wi-Spy Layer-1/2 Spectrum Interference Classifier -->
-                <div class="spectrum-card">
-                    <div class="spectrum-header">
-                        <div class="spectrum-title">
-                            <span class="spectrum-band-pill" style="background: linear-gradient(135deg, #0ea5e9, #6366f1);" data-i18n="spec_classifier_pill">Phân Loại Nguồn Nhiễu Phổ Tần & Tải Kênh (Spectrum & Interference Classifier)</span>
-                            <span class="spectrum-desc" data-i18n="spec_classifier_desc">Kiểm tra giao thoa kênh kề ACI, kênh rộng 40MHz trên 2.4GHz, mật độ vùng sóng ngoại vi 2.45GHz, Radar DFS và tỷ lệ gửi lại gói tin (Retry Rate)</span>
+                <!-- Oscium WiPry Real-Time RF Spectrum Classifier Grid -->
+                <div class="card spectrum-card" style="margin-top: 10px;">
+                    <div class="card-header flex-between">
+                        <div>
+                            <h3 class="card-title">Phân Loại Tín Hiệu Phổ Tần Thời Gian Thực (Oscium)</h3>
+                            <p class="card-subtitle">Nhận diện đặc trưng tần số và chu kỳ phát sóng giúp phân biệt tín hiệu Wi-Fi với thiết bị ngoại luồng.</p>
                         </div>
+                        <span class="badge" style="background:#0284c7; color:#fff;">Tiêu chuẩn Oscium</span>
                     </div>
                     <div id="oscium-spectrum-classifier-grid" class="oscium-diag-grid">
                         <div class="oscium-diag-card status-INFO">
@@ -387,39 +349,232 @@
             </div>
         </section>
 
-        <!-- TAB 3: CHANNEL SELECTION, AIRTIME & ROAMING OPTIMIZER -->
+        <!-- TAB 3: CHANNEL SELECTION, AIRTIME & OSCIUM TROUBLESHOOTING -->
         <section id="tab-optimizer" class="tab-pane">
-            <!-- Oscium All-in-One 6-Point Troubleshooting Checklist & Non-Wi-Fi Engine -->
-            <div class="card" style="margin-bottom: 18px;">
-                <div class="card-header flex-between" style="flex-wrap: wrap; gap: 10px;">
-                    <div>
-                        <h3 class="card-title" data-i18n="oscium_suite_title">🩺 Bảng Kiểm Tra Chẩn Đoán Toàn Diện 6 Điểm (Oscium All-in-One Health Check)</h3>
-                        <p class="card-subtitle" data-i18n="oscium_suite_desc">Tổng hợp tự động 6 tiêu chuẩn cốt lõi: Vùng phủ sóng RSSI, Phổ tần & Can nhiễu, Nguồn nhiễu phi Wi-Fi (Lò vi sóng/Bluetooth/Camera), Airtime & Retry, Chuyển vùng Roaming và Bảo mật WLAN.</p>
+
+            <!-- TRUNG TAM CHAN DOAN VA KHAC PHUC SU CO MANG THEO CHUAN OSCIUM (6 KHOI THE) -->
+            <div class="oscium-center-container">
+
+                <!-- KHOI 1: TONG QUAN DIEM SUC KHOE MANG VA TY LE GUI LAI GOI TIN -->
+                <div class="card oscium-card oscium-card-health">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Điểm Sức Khỏe Mạng Toàn Diện</h3>
+                            <p class="card-subtitle">Đánh giá chất lượng môi trường truyền dẫn vô tuyến và lớp liên kết mạng theo chuẩn Oscium</p>
+                        </div>
+                        <div class="oscium-header-actions">
+                            <span id="oscium-last-update-time" class="oscium-meta-pill">Cập nhật: Chưa thực hiện</span>
+                            <button id="btn-run-oscium-diag" class="btn btn-primary btn-sm" onclick="window.refreshOsciumDiagnostics()">
+                                Chẩn Đoán Toàn Diện Ngay
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span id="oscium-health-score-badge" class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; font-weight: 700; font-size: 0.85rem; padding: 6px 12px;">Sức Khỏe Mạng: -- / 100</span>
-                        <button class="btn btn-sm btn-accent" onclick="window.openDeviceFinder()">
-                            <i data-lucide="compass"></i> <span data-i18n="btn_device_finder_short">🎯 Dò Hướng Tìm AP</span>
-                        </button>
+
+                    <div class="oscium-health-body">
+                        <div class="oscium-health-score-box">
+                            <div class="oscium-score-number" id="oscium-score-val">--</div>
+                            <div class="oscium-score-max">/ 100</div>
+                        </div>
+                        <div class="oscium-health-details">
+                            <div class="oscium-status-badge-row">
+                                <span id="oscium-health-verdict-badge" class="badge-status-neutral">Đang chờ dữ liệu</span>
+                                <span id="oscium-retry-badge" class="oscium-meta-pill">Tỷ lệ gửi lại gói tin: -- %</span>
+                                <span id="oscium-snr-badge" class="oscium-meta-pill">Tỷ số tín hiệu/nhiễu: -- dB</span>
+                            </div>
+                            <p id="oscium-health-summary-text" class="oscium-health-summary">
+                                Hệ thống tổng hợp đồng thời dữ liệu card mạng, phổ tần vô tuyến, nguồn nhiễu ngoài luồng và độ trễ đa chặng để đưa ra kết luận chuẩn xác.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 6-Point Checklist Grid -->
-                <div id="oscium-checklist-grid" class="oscium-diag-grid">
+                <!-- HANG 2 COT: KHOI 2 (CARD MANG) VA KHOI 3 (SO DO DA CHANG) -->
+                <div class="oscium-two-col-grid">
+
+                    <!-- KHOI 2: THONG SO PHAN CUNG CARD MANG THU SONG -->
+                    <div class="card oscium-card">
+                        <div class="card-header oscium-card-header">
+                            <div>
+                                <h3 class="card-title">Thông Số Phần Cứng Card Mạng Wi-Fi</h3>
+                                <p class="card-subtitle">Dữ liệu liên kết thực tế từ bộ điều khiển card mạng máy tính đang kết nối</p>
+                            </div>
+                            <span id="oscium-adapter-status-pill" class="badge-status-neutral">Chưa kiểm tra</span>
+                        </div>
+
+                        <div class="oscium-adapter-grid">
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Tên thiết bị card mạng</span>
+                                <span id="oscium-adapter-name" class="oscium-param-value">Đang tải...</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Mạng đang kết nối (SSID)</span>
+                                <span id="oscium-adapter-ssid" class="oscium-param-value">--</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Địa chỉ trạm phát (BSSID)</span>
+                                <span id="oscium-adapter-bssid" class="oscium-param-value font-mono">--:--:--:--:--:--</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Băng tần va kenh hoat dong</span>
+                                <span id="oscium-adapter-channel" class="oscium-param-value">--</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Mức tín hiệu thu (RSSI)</span>
+                                <span id="oscium-adapter-rssi" class="oscium-param-value">-- dBm (-- %)</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Tốc độ liên kết vật lý (PHY)</span>
+                                <span id="oscium-adapter-rates" class="oscium-param-value">Thu: -- Mbps | Phát: -- Mbps</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Mức độ thích ứng tín hiệu</span>
+                                <span id="oscium-adapter-adequacy" class="oscium-param-value">--</span>
+                            </div>
+                            <div class="oscium-param-item">
+                                <span class="oscium-param-label">Tính đối xứng truyền nhận</span>
+                                <span id="oscium-adapter-symmetry" class="oscium-param-value">--</span>
+                            </div>
+                        </div>
+
+                        <div id="oscium-adapter-advice-box" class="oscium-inline-note">
+                            Chưa có khuyến nghị phần cứng.
+                        </div>
+                    </div>
+
+                    <!-- KHOI 3: SO DO TUYEN DUONG TRUYEN DA CHANG CO LAP DIEM NGHEN -->
+                    <div class="card oscium-card">
+                        <div class="card-header oscium-card-header">
+                            <div>
+                                <h3 class="card-title">Sơ Đồ Tuyến Đường Truyền Đa Chặng</h3>
+                                <p class="card-subtitle">Cô lập độ trễ vô tuyến nội bộ, phân giải tên miền và cổng mạng Internet diện rộng</p>
+                            </div>
+                            <span id="oscium-path-status-pill" class="badge-status-neutral">Đang kết nối</span>
+                        </div>
+
+                        <div class="oscium-path-nodes-flow">
+                            <div class="oscium-path-node">
+                                <div class="oscium-node-title">Máy Tính Cá Nhân</div>
+                                <div class="oscium-node-sub">Điểm đo cục bộ</div>
+                                <div class="oscium-node-badge status-pass">Nguồn phát</div>
+                            </div>
+
+                            <div class="oscium-path-arrow">
+                                <span class="oscium-arrow-line"></span>
+                                <span id="oscium-hop1-latency" class="oscium-arrow-metric">-- ms</span>
+                            </div>
+
+                            <div class="oscium-path-node">
+                                <div class="oscium-node-title">Bộ Định Tuyến Wi-Fi</div>
+                                <div id="oscium-gateway-ip" class="oscium-node-sub">192.168.1.1</div>
+                                <div id="oscium-hop1-status" class="oscium-node-badge status-neutral">Chặng Wi-Fi</div>
+                            </div>
+
+                            <div class="oscium-path-arrow">
+                                <span class="oscium-arrow-line"></span>
+                                <span id="oscium-hop2-latency" class="oscium-arrow-metric">-- ms</span>
+                            </div>
+
+                            <div class="oscium-path-node">
+                                <div class="oscium-node-title">Máy Chủ DNS</div>
+                                <div class="oscium-node-sub">Cloudflare / Google</div>
+                                <div id="oscium-hop2-status" class="oscium-node-badge status-neutral">Phân giải tên miền</div>
+                            </div>
+
+                            <div class="oscium-path-arrow">
+                                <span class="oscium-arrow-line"></span>
+                                <span id="oscium-hop3-latency" class="oscium-arrow-metric">-- ms</span>
+                            </div>
+
+                            <div class="oscium-path-node">
+                                <div class="oscium-node-title">Mạng Internet Toàn Cầu</div>
+                                <div class="oscium-node-sub">Máy chủ kiểm tra 8.8.8.8</div>
+                                <div id="oscium-hop3-status" class="oscium-node-badge status-neutral">Đường truyền WAN</div>
+                            </div>
+                        </div>
+
+                        <div class="oscium-path-metrics-bar">
+                            <div class="oscium-mini-metric">
+                                <span class="label">Độ trễ trung bình:</span>
+                                <span id="oscium-path-rtt" class="val">-- ms</span>
+                            </div>
+                            <div class="oscium-mini-metric">
+                                <span class="label">Biến động trễ (Jitter):</span>
+                                <span id="oscium-path-jitter" class="val">-- ms</span>
+                            </div>
+                            <div class="oscium-mini-metric">
+                                <span class="label">Tỷ lệ mất gói tin:</span>
+                                <span id="oscium-path-loss" class="val">-- %</span>
+                            </div>
+                            <div class="oscium-mini-metric">
+                                <span class="label">Điểm chất lượng thoại (MOS):</span>
+                                <span id="oscium-path-mos" class="val">-- / 4.5</span>
+                            </div>
+                        </div>
+
+                        <div id="oscium-path-diagnosis-box" class="oscium-inline-note">
+                            Đang đo đạc độ trễ từng chặng kết nối...
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- Non-Wi-Fi RF Sources Signature Panel -->
-                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
-                        <span style="font-size: 0.82rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="radio" style="width: 14px; height: 14px;"></i>
-                            <span data-i18n="oscium_non_wifi_heading">Nhận Diện Nguồn Nhiễu Phi Wi-Fi (Oscium WiPry Spectrum Signatures)</span>
-                        </span>
-                        <span style="font-size: 0.74rem; color: var(--text-muted);" data-i18n="oscium_non_wifi_sub">Lò vi sóng 2.45GHz &bull; Bluetooth FHSS &bull; Camera Không Dây &bull; Radar DFS 5GHz</span>
+                <!-- KHOI 4: BANG KIEM TRA 6 TIEU CHUAN COT LOI CHUAN OSCIUM -->
+                <div class="card oscium-card">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Bảng Kiểm Tra 6 Tiêu Chuẩn Toàn Diện</h3>
+                            <p class="card-subtitle">Hệ thống đánh giá chuyên sâu 6 góc độ kỹ thuật quyết định độ ổn định kết nối</p>
+                        </div>
+                        <span class="oscium-meta-pill">Bộ tiêu chuẩn Oscium All-in-One</span>
                     </div>
-                    <div id="oscium-non-wifi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+
+                    <div id="oscium-checklist-container" class="oscium-checklist-grid">
+                        <div class="oscium-loading-text">Đang tải bảng kiểm tra 6 tiêu chuẩn...</div>
                     </div>
                 </div>
+
+                <!-- KHOI 5: NHAN DIEN CHU KY 4 NGUON NHIEU NGOAI LUONG PHI WI-FI -->
+                <div class="card oscium-card">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Nhận Diện Nguồn Nhiễu Ngoài Luồng Phi Wi-Fi</h3>
+                            <p class="card-subtitle">Phân tích chữ ký phổ tần đặc trưng từ lò vi sóng, thiết bị Bluetooth, camera analog và sóng radar thời tiết</p>
+                        </div>
+                        <span class="oscium-meta-pill">Phổ Tần Tầng Vật Lý</span>
+                    </div>
+
+                    <div id="oscium-interferers-container" class="oscium-interferers-grid">
+                        <div class="oscium-loading-text">Đang phân tích chữ ký phổ tần...</div>
+                    </div>
+                </div>
+
+                <!-- KHOI 6: KET LUAN NGUYEN NHAN GOC RE TU DONG VA HUONG DAN XU LY TUNG BUOC -->
+                <div class="card oscium-card oscium-card-remediation">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Kết Luận Nguyên Nhân Gốc Rễ Và Hướng Dẫn Xử Lý</h3>
+                            <p class="card-subtitle">Động cơ suy luận kỹ thuật tự động xác định nút thắt cổ chai và đưa ra các bước hành động cụ thể</p>
+                        </div>
+                        <span id="oscium-rootcause-severity-badge" class="badge-status-neutral">Đang phân tích</span>
+                    </div>
+
+                    <div class="oscium-remediation-body">
+                        <div class="oscium-issue-box">
+                            <div class="oscium-issue-title">Nút thắt kỹ thuật chính</div>
+                            <div id="oscium-primary-issue-text" class="oscium-issue-content">
+                                Đang tổng hợp dữ liệu môi trường để xác định nguyên nhân...
+                            </div>
+                        </div>
+
+                        <div class="oscium-steps-box">
+                            <div class="oscium-steps-title">Các bước hành động đề xuất cho người dùng và quản trị mạng</div>
+                            <ol id="oscium-action-steps-list" class="oscium-steps-list">
+                                <li>Đang khởi tạo các bước khắc phục sự cố...</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <div class="optimizer-layout">
@@ -429,10 +584,10 @@
                     <div class="card channel-picker-card">
                         <div class="card-header">
                             <div>
-                                <h3 class="card-title" data-i18n="matrix_24_title">Bảng Chấm Điểm Kênh 2.4 GHz (Channel Matrix)</h3>
-                                <p class="card-subtitle" data-i18n="matrix_24_desc">Điểm chất lượng kênh tính theo số bộ phát trùng kênh (CCI) và lấn kênh kề (ACI).</p>
+                                <h3 class="card-title">Bang Chậm Diem Kenh 2.4 GHz</h3>
+                                <p class="card-subtitle">Điểm chất lượng kênh tính theo số bộ phát trùng kênh (CCI) và lấn kênh kề (ACI).</p>
                             </div>
-                            <span class="badge-rec" id="optimizer-best-24-badge">Khuyên dùng: Ch --</span>
+                            <span class="badge-rec" id="optimizer-best-24-badge">Khuyen dung: Kênh --</span>
                         </div>
                         <div class="channel-buttons-grid" id="grid-channels-24">
                         </div>
@@ -442,10 +597,10 @@
                     <div class="card channel-picker-card">
                         <div class="card-header">
                             <div>
-                                <h3 class="card-title" data-i18n="matrix_5_title">Băng Tần 5 GHz UNII & Khối Gộp Kênh 80MHz</h3>
-                                <p class="card-subtitle" data-i18n="matrix_5_desc">Đánh giá các khối kênh rộng VHT80/HE80 và cảnh báo kênh có sóng Radar thời tiết DFS.</p>
+                                <h3 class="card-title">Băng Tần 5 GHz UNII và Khối Gộp Kênh 80MHz</h3>
+                                <p class="card-subtitle">Đánh giá các khối kênh rộng 80MHz và cảnh báo kênh có sóng radar thời tiết DFS.</p>
                             </div>
-                            <span class="badge-rec" id="optimizer-best-5-badge">Khuyên dùng: Ch --</span>
+                            <span class="badge-rec" id="optimizer-best-5-badge">Khuyen dung: Kênh --</span>
                         </div>
                         <div class="channel-buttons-grid" id="grid-channels-5">
                         </div>
@@ -453,7 +608,7 @@
 
                     <!-- 80 MHz Bonding Blocks List -->
                     <div class="card">
-                        <h4 class="card-title-sm" data-i18n="blocks_80_title">Các Nhóm Gộp Kênh 80 MHz (5GHz) & 160 MHz (6GHz PSC) Khuyên Dùng</h4>
+                        <h4 class="card-title-sm">Các Nhóm Gộp Kênh 80 MHz (5GHz) và 160 MHz (6GHz PSC) Khuyên Dùng</h4>
                         <div id="blocks-80mhz-list" class="blocks-list">
                         </div>
                     </div>
@@ -464,37 +619,32 @@
                     <div class="card deep-analysis-card">
                         <div class="card-header border-bottom">
                             <div class="flex-center gap-2">
-                                <i data-lucide="brain-circuit" class="icon-accent"></i>
-                                <h3 class="card-title" data-i18n="rationale_card_title">Giải Thích Kỹ Thuật & Lý Do Chọn Kênh</h3>
+                                <h3 class="card-title">Giải Thích Kỹ Thuật và Căn Cứ Chọn Kênh</h3>
                             </div>
                             <div class="flex-center gap-2">
-                                <button id="btn-translate-rationale" class="btn btn-sm btn-secondary flex-center gap-1" title="Dịch chẩn đoán kỹ thuật / Translate Diagnosis">
-                                    <i data-lucide="languages"></i>
-                                    <span id="translate-rationale-label">🌐 Dịch / Translate</span>
-                                </button>
                                 <button id="btn-trigger-autopick" class="btn btn-sm btn-accent">
-                                    <i data-lucide="sparkles"></i> <span data-i18n="btn_calc_channel">Tính Kênh Tự Động</span>
+                                    <span>Tính Kênh Tự Động</span>
                                 </button>
                             </div>
                         </div>
 
                         <div class="analysis-body" id="analysis-rationale-body">
                             <div class="analysis-section">
-                                <h4 class="analysis-heading" data-i18n="heading_diag_24">Chẩn Đoán Kênh Băng Tần 2.4 GHz</h4>
+                                <h4 class="analysis-heading">Chẩn Đoán Kênh Băng Tần 2.4 GHz</h4>
                                 <div id="rationale-24ghz-content" class="rationale-box">
-                                    Bấm nút Tính Kênh Tự Động hoặc chọn từng kênh bên trái để xem chi tiết mức độ nhiễu.
+                                    Bam nut Tính Kênh Tự Động hoac chon tung kenh ben trai de xem chi tiet muc do nhieu.
                                 </div>
                             </div>
 
                             <div class="analysis-section">
-                                <h4 class="analysis-heading" data-i18n="heading_diag_5">Chẩn Đoán Kênh Băng Tần 5 GHz & 6 GHz (Wi-Fi 6E/7)</h4>
+                                <h4 class="analysis-heading">Chẩn Đoán Kênh Băng Tần 5 GHz và 6 GHz</h4>
                                 <div id="rationale-5ghz-content" class="rationale-box">
-                                    Đang phân tích dải tần 5GHz và 6GHz để tìm kênh ổn định và tốc độ truyền cao nhất...
+                                    Đang phân tích dai tan 5GHz va 6GHz de tim kenh on dinh va toc do truyen cao nhat...
                                 </div>
                             </div>
 
                             <div class="analysis-section">
-                                <h4 class="analysis-heading" data-i18n="heading_admin_rec">Khuyến Nghị Cài Đặt Thực Tế</h4>
+                                <h4 class="analysis-heading">Khuyến Nghị Cấu Hình Thực Tế</h4>
                                 <ul id="admin-advice-list" class="advice-checklist">
                                     <li>Cố định độ rộng kênh 20 MHz trên sóng 2.4 GHz để tránh nhiễu lấn kênh kề.</li>
                                     <li>Chọn các kênh UNII-1 hoặc UNII-3 không dính DFS trên băng tần 5 GHz để duy trì tốc độ 80 MHz ổn định.</li>
@@ -504,7 +654,7 @@
 
                             <!-- Multi-AP Roaming & Airtime Efficiency Panel -->
                             <div class="analysis-section">
-                                <h4 class="analysis-heading" data-i18n="heading_roaming_airtime">Phân Tích Chuyển Vùng Mesh (Roaming) & Chiếm Dụng Thời Lượng Sóng (Airtime)</h4>
+                                <h4 class="analysis-heading">Phân Tích Chuyển Vùng Mạng Mesh và Chiếm Dụng Thời Lượng Sóng</h4>
                                 <div id="roaming-airtime-audit-box" class="rationale-box" style="font-size: 0.82rem;">
                                     Đang tổng hợp dữ liệu chuyển vùng giữa các node Mesh và tỷ lệ chiếm dụng kênh...
                                 </div>
@@ -515,36 +665,262 @@
             </div>
 
             <!-- Quick Router Setup Guide Card -->
-            <div class="card" style="margin-top: 20px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.04);">
+            <div class="card" style="margin-top: 20px; border: 1px solid rgba(5, 150, 105, 0.3); background: #ffffff;">
                 <div class="card-header border-bottom">
                     <div class="flex-center gap-2">
-                        <i data-lucide="router" style="color: #10b981;"></i>
-                        <h3 class="card-title" style="color: #10b981;" data-i18n="router_guide_title">Hướng Dẫn Cài Đặt Router Trực Tiếp (Router Configuration Guide)</h3>
+                        <h3 class="card-title" style="color: #059669;">Hướng Dẫn Cấu Hình Thiết Bị Phát Wi-Fi</h3>
                     </div>
-                    <span class="badge" style="background:#10b981; color:#fff;" data-i18n="router_guide_badge">Áp Dụng Thực Tế</span>
+                    <span class="badge" style="background:#059669; color:#fff;">Áp Dụng Thực Tế</span>
                 </div>
                 <div class="card-body" style="padding: 18px; font-size: 0.88rem; line-height: 1.6;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
-                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 6px; font-size: 0.95rem;" data-i18n="router_step1_title">Bước 1: Đăng Nhập Trang Quản Trị Router</h4>
-                            <p style="color: var(--text-secondary);" data-i18n="router_step1_desc">Mở trình duyệt nhập địa chỉ: <code>192.168.1.1</code> hoặc <code>192.168.0.1</code>. Tên đăng nhập và mật khẩu quản trị thường in ở tem dưới đáy router (thường là <code>admin / admin</code> hoặc mã nhà mạng).</p>
+                        <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 6px; font-size: 0.95rem;">Bước 1: Đăng Nhập Trang Quản Trị Router</h4>
+                            <p style="color: var(--text-secondary);">Mở trình duyệt nhập địa chỉ: <code>192.168.1.1</code> hoặc <code>192.168.0.1</code>. Tên đăng nhập và mật khẩu quản trị thường in ở tem dưới đáy router.</p>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 6px; font-size: 0.95rem;" data-i18n="router_step2_title">Bước 2: Cài Đặt Sóng 2.4 GHz</h4>
-                            <p style="color: var(--text-secondary);" data-i18n="router_step2_desc">• <b>Độ rộng kênh (Channel Width):</b> Cố định <b>20 MHz</b> (Tránh dùng 40MHz vì sẽ chồng lấn chiếm gần hết 14 kênh gây suy giảm tốc độ toàn mạng).<br>
-                            • <b>Kênh phát (Channel):</b> Chọn kênh khuyến nghị <b>1, 6 hoặc 11</b> từ kết quả đo của NetScanner.</p>
+                        <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 6px; font-size: 0.95rem;">Bước 2: Cài Đặt Sóng 2.4 GHz</h4>
+                            <p style="color: var(--text-secondary);">&bull; <b>Do rong kenh:</b> Co dinh <b>20 MHz</b> (Tranh dung 40MHz vi se chong lan chiem gan het 14 kenh gay suy giam toc do toan mang).<br>
+                            &bull; <b>Kênh phát:</b> Chon kenh khuyen nghi <b>1, 6 hoac 11</b> tu ket qua do cua NetScanner.</p>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 6px; font-size: 0.95rem;" data-i18n="router_step3_title">Bước 3: Cài Đặt Sóng 5 GHz & 6 GHz</h4>
-                            <p style="color: var(--text-secondary);" data-i18n="router_step3_desc">• <b>Độ rộng kênh (Channel Width):</b> Chọn <b>80 MHz</b> trên 5GHz hoặc <b>160 MHz</b> trên 6GHz.<br>
-                            • <b>Kênh phát (Channel):</b> Chọn khối UNII-1 sạch (Kênh 36-48) hoặc UNII-3 (149-161) để tránh bị ngắt kết nối do sóng Radar DFS.</p>
+                        <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 6px; font-size: 0.95rem;">Bước 3: Cài Đặt Sóng 5 GHz và 6 GHz</h4>
+                            <p style="color: var(--text-secondary);">&bull; <b>Do rong kenh:</b> Chon <b>80 MHz</b> tren 5GHz hoac <b>160 MHz</b> tren 6GHz.<br>
+                            &bull; <b>Kênh phát:</b> Chon khoi UNII-1 sach (Kênh 36-48) hoac UNII-3 (149-161) de tranh bi ngat ket noi do song Radar DFS.</p>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 6px; font-size: 0.95rem;" data-i18n="router_step4_title">Bước 4: Mẹo Tách Tên Wi-Fi Tránh Nghẽn Sóng</h4>
-                            <p style="color: var(--text-secondary);" data-i18n="router_step4_desc">Nếu router đời cũ không hỗ trợ tự chuyển băng tần thông minh, hãy tách thành 2 tên riêng: <code>Nha_2.4G</code> và <code>Nha_5G</code>. Kết nối điện thoại và laptop vào sóng 5G khi ở gần để đạt tốc độ cao gấp 3-4 lần.</p>
+                        <div style="background: var(--bg-surface); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 6px; font-size: 0.95rem;">Bước 4: Mẹo Tách Tên Wi-Fi Tránh Nghẽn Sóng</h4>
+                            <p style="color: var(--text-secondary);">Neu router doi cu khong ho tro tu chuyen bang tan thong minh, hay tach thanh 2 ten rieng: <code>Nha_2.4G</code> va <code>Nha_5G</code>. Kết nối dien thoai va laptop vao song 5G khi o gan de dat toc do cao gap 3-4 lan.</p>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- TAB: SPEED TEST WI-FI INTERFACE -->
+        <section id="tab-speedtest" class="tab-pane">
+            <div class="speedtest-container">
+
+                <!-- Control Bar & Progress -->
+                <div class="card speedtest-control-card">
+                    <div class="speedtest-header-row">
+                        <div>
+                            <h2 class="speedtest-main-title">Kiểm Tra Tốc Độ Mạng Wi-Fi</h2>
+                            <p class="speedtest-main-desc">
+                                Đo đạc tốc độ tải về, tải lên, độ trễ và biến động trễ thực tế thông qua mạng lưới phân phối nội dung Anycast Cloudflare CDN.
+                            </p>
+                        </div>
+                        <div class="speedtest-server-badge">
+                            <span class="label">Máy chủ đo kiểm:</span>
+                            <span id="speedtest-server-label" class="val">Cloudflare Anycast CDN (Việt Nam)</span>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="speedtest-toolbar">
+                        <div class="speedtest-mode-selector">
+                            <span class="speedtest-mode-label">Chế độ đo:</span>
+                            <button type="button" class="speedtest-mode-btn active" data-mode="quick" onclick="window.setSpeedTestMode('quick')">
+                                Đo nhanh (5 giây)
+                            </button>
+                            <button type="button" class="speedtest-mode-btn" data-mode="full" onclick="window.setSpeedTestMode('full')">
+                                Đo đầy đủ (10 giây)
+                            </button>
+                        </div>
+
+                        <div class="speedtest-action-buttons">
+                            <button id="btn-start-speedtest" class="btn btn-primary" onclick="window.startSpeedTest()">
+                                Bắt đầu đo
+                            </button>
+                            <button id="btn-stop-speedtest" class="btn btn-danger" onclick="window.stopSpeedTest()" style="display: none;">
+                                Dừng đo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="speedtest-progress-section">
+                        <div class="speedtest-progress-info">
+                            <span id="speedtest-stage-text" class="speedtest-stage-text">Sẵn sàng thực hiện bài đo</span>
+                            <span id="speedtest-progress-percent" class="speedtest-progress-percent">0%</span>
+                        </div>
+                        <div class="speedtest-progress-track">
+                            <div id="speedtest-progress-bar" class="speedtest-progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Real-Time Gauges -->
+                <div class="speedtest-gauges-grid">
+                    <!-- Gauge 1: Download -->
+                    <div class="card speedtest-gauge-card download-gauge">
+                        <div class="gauge-header">
+                            <span class="gauge-title">Tốc Độ Tải Về</span>
+                            <span id="badge-stage-download" class="gauge-stage-badge">Chờ đo</span>
+                        </div>
+                        <div class="gauge-value-row">
+                            <span id="gauge-download-val" class="gauge-number">0.0</span>
+                            <span class="gauge-unit">Mbps</span>
+                        </div>
+                        <div class="gauge-bar-track">
+                            <div id="gauge-download-fill" class="gauge-bar-fill fill-download" style="width: 0%;"></div>
+                        </div>
+                        <div class="gauge-footer-text">
+                            Lưu lượng truyền tải đến máy trạm
+                        </div>
+                    </div>
+
+                    <!-- Gauge 2: Upload -->
+                    <div class="card speedtest-gauge-card upload-gauge">
+                        <div class="gauge-header">
+                            <span class="gauge-title">Tốc Độ Tải Lên</span>
+                            <span id="badge-stage-upload" class="gauge-stage-badge">Chờ đo</span>
+                        </div>
+                        <div class="gauge-value-row">
+                            <span id="gauge-upload-val" class="gauge-number">0.0</span>
+                            <span class="gauge-unit">Mbps</span>
+                        </div>
+                        <div class="gauge-bar-track">
+                            <div id="gauge-upload-fill" class="gauge-bar-fill fill-upload" style="width: 0%;"></div>
+                        </div>
+                        <div class="gauge-footer-text">
+                            Lưu lượng gửi từ máy trạm lên máy chủ
+                        </div>
+                    </div>
+
+                    <!-- Gauge 3: Ping / Latency -->
+                    <div class="card speedtest-gauge-card ping-gauge">
+                        <div class="gauge-header">
+                            <span class="gauge-title">Độ Trễ Mạng (Ping)</span>
+                            <span id="badge-stage-ping" class="gauge-stage-badge">Chờ đo</span>
+                        </div>
+                        <div class="gauge-value-row">
+                            <span id="gauge-ping-val" class="gauge-number">0.0</span>
+                            <span class="gauge-unit">ms</span>
+                        </div>
+                        <div class="gauge-bar-track">
+                            <div id="gauge-ping-fill" class="gauge-bar-fill fill-ping" style="width: 0%;"></div>
+                        </div>
+                        <div id="gauge-ping-verdict" class="gauge-footer-text">
+                            Thời gian khứ hồi gói tin
+                        </div>
+                    </div>
+
+                    <!-- Gauge 4: Jitter -->
+                    <div class="card speedtest-gauge-card jitter-gauge">
+                        <div class="gauge-header">
+                            <span class="gauge-title">Biến Động Trễ (Jitter)</span>
+                            <span class="gauge-stage-badge">Độ ổn định</span>
+                        </div>
+                        <div class="gauge-value-row">
+                            <span id="gauge-jitter-val" class="gauge-number">0.0</span>
+                            <span class="gauge-unit">ms</span>
+                        </div>
+                        <div class="gauge-bar-track">
+                            <div id="gauge-jitter-fill" class="gauge-bar-fill fill-jitter" style="width: 0%;"></div>
+                        </div>
+                        <div id="gauge-jitter-verdict" class="gauge-footer-text">
+                            Độ lệch thời gian giữa các gói tin liên tiếp
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Comparison Card -->
+                <div class="card speedtest-comparison-card">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Đối Sánh Tốc Độ Internet Và Tốc Độ Liên Kết Wi-Fi Vật Lý</h3>
+                            <p class="card-subtitle">Phân tích khả năng khai thác băng thông và xác định nút thắt cổ chai do sóng Wi-Fi hay do nhà mạng</p>
+                        </div>
+                        <span id="speedtest-efficiency-badge" class="badge-status-neutral">Hiệu suất: -- %</span>
+                    </div>
+
+                    <div class="speedtest-compare-body">
+                        <div class="speedtest-bars-comparison">
+                            <div class="compare-bar-item">
+                                <div class="compare-bar-label">
+                                    <span>Tốc độ Internet tải về thực tế:</span>
+                                    <span id="compare-down-rate" class="rate-val font-mono">0.0 Mbps</span>
+                                </div>
+                                <div class="compare-track">
+                                    <div id="compare-down-fill" class="compare-fill fill-down" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="compare-bar-item">
+                                <div class="compare-bar-label">
+                                    <span>Tốc độ liên kết card mạng Wi-Fi (PHY Rate):</span>
+                                    <span id="compare-link-rate" class="rate-val font-mono">0.0 Mbps</span>
+                                </div>
+                                <div class="compare-track">
+                                    <div id="compare-link-fill" class="compare-fill fill-link" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="speedtest-wifi-context-grid">
+                            <div class="context-item">
+                                <span class="label">Tên mạng đang kết nối:</span>
+                                <span id="st-context-ssid" class="val">--</span>
+                            </div>
+                            <div class="context-item">
+                                <span class="label">Băng tần & Kênh:</span>
+                                <span id="st-context-channel" class="val">--</span>
+                            </div>
+                            <div class="context-item">
+                                <span class="label">Cường độ sóng thu được:</span>
+                                <span id="st-context-signal" class="val">-- %</span>
+                            </div>
+                            <div class="context-item">
+                                <span class="label">Thời gian đo hoàn tất:</span>
+                                <span id="st-context-elapsed" class="val">-- giây</span>
+                            </div>
+                        </div>
+
+                        <div class="speedtest-diagnosis-box">
+                            <div class="diagnosis-title">Đánh giá kỹ thuật và chẩn đoán kết nối</div>
+                            <p id="speedtest-diagnosis-text" class="diagnosis-text">
+                                Hãy bấm nút "Bắt đầu đo" để hệ thống kiểm tra băng thông Internet và so sánh với tốc độ đàm phán vật lý của card mạng.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="card speedtest-history-card">
+                    <div class="card-header oscium-card-header">
+                        <div>
+                            <h3 class="card-title">Lịch Sử Các Lần Đo Tốc Độ</h3>
+                            <p class="card-subtitle">Lưu trữ các phiên đo kiểm gần nhất trên trình duyệt của máy tính này</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.clearSpeedTestHistory()">
+                            Xóa Lịch Sử Đo
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="survey-table speedtest-table">
+                            <thead>
+                                <tr>
+                                    <th>Thời Gian</th>
+                                    <th>Chế Độ</th>
+                                    <th>Tải Về (Mbps)</th>
+                                    <th>Tải Lên (Mbps)</th>
+                                    <th>Độ Trễ (ms)</th>
+                                    <th>Biến Động (ms)</th>
+                                    <th>Liên Kết Wi-Fi (Mbps)</th>
+                                    <th>Đánh Giá Mạng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="speedtest-history-tbody">
+                                <tr>
+                                    <td colspan="8" class="loading-row">Chưa có dữ liệu lịch sử đo tốc độ.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </section>
 
@@ -553,29 +929,28 @@
             <div class="card" style="margin-bottom: 20px;">
                 <div class="card-header flex-between">
                     <div>
-                        <h3 class="card-title" data-i18n="vowifi_title">🎙️ Đo Kiểm Chất Lượng Thoại VoWiFi & Đường Truyền Đa Chặng (VoIP MOS & Multi-Hop Check)</h3>
-                        <p class="card-subtitle" data-i18n="vowifi_desc">Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, Jitter, Packet Loss và phân tách độ trễ nội bộ (Router Gateway) so với Internet bên ngoài.</p>
+                        <h3 class="card-title">Đo Kiểm Chất Lượng Thoại VoWiFi và Tuyến Đường Truyền Đa Chặng</h3>
+                        <p class="card-subtitle">Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, Jitter, Packet Loss và phân tách độ trễ nội bộ so với Internet bên ngoài.</p>
                     </div>
                     <div class="flex-center gap-2">
                         <select id="vowifi-target-select" class="select-control" style="width: 220px;">
-                            <option value="8.8.8.8" selected>🌐 Google DNS (8.8.8.8)</option>
-                            <option value="1.1.1.1">⚡ Cloudflare DNS (1.1.1.1)</option>
-                            <option value="52.112.0.0">💼 Microsoft Teams Cloud</option>
+                            <option value="8.8.8.8" selected>Google DNS (8.8.8.8)</option>
+                            <option value="1.1.1.1">Cloudflare DNS (1.1.1.1)</option>
+                            <option value="52.112.0.0">Dịch vụ Microsoft Teams</option>
                         </select>
                         <button id="btn-run-vowifi" class="btn btn-primary" onclick="window.runVoWifiTest()">
-                            <i data-lucide="play"></i> <span data-i18n="btn_run_vowifi">Đo Chất Lượng Ngay</span>
+                            <span>Bắt đầu đo kiem</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="card-body" style="padding: 20px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 18px;">
-                        <div class="stat-card" style="border: 2px solid var(--accent); background: rgba(6, 182, 212, 0.08);">
+                        <div class="stat-card" style="border: 2px solid var(--accent); background: #f0f9ff;">
                             <div class="stat-card-top">
                                 <div class="stat-card-main">
-                                    <div class="stat-icon icon-cyan"><i data-lucide="activity"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-label" data-i18n="stat_mos_score">Điểm MOS Thoại (1.0 - 4.5)</div>
+                                        <div class="stat-label">Điểm chất lượng thoại MOS</div>
                                         <div class="stat-value text-accent" id="mos-val-display" style="font-size: 1.8rem;">-- <span style="font-size: 0.95rem; color: var(--text-secondary);">/ 4.5</span></div>
                                     </div>
                                 </div>
@@ -585,9 +960,8 @@
                         <div class="stat-card">
                             <div class="stat-card-top">
                                 <div class="stat-card-main">
-                                    <div class="stat-icon icon-blue"><i data-lucide="clock"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-label" data-i18n="stat_rtt_latency">Độ Trễ Khứ Hồi / RTT Latency</div>
+                                        <div class="stat-label">Độ trễ khứ hồi RTT</div>
                                         <div class="stat-value" id="rtt-val-display">-- ms</div>
                                     </div>
                                 </div>
@@ -597,9 +971,8 @@
                         <div class="stat-card">
                             <div class="stat-card-top">
                                 <div class="stat-card-main">
-                                    <div class="stat-icon icon-purple"><i data-lucide="git-commit"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-label" data-i18n="stat_jitter">Độ Biến Thiên Trễ / Jitter</div>
+                                        <div class="stat-label">Độ biến thiên trễ Jitter</div>
                                         <div class="stat-value" id="jitter-val-display">-- ms</div>
                                     </div>
                                 </div>
@@ -609,9 +982,8 @@
                         <div class="stat-card">
                             <div class="stat-card-top">
                                 <div class="stat-card-main">
-                                    <div class="stat-icon icon-amber"><i data-lucide="alert-octagon"></i></div>
                                     <div class="stat-info">
-                                        <div class="stat-label" data-i18n="stat_packet_loss">Tỷ Lệ Mất Gói / Packet Loss</div>
+                                        <div class="stat-label">Tỷ lệ mất gói tin</div>
                                         <div class="stat-value" id="loss-val-display">-- %</div>
                                     </div>
                                 </div>
@@ -619,15 +991,15 @@
                         </div>
                     </div>
 
-                    <!-- Multi-Hop Network Path Diagnosis Strip (Oscium Nomad Parity) -->
+                    <!-- Multi-Hop Network Path Diagnosis Strip -->
                     <div id="vowifi-multihop-strip" class="ekahau-kpi-grid" style="margin-bottom: 18px;">
                         <div class="ekahau-kpi-card">
-                            <span class="ekahau-kpi-label">Chặng 1: Máy Trạm &rarr; Router Nội Bộ</span>
+                            <span class="ekahau-kpi-label">Chặng 1: Máy Trạm đến Router Nội Bộ</span>
                             <span class="ekahau-kpi-val" id="hop-gateway-val">-- ms</span>
                             <span class="ekahau-kpi-sub" id="hop-gateway-ip">Gateway: --</span>
                         </div>
                         <div class="ekahau-kpi-card">
-                            <span class="ekahau-kpi-label">Chặng 2: Máy Trạm &rarr; Internet WAN</span>
+                            <span class="ekahau-kpi-label">Chặng 2: Máy Trạm đến Internet WAN</span>
                             <span class="ekahau-kpi-val" id="hop-wan-val">-- ms</span>
                             <span class="ekahau-kpi-sub" id="hop-wan-target">Target: 8.8.8.8</span>
                         </div>
@@ -638,38 +1010,38 @@
                         </div>
                     </div>
 
-                    <div id="vowifi-diagnosis-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+                    <div id="vowifi-diagnosis-box" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 18px; margin-bottom: 20px;">
                         <div class="flex-between" style="margin-bottom: 8px;">
-                            <span style="font-weight: 700; font-size: 1rem;" id="vowifi-rating-title" data-i18n="vowifi_rating_ready">Trạng Thái Đường Truyền: Sẵn sàng kiểm tra</span>
-                            <span class="badge" id="vowifi-rating-badge" style="background: var(--accent); color: #fff;" data-i18n="vowifi_untested">Chưa đo</span>
+                            <span style="font-weight: 700; font-size: 1rem;" id="vowifi-rating-title">Trạng Thái Đường Truyền: Sẵn sàng kiểm tra</span>
+                            <span class="badge" id="vowifi-rating-badge" style="background: var(--accent); color: #fff;">Chưa đo</span>
                         </div>
-                        <p id="vowifi-verdict-text" style="color: var(--text-secondary); line-height: 1.5;" data-i18n="vowifi_verdict_ready">Bấm nút Đo Chất Lượng Ngay để hệ thống gửi gói tin kiểm tra độ trễ và tính toán điểm MOS thực tế.</p>
-                        <p id="vowifi-path-text" style="color: #38bdf8; font-size: 0.84rem; margin-top: 8px; font-weight: 600;"></p>
+                        <p id="vowifi-verdict-text" style="color: var(--text-secondary); line-height: 1.5;">Bam nut Bắt đầu đo kiem de he thong gui goi tin kiem tra do tre va tinh toan diem MOS thuc te.</p>
+                        <p id="vowifi-path-text" style="color: #0284c7; font-size: 0.84rem; margin-top: 8px; font-weight: 600;"></p>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                        <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 0.95rem;" data-i18n="vowifi_codecs_title">Tương Thích Chuẩn Nén Âm Thanh (Voice Codecs)</h4>
+                        <div style="background: var(--bg-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 10px; font-size: 0.95rem;">Tương Thích Chuẩn Nén Âm Thanh (Voice Codecs)</h4>
                             <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem;" id="vowifi-codecs-list">
                                 <li style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;">
                                     <span><b>Opus Codec</b> (Zalo, Teams, Discord HD Audio):</span>
-                                    <span style="color: #10b981;" data-i18n="vowifi_codec_opus">Tương thích cao</span>
+                                    <span style="color: #059669;">Tương thích cao</span>
                                 </li>
                                 <li style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;">
-                                    <span><b>G.711u / G.711a</b> (Chuẩn Điện Thoại 64kbps):</span>
-                                    <span style="color: #38bdf8;" data-i18n="vowifi_codec_g711">Chuẩn thoại rõ</span>
+                                    <span><b>G.711u / G.711a</b> (Chuan Dien Thoai 64kbps):</span>
+                                    <span style="color: #0284c7;">Chuẩn thoại rõ</span>
                                 </li>
                                 <li style="display: flex; justify-content: space-between;">
-                                    <span><b>G.729</b> (Chuẩn nén thấp 8kbps khi mạng yếu):</span>
-                                    <span style="color: #94a3b8;" data-i18n="vowifi_codec_g729">Dự phòng tốt</span>
+                                    <span><b>G.729</b> (Chuan nen thap 8kbps khi mang yeu):</span>
+                                    <span style="color: #64748b;">Dự phòng tốt</span>
                                 </li>
                             </ul>
                         </div>
 
-                        <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 0.95rem;" data-i18n="vowifi_why_mos">Tại Sao Chỉ Số MOS Lại Quyết Định Cuộc Gọi?</h4>
-                            <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;" data-i18n="vowifi_why_mos_desc">
-                                Trong thực tế sử dụng mạng, sóng Wi-Fi mạnh (<code>-50 dBm</code>) nhưng nếu <b>Jitter &gt; 25ms</b> hoặc <b>Packet Loss &gt; 1%</b> thì cuộc gọi thoại vẫn bị giật tiếng, rè giọng hoặc trễ lời. Điểm MOS từ <b>4.0 trở lên</b> đảm bảo cuộc họp trực tuyến mượt mà.
+                        <div style="background: var(--bg-surface); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h4 style="color: #0284c7; margin-bottom: 10px; font-size: 0.95rem;">Tại Sao Chỉ Số MOS Lại Quyết Định Cuộc Gọi?</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                                Trong thực tế sử dụng mạng, sóng Wi-Fi mạnh nhưng nếu Jitter > 25ms hoặc Packet Loss > 1% thì cuộc gọi thoại vẫn bị giật tiếng. Điểm MOS từ 4.0 trở lên đảm bảo cuộc họp trực tuyến mượt mà.
                             </p>
                         </div>
                     </div>
@@ -677,38 +1049,51 @@
             </div>
         </section>
 
-        <!-- TAB: AP PLACEMENT PLANNER & MULTI-MODE RF HEATMAP (EKAHAU WI-FI DESIGN SOLUTIONS + SWEET HOME 3D) -->
+        <!-- TAB: AP PLACEMENT PLANNER & MULTI-MODE RF HEATMAP -->
         <section id="tab-planner" class="tab-pane">
-            <div class="card" style="margin-bottom: 20px; padding: 16px;">
+            <!-- Heatmap Mode Switcher Bar -->
+            <div class="hm-mode-selector-bar">
+                <button type="button" class="hm-mode-switch-btn active" id="btn-switch-hm-raytracing" onclick="window.switchPlannerEngine('raytracing')">
+                    1. Mô Phỏng Raytracing Đa Vật Liệu
+                </button>
+                <button type="button" class="hm-mode-switch-btn" id="btn-switch-hm-ekahau" onclick="window.switchPlannerEngine('ekahau')">
+                    2. Bản Đồ Nhiệt Số Hóa Ekahau & Chuẩn SLA
+                </button>
+            </div>
+
+            <!-- Mode 1: Raytracing Heatmap -->
+            <div id="view-heatmap"></div>
+
+            <!-- Mode 2: Ekahau Floorplan Grid Planner -->
+            <div id="view-ekahau-planner" class="hidden">
+            <div class="card"  style="margin-bottom: 20px; padding: 16px;">
                 <!-- Header -->
                 <div class="card-header flex-between" style="padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
                     <div>
-                        <h3 class="card-title" data-i18n="planner_title" style="font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
-                            <i data-lucide="map-pin" style="color: var(--accent);"></i> Quy Hoạch Vị Trí Trạm Phát & Bản Đồ Nhiệt Đa Chế Độ (Floorplan & Multi-Mode RF Heatmap)
+                        <h3 class="card-title" style="font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+                            Quy Hoạch Vị Trí Trạm Phát và Bản Đồ Nhiệt Vùng Phủ Sóng
                         </h3>
-                        <p class="card-subtitle" data-i18n="planner_desc" style="font-size: 0.84rem; margin-top: 2px;">
-                            Thiết kế mặt bằng trực quan kết hợp 5 chế độ bản đồ nhiệt chuyên sâu (Sóng chính, Sóng dự phòng chuyển vùng, Tỷ số SNR, Nhiễu tranh chấp kênh, Tốc độ & Dung lượng tải) trên 3 băng tần 2.4GHz / 5GHz / 6GHz.
+                        <p class="card-subtitle" style="font-size: 0.84rem; margin-top: 2px;">
+                            Thiết kế mặt bằng trực quan kết hợp 5 chế độ bản đồ nhiệt chuyên sâu (Sóng chính, Sóng dự phòng chuyển vùng, Tỷ số SNR, Nhiễu tranh chấp kênh, Tốc độ truyền tải) trên 3 băng tần 2.4GHz / 5GHz / 6GHz.
                         </p>
                     </div>
                     <div class="flex-center gap-2" style="flex-wrap: wrap;">
                         <select id="planner-preset-select" class="select-control" style="width: 195px; font-size: 0.8rem;" onchange="window.loadFloorplanPreset(this.value)">
-                            <option value="apartment" selected data-i18n="preset_apartment">Căn Hộ 70m² (2 Phòng Ngủ)</option>
-                            <option value="townhouse" data-i18n="preset_townhouse">Nhà Phố Dài 120m²</option>
-                            <option value="office" data-i18n="preset_office">Văn Phòng Mở 250m²</option>
-                            <option value="custom" data-i18n="preset_custom">🎨 Mặt Bằng Trống (Tự Vẽ Mới)</option>
+                            <option value="apartment" selected>Căn Hộ 70m² (2 Phòng Ngủ)</option>
+                            <option value="townhouse">Nhà Phố Dài 120m²</option>
+                            <option value="office">Văn Phòng Mở 250m²</option>
+                            <option value="custom">Mặt Bằng Trống (Tự Vẽ Mới)</option>
                         </select>
-                        <select id="planner-sla-select" class="select-control" style="width: 225px; font-size: 0.8rem;" onchange="window.changePlannerSlaProfile(this.value)" title="Tiêu chuẩn nghiệm thu chất lượng phủ sóng (SLA Profile)">
-                            <option value="voice" selected data-i18n="sla_voice">🎯 Chuẩn Thoại VoWiFi (-65 dBm / SNR 25dB)</option>
-                            <option value="office" data-i18n="sla_office">🏢 Chuẩn Văn Phòng (-67 dBm / SNR 20dB)</option>
-                            <option value="high_density" data-i18n="sla_hd">🏟️ Hội Trường Mật Độ Cao (-60 dBm / SNR 28dB)</option>
+                        <select id="planner-sla-select" class="select-control" style="width: 235px; font-size: 0.8rem;" onchange="window.changePlannerSlaProfile(this.value)" title="Tieu chuan nghiem thu chat luong phu song (SLA Profile)">
+                            <option value="voice" selected>Chuẩn Đàm Thoại VoWiFi (-65 dBm / SNR 25dB)</option>
+                            <option value="office">Chuẩn Văn Phòng Tiêu Chuẩn (-67 dBm / SNR 20dB)</option>
+                            <option value="high_density">Chuẩn Mật Độ Thiết Bị Cao (-60 dBm / SNR 28dB)</option>
                         </select>
-                        <button id="btn-import-scanned-aps" class="btn btn-secondary btn-sm" onclick="window.importScannedAPsToFloorplan()" title="Nạp các trạm phát thực tế đang quét được vào mặt bằng để mô phỏng" style="font-size: 0.8rem; padding: 7px 11px;">
-                            <i data-lucide="download-cloud" style="width: 14px; height: 14px;"></i>
-                            <span data-i18n="btn_import_aps">📥 Nạp AP Thực Tế</span>
+                        <button id="btn-import-scanned-aps" class="btn btn-secondary btn-sm" onclick="window.importScannedAPsToFloorplan()" title="Nap cac tram phat thuc te dang quet duoc vao mat bang de mo phong" style="font-size: 0.8rem; padding: 7px 11px;">
+                            <span>Nạp Điểm Truy Cập Đang Quét</span>
                         </button>
-                        <button id="btn-complete-planner" class="btn btn-primary btn-sm" onclick="window.completeAndRunPlanner()" style="font-size: 0.84rem; padding: 7px 15px; background: linear-gradient(135deg, #10b981, #0ea5e9); font-weight: 700; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);">
-                            <i data-lucide="check-circle-2" style="width: 15px; height: 15px;"></i>
-                            <span id="btn-complete-label" data-i18n="btn_complete_planner">✅ Tự Động Đặt AP & Tính Phủ Sóng</span>
+                        <button id="btn-complete-planner" class="btn btn-primary btn-sm" onclick="window.completeAndRunPlanner()" style="font-size: 0.84rem; padding: 7px 15px; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                            <span id="btn-complete-label">Tự Động Đặt Bộ Phát Và Tính Phủ Sóng</span>
                         </button>
                     </div>
                 </div>
@@ -716,52 +1101,46 @@
                 <!-- Ekahau 5 Heatmap Visualization Mode Selector Bar -->
                 <div class="ekahau-mode-bar">
                     <div class="ekahau-mode-pills">
-                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-right: 4px;" data-i18n="label_heatmap_mode">Chế độ Bản đồ nhiệt:</span>
+                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-right: 4px;">Chế độ Bản đồ nhiệt:</span>
                         <button id="btn-hm-mode-primary_rssi" class="ekahau-mode-btn active" data-hm-mode="primary_rssi" onclick="window.setHeatmapVisualizationMode('primary_rssi')">
-                            <i data-lucide="signal" style="width:14px; height:14px;"></i>
-                            <span data-i18n="hm_mode_primary">1. Sóng Chính (Primary Signal dBm)</span>
+                            <span>1. Sóng Chính (dBm)</span>
                         </button>
                         <button id="btn-hm-mode-secondary_rssi" class="ekahau-mode-btn" data-hm-mode="secondary_rssi" onclick="window.setHeatmapVisualizationMode('secondary_rssi')">
-                            <i data-lucide="repeat" style="width:14px; height:14px;"></i>
-                            <span data-i18n="hm_mode_secondary">2. Sóng Dự Phòng (Secondary Roaming)</span>
+                            <span>2. Sóng Dự Phòng Chuyển Vùng</span>
                         </button>
                         <button id="btn-hm-mode-snr" class="ekahau-mode-btn" data-hm-mode="snr" onclick="window.setHeatmapVisualizationMode('snr')">
-                            <i data-lucide="sliders" style="width:14px; height:14px;"></i>
-                            <span data-i18n="hm_mode_snr">3. Tỷ Số Tín Hiệu/Nhiễu (SNR dB)</span>
+                            <span>3. Tỷ Số Tín Hiệu/Nhiễu (SNR dB)</span>
                         </button>
                         <button id="btn-hm-mode-interference" class="ekahau-mode-btn" data-hm-mode="interference" onclick="window.setHeatmapVisualizationMode('interference')">
-                            <i data-lucide="layers" style="width:14px; height:14px;"></i>
-                            <span data-i18n="hm_mode_interference">4. Nhiễu Tranh Chấp Kênh (Interference)</span>
+                            <span>4. Mức Độ Tranh Chấp Kênh</span>
                         </button>
                         <button id="btn-hm-mode-throughput" class="ekahau-mode-btn" data-hm-mode="throughput" onclick="window.setHeatmapVisualizationMode('throughput')">
-                            <i data-lucide="gauge" style="width:14px; height:14px;"></i>
-                            <span data-i18n="hm_mode_throughput">5. Tốc Độ & Dung Lượng (Data Rate Mbps)</span>
+                            <span>5. Tốc Độ Truyền Dữ Liệu (Mbps)</span>
                         </button>
                     </div>
-                    <span id="ekahau-sla-status-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; font-size: 0.76rem; padding: 4px 10px;">SLA: Sẵn sàng kiểm tra</span>
+                    <span id="ekahau-sla-status-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid #10b981; font-size: 0.76rem; padding: 4px 10px;">SLA: Sẵn sàng kiểm tra</span>
                 </div>
 
                 <!-- Ekahau SLA Cutoff Threshold & AP Radio Controls -->
-                <div class="ekahau-sub-control-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; margin-bottom: 12px; flex-wrap: wrap; background: rgba(13, 19, 34, 0.75); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px;">
+                <div class="ekahau-sub-control-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; margin-bottom: 12px; flex-wrap: wrap; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px;">
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <span style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="sliders-horizontal" style="width: 14px; height: 14px;"></i>
-                            <span data-i18n="sla_cutoff_label">Ngưỡng Cắt SLA (Cutoff):</span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #0284c7;">
+                            <span>Ngưỡng Cắt Chuẩn SLA:</span>
                         </span>
-                        <input type="range" id="ekahau-sla-slider" min="-85" max="-50" step="1" value="-65" oninput="window.updateSlaCutoff(this.value)" style="width: 140px; cursor: pointer; accent-color: #0ea5e9;">
-                        <span id="ekahau-sla-cutoff-val" style="font-size: 0.82rem; font-weight: 700; font-family: var(--font-mono); color: #f59e0b; min-width: 58px;">-65 dBm</span>
-                        <span style="font-size: 0.74rem; color: var(--text-muted);" data-i18n="sla_cutoff_hint">(Khu vực dưới ngưỡng hiển thị sọc cảnh báo góc khuất)</span>
+                        <input type="range" id="ekahau-sla-slider" min="-85" max="-50" step="1" value="-65" oninput="window.updateSlaCutoff(this.value)" style="width: 140px; cursor: pointer; accent-color: #0284c7;">
+                        <span id="ekahau-sla-cutoff-val" style="font-size: 0.82rem; font-weight: 700; font-family: var(--font-mono); color: #d97706; min-width: 58px;">-65 dBm</span>
+                        <span style="font-size: 0.74rem; color: var(--text-muted);">(Khu vực dưới ngưỡng hiển thị sọc cảnh báo góc khuất)</span>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);" data-i18n="label_tx_power">Công Suất Phát AP:</span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Công Suất Phát Mặc Định:</span>
                         <select id="ekahau-ap-txpower" class="select-control" style="font-size: 0.78rem; padding: 4px 8px;" onchange="window.updateApTxPower(this.value)">
                             <option value="14">14 dBm (25 mW)</option>
                             <option value="17">17 dBm (50 mW)</option>
                             <option value="20" selected>20 dBm (100 mW - Chuẩn)</option>
                             <option value="23">23 dBm (200 mW - Xuyên tường)</option>
                         </select>
-                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);" data-i18n="label_antenna">Anten:</span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Độ Lợi Anten:</span>
                         <select id="ekahau-ap-antenna" class="select-control" style="font-size: 0.78rem; padding: 4px 8px;" onchange="window.updateApAntenna(this.value)">
                             <option value="3" selected>Đa Hướng Omni (3 dBi)</option>
                             <option value="6">Độ Lợi Cao (6 dBi)</option>
@@ -773,89 +1152,105 @@
                 <!-- Ekahau 5-KPI Design Summary Strip -->
                 <div class="ekahau-kpi-grid">
                     <div class="ekahau-kpi-card">
-                        <span class="ekahau-kpi-label" data-i18n="kpi_pri_cov">Độ Phủ Sóng Chính (Primary)</span>
+                        <span class="ekahau-kpi-label">Độ Phủ Sóng Chính</span>
                         <span class="ekahau-kpi-val" id="ekahau-kpi-cov">-- %</span>
                         <span class="ekahau-kpi-sub" id="ekahau-kpi-cov-sub">Mức sóng TB: -- dBm</span>
                     </div>
                     <div class="ekahau-kpi-card">
-                        <span class="ekahau-kpi-label" data-i18n="kpi_sec_roam">Dự Phòng Chuyển Vùng (Secondary)</span>
+                        <span class="ekahau-kpi-label">Dự Phòng Chuyển Vùng</span>
                         <span class="ekahau-kpi-val" id="ekahau-kpi-roam">-- %</span>
-                        <span class="ekahau-kpi-sub" id="ekahau-kpi-roam-sub">Đảm bảo Roaming &ge; 2 AP</span>
+                        <span class="ekahau-kpi-sub" id="ekahau-kpi-roam-sub">Đảm bảo chuyển vùng &ge; 2 AP</span>
                     </div>
                     <div class="ekahau-kpi-card">
-                        <span class="ekahau-kpi-label" data-i18n="kpi_avg_snr">Tỷ Số Tín Hiệu / Nhiễu (SNR)</span>
+                        <span class="ekahau-kpi-label">Tỷ Số Tín Hiệu / Nhiễu (SNR)</span>
                         <span class="ekahau-kpi-val" id="ekahau-kpi-snr">-- dB</span>
                         <span class="ekahau-kpi-sub" id="ekahau-kpi-snr-sub">Nhiễu nền: -95 dBm</span>
                     </div>
                     <div class="ekahau-kpi-card">
-                        <span class="ekahau-kpi-label" data-i18n="kpi_tp_cap">Tốc Độ & Sức Chứa Thiết Bị</span>
+                        <span class="ekahau-kpi-label">Tốc Độ & Sức Chứa Thiết Bị</span>
                         <span class="ekahau-kpi-val" id="ekahau-kpi-tp">-- Mbps</span>
                         <span class="ekahau-kpi-sub" id="ekahau-kpi-cap-sub">Tải tối đa: -- thiết bị</span>
                     </div>
                     <div class="ekahau-kpi-card">
-                        <span class="ekahau-kpi-label" data-i18n="kpi_conflict_dead">Tranh Chấp Kênh & Góc Khuất</span>
+                        <span class="ekahau-kpi-label">Tranh Chấp Kênh & Góc Khuất</span>
                         <span class="ekahau-kpi-val" id="ekahau-kpi-conflict">-- %</span>
                         <span class="ekahau-kpi-sub" id="ekahau-kpi-dead-sub">Góc khuất sóng yếu: -- %</span>
                     </div>
                 </div>
 
-                <!-- Intuitive Drafting Toolbar (Sweet Home 3D + SketchUp Style) -->
-                <div class="planner-toolbar" style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <!-- Intuitive Drafting Toolbar -->
+                <div class="planner-toolbar" style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color);">
                     
                     <!-- Drawing & Manipulation Tools -->
                     <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-                        <button id="btn-tool-room" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('room')" title="Kéo chuột tạo nhanh 1 căn phòng 4 bức tường khép kín kèm diện tích m²">
-                            <i data-lucide="square"></i> <span data-i18n="tool_room">🏠 Vẽ Khung Phòng</span>
+                        <button id="btn-tool-room" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('room')" title="Keo chuot tao nhanh 1 can phong 4 buc tuong khep kin kem dien tich m²">
+                            <span>Vẽ Khung Phòng</span>
                         </button>
-                        <button id="btn-tool-draw" class="btn btn-sm btn-accent" onclick="window.setPlannerTool('draw')" title="Nhấp và kéo chuột để vẽ từng bức tường hoặc cửa">
-                            <i data-lucide="edit-3"></i> <span data-i18n="tool_draw">✏️ Vẽ Tường Lẻ</span>
+                        <button id="btn-tool-draw" class="btn btn-sm btn-accent" onclick="window.setPlannerTool('draw')" title="Nhap va keo chuot de ve tung buc tuong hoac cua">
+                            <span>Vẽ Tường Đơn</span>
                         </button>
-                        <button id="btn-tool-select" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('select')" title="Bấm vào tường hoặc cục phát AP để di chuyển, kéo giãn 2 đầu mút hoặc đổi độ dài">
-                            <i data-lucide="move"></i> <span data-i18n="tool_select">👆 Chọn & Kéo Sửa</span>
+                        <button id="btn-tool-select" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('select')" title="Bam vao tuong hoac cuc phat AP de di chuyen hoac sua do dai">
+                            <span>Chọn & Di Chuyển</span>
                         </button>
-                        <button id="btn-tool-place-ap" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('place_ap')" title="Bấm lên mặt bằng để tự đặt thêm cục phát Wi-Fi và xem ngay vùng phủ sóng">
-                            <i data-lucide="wifi"></i> <span data-i18n="tool_place_ap">📡 Đặt Thêm AP</span>
+                        <button id="btn-tool-place-ap" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('place_ap')" title="Bam len mat bang de tu dat them bo phat Wi-Fi">
+                            <span>Thêm Điểm Truy Cập</span>
                         </button>
-                        <button id="btn-tool-ruler" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('ruler')" title="Kéo thước đo khoảng cách và độ suy hao sóng dB giữa 2 điểm bất kỳ">
-                            <i data-lucide="ruler"></i> <span data-i18n="tool_ruler">📏 Thước Đo Suy Hao</span>
+                        <button id="btn-tool-calibrate" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('calibrate')" title="Doan thang 2 diem moc de quy doi ty le diem anh sang met thuc te">
+                            <span>Hiệu Chuẩn Thước Đo</span>
                         </button>
-                        <button id="btn-tool-delete" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('delete')" title="Bấm vào bức tường hoặc AP để xóa">
-                            <i data-lucide="eraser"></i> <span data-i18n="tool_delete">🗑️ Xóa</span>
+                        <button id="btn-load-floorplan-img" class="btn btn-sm btn-secondary" onclick="document.getElementById('planner-floorplan-file').click()" title="Tai anh mat bang kien truc lam nen day">
+                            <span>Tải Ảnh Mặt Bằng</span>
                         </button>
-                        <button class="btn btn-secondary btn-sm" onclick="window.undoLastWall()" title="Hoàn tác bức tường hoặc phòng vừa vẽ">
-                            <i data-lucide="undo"></i> <span data-i18n="btn_undo_wall">↩️ Hoàn Tác</span>
+                        <input type="file" id="planner-floorplan-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;" onchange="window.handleFloorplanImageUpload(event)">
+                        
+                        <button id="btn-tool-ruler" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('ruler')" title="Keo thuoc do khoang cach va do suy hao song dB giua 2 diem bat ky">
+                            <span>Thước Đo Suy Hao</span>
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="window.clearAllWalls()" style="background:#dc2626; color:#fff;" title="Xóa toàn bộ mặt bằng để vẽ lại từ đầu">
-                            <i data-lucide="trash-2"></i> <span data-i18n="btn_clear_all">🗑️ Xóa Hết</span>
+                        <button id="btn-tool-delete" class="btn btn-sm btn-secondary" onclick="window.setPlannerTool('delete')" title="Bam vao buc tuong hoac AP de xoa">
+                            <span>Xóa Vật Thể</span>
                         </button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.undoLastWall()" title="Hoan tac buc tuong hoac phong vua ve">
+                            <span>Hoàn Tác</span>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="window.clearAllWalls()" style="background:#dc2626; color:#fff;" title="Xoa toan bo mat bang de ve lai tu dau">
+                            <span>Xóa Toàn Bộ</span>
+                        </button>
+                    </div>
+
+                    <!-- Floorplan Image Opacity Controller -->
+                    <div id="planner-image-opacity-group" style="display: none; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        <span style="font-size: 0.78rem; color: #475569; font-weight: 600;">Độ Mờ Nền Ảnh:</span>
+                        <input type="range" id="planner-image-opacity" min="0.05" max="1.0" step="0.05" value="0.45" oninput="window.setFloorplanImageOpacity(this.value)" style="width: 75px; accent-color: #0284c7; cursor: pointer;">
+                        <span id="planner-image-opacity-val" style="font-size: 0.76rem; font-family: var(--font-mono); font-weight: 700; color: #0284c7;">45%</span>
+                        <button class="btn btn-sm btn-secondary" onclick="window.clearFloorplanImage()" title="Go bo anh mat bang" style="padding: 2px 6px; font-size: 0.72rem;">Gỡ Ảnh</button>
                     </div>
 
                     <div style="height: 20px; width: 1px; background: var(--border-color);"></div>
 
                     <!-- Material / Obstacle Selector -->
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700;" data-i18n="label_wall_material">Vật liệu:</span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700;">Vật liệu vách:</span>
                         <select id="planner-material-select" class="select-control" style="font-size: 0.8rem; padding: 4px 8px;">
-                            <option value="brick" selected data-i18n="mat_brick">🧱 Tường Gạch (-6 dB)</option>
-                            <option value="concrete" data-i18n="mat_concrete">🏛️ Bê Tông Cốt Thép (-12 dB)</option>
-                            <option value="wood" data-i18n="mat_wood">🪵 Vách Gỗ / Thạch Cao (-4 dB)</option>
-                            <option value="glass" data-i18n="mat_glass">🪟 Cửa Kính / Vách Kính (-3 dB)</option>
-                            <option value="door" data-i18n="mat_door">🚪 Cửa Ra Vào Mỏng (-2 dB)</option>
-                            <option value="metal" data-i18n="mat_metal">🛡️ Tủ Sắt / Lõi Thang Máy (-15 dB)</option>
+                            <option value="brick" selected>Tường Gạch (-6 dB)</option>
+                            <option value="concrete">Bê Tông Cốt Thép (-12 dB)</option>
+                            <option value="wood">Vách Gỗ Hoặc Thạch Cao (-4 dB)</option>
+                            <option value="glass">Kính Cường Lực (-3 dB)</option>
+                            <option value="door">Cửa Gỗ Nội Thất (-2 dB)</option>
+                            <option value="metal">Kim Loại Hoặc Thang Máy (-15 dB)</option>
                         </select>
                     </div>
 
                     <div style="height: 20px; width: 1px; background: var(--border-color);"></div>
 
-                    <!-- Tri-Band (2.4 / 5 / 6 GHz) & 2D/2.5D View Toggles -->
+                    <!-- Tri-Band & 2D/2.5D View Toggles -->
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <select id="planner-band-select" class="select-control" style="font-size: 0.8rem; padding: 4px 8px;" onchange="window.changePlannerBand(this.value)" title="Chọn băng tần sóng muốn mô phỏng">
-                            <option value="2.4" selected data-i18n="band_opt_24">📶 Sóng 2.4 GHz (Xuyên tường tốt)</option>
-                            <option value="5.0" data-i18n="band_opt_5">⚡ Sóng 5.0 GHz (80MHz Tốc độ cao)</option>
-                            <option value="6.0" data-i18n="band_opt_6">🚀 Sóng 6.0 GHz (Wi-Fi 6E/7 160MHz)</option>
+                        <select id="planner-band-select" class="select-control" style="font-size: 0.8rem; padding: 4px 8px;" onchange="window.changePlannerBand(this.value)" title="Chon bang tan song muon mo phong">
+                            <option value="2.4" selected>Băng Tần 2.4 GHz (Xuyên tường tốt)</option>
+                            <option value="5.0">Băng Tần 5.0 GHz (80MHz Tốc độ cao)</option>
+                            <option value="6.0">Băng Tần 6.0 GHz (Wi-Fi 6E/7 160MHz)</option>
                         </select>
-                        <button id="btn-toggle-25d" class="btn btn-sm btn-secondary" onclick="window.togglePlanner25DView()" title="Bật/Tắt chế độ xem khối tường nổi 2.5D">
-                            <i data-lucide="box"></i> <span id="label-toggle-25d" data-i18n="label_toggle_25d">🧊 Xem Khối 2.5D</span>
+                        <button id="btn-toggle-25d" class="btn btn-sm btn-secondary" onclick="window.togglePlanner25DView()" title="Bật/Tắt chế độ xem khối tường 2.5D">
+                            <span id="label-toggle-25d">Chế Độ Xem Khối 2.5D</span>
                         </button>
                     </div>
 
@@ -863,39 +1258,38 @@
 
                     <!-- Dimension Inputs -->
                     <div style="display: flex; align-items: center; gap: 5px;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700;" data-i18n="label_dimensions">Khổ đất:</span>
-                        <input type="number" id="planner-width-input" value="12" min="4" max="100" step="1" style="width: 48px; padding: 3px 4px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; text-align: center; font-weight: 700; font-family: var(--font-mono);">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">m ×</span>
-                        <input type="number" id="planner-height-input" value="8" min="4" max="100" step="1" style="width: 48px; padding: 3px 4px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; text-align: center; font-weight: 700; font-family: var(--font-mono);">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 700;">Khổ đất:</span>
+                        <input type="number" id="planner-width-input" value="12" min="4" max="100" step="1" style="width: 48px; padding: 3px 4px; background: #ffffff; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; text-align: center; font-weight: 700; font-family: var(--font-mono);">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">m &times;</span>
+                        <input type="number" id="planner-height-input" value="8" min="4" max="100" step="1" style="width: 48px; padding: 3px 4px; background: #ffffff; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; text-align: center; font-weight: 700; font-family: var(--font-mono);">
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">m</span>
-                        <button class="btn btn-secondary btn-sm" onclick="window.applyFloorplanDimensions()" title="Cập nhật kích thước mặt bằng" data-i18n="btn_apply_dim" style="padding: 3px 8px;">Đặt Khổ</button>
+                        <button class="btn btn-secondary btn-sm" onclick="window.applyFloorplanDimensions()" title="Cap nhat kich thuoc mat bang" style="padding: 3px 8px;">Đặt Khổ</button>
                     </div>
 
                     <!-- Wall Count Pill -->
                     <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-                        <span class="badge" id="planner-wall-count-badge" style="background: rgba(14, 165, 233, 0.15); color: var(--accent); border: 1px solid var(--accent); font-weight: 700; font-family: var(--font-mono);">🧱 5 vách ngăn</span>
+                        <span class="badge" id="planner-wall-count-badge" style="background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid #0284c7; font-weight: 700; font-family: var(--font-mono);">5 vách ngăn</span>
                     </div>
                 </div>
 
                 <!-- WALL PROPERTY INSPECTOR -->
-                <div id="planner-wall-inspector" style="display: none; align-items: center; gap: 12px; flex-wrap: wrap; background: #0c1424; border: 1px solid #0ea5e9; border-radius: 8px; padding: 8px 14px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);">
-                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #38bdf8; font-size: 0.86rem;">
-                        <i data-lucide="sliders" style="width:15px; height:15px;"></i>
-                        <span id="inspector-wall-title">Vách Ngăn Đang Chọn</span>
+                <div id="planner-wall-inspector" style="display: none; align-items: center; gap: 12px; flex-wrap: wrap; background: #ffffff; border: 1px solid #0284c7; border-radius: 8px; padding: 8px 14px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);">
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #0284c7; font-size: 0.86rem;">
+                        <span id="inspector-wall-title">Thuộc Tính Vách Ngăn Đang Chọn</span>
                     </div>
 
                     <div style="height: 18px; width: 1px; background: var(--border-color);"></div>
 
                     <!-- Material selection for clicked wall -->
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;" data-i18n="label_wall_material">Vật liệu:</span>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Vật liệu vách:</span>
                         <select id="inspector-wall-material" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;" onchange="window.updateSelectedWallMaterial(this.value)">
-                            <option value="brick" data-i18n="mat_brick">🧱 Tường Gạch (-6 dB)</option>
-                            <option value="concrete" data-i18n="mat_concrete">🏛️ Bê Tông Cốt Thép (-12 dB)</option>
-                            <option value="wood" data-i18n="mat_wood">🪵 Vách Gỗ / Thạch Cao (-4 dB)</option>
-                            <option value="glass" data-i18n="mat_glass">🪟 Cửa Kính / Vách Kính (-3 dB)</option>
-                            <option value="door" data-i18n="mat_door">🚪 Cửa Ra Vào Mỏng (-2 dB)</option>
-                            <option value="metal" data-i18n="mat_metal">🛡️ Tủ Sắt / Lõi Thang Máy (-15 dB)</option>
+                            <option value="brick">Tường Gạch (-6 dB)</option>
+                            <option value="concrete">Bê Tông Cốt Thép (-12 dB)</option>
+                            <option value="wood">Vách Gỗ Hoặc Thạch Cao (-4 dB)</option>
+                            <option value="glass">Kính Cường Lực (-3 dB)</option>
+                            <option value="door">Cửa Gỗ Nội Thất (-2 dB)</option>
+                            <option value="metal">Kim Loại Hoặc Thang Máy (-15 dB)</option>
                         </select>
                     </div>
 
@@ -903,100 +1297,204 @@
 
                     <!-- Direct Length Input with Multi-Unit Selector -->
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;" data-i18n="label_wall_length">Chiều dài:</span>
-                        <input type="number" id="inspector-wall-length" min="0.1" max="1000" step="0.1" style="width: 70px; padding: 3px 5px; background: var(--bg-card); border: 1px solid #0ea5e9; color: var(--text-primary); border-radius: 4px; font-weight: 700; font-family: var(--font-mono); text-align: center;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Chiều dài:</span>
+                        <input type="number" id="inspector-wall-length" min="0.1" max="1000" step="0.1" style="width: 70px; padding: 3px 5px; background: #ffffff; border: 1px solid #cbd5e1; color: var(--text-primary); border-radius: 4px; font-weight: 700; font-family: var(--font-mono); text-align: center;">
                         <select id="inspector-wall-unit" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;" onchange="window.changeWallUnit(this.value)">
                             <option value="m" selected>Mét (m)</option>
                             <option value="in">Inch (in)</option>
                             <option value="ft">Feet (ft)</option>
                             <option value="cm">Centimét (cm)</option>
                         </select>
-                        <button class="btn btn-sm btn-primary" onclick="window.applySelectedWallLength()" title="Cập nhật chiều dài tường theo giá trị vừa nhập" style="padding: 3px 10px; font-size: 0.78rem;" data-i18n="btn_apply_length">Đặt Độ Dài</button>
+                        <button class="btn btn-sm btn-primary" onclick="window.applySelectedWallLength()" title="Cap nhat chieu dai tuong" style="padding: 3px 10px; font-size: 0.78rem;">Đặt Độ Dài</button>
                     </div>
 
                     <!-- Action buttons -->
                     <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-                        <button class="btn btn-sm btn-danger" onclick="window.deleteSelectedWall()" style="background:#dc2626; color:#fff; padding: 3px 8px; font-size: 0.78rem;" title="Xóa bức tường này">
-                            <i data-lucide="trash-2"></i> <span data-i18n="btn_delete_wall">Xóa</span>
+                        <button class="btn btn-sm btn-danger" onclick="window.deleteSelectedWall()" style="background:#dc2626; color:#fff; padding: 3px 8px; font-size: 0.78rem;" title="Xoa buc tuong nay">
+                            <span>Xóa Vách</span>
                         </button>
-                        <button class="btn btn-sm btn-secondary" onclick="window.deselectWall()" style="padding: 3px 8px; font-size: 0.78rem;" title="Bỏ chọn" data-i18n="btn_close_inspector">
-                            ✕ Đóng
+                        <button class="btn btn-sm btn-secondary" onclick="window.deselectWall()" style="padding: 3px 8px; font-size: 0.78rem;" title="Bo chon">
+                            Đóng
                         </button>
+                    </div>
+                </div>
+
+                <!-- AP PROPERTY INSPECTOR (R3) -->
+                <div id="planner-ap-inspector" style="display: none; align-items: center; gap: 12px; flex-wrap: wrap; background: #ffffff; border: 1px solid #0284c7; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);">
+                    <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #0284c7; font-size: 0.86rem;">
+                        <span id="inspector-ap-title">Thuộc Tính Điểm Truy Cập Đang Chọn</span>
+                    </div>
+
+                    <div style="height: 18px; width: 1px; background: var(--border-color);"></div>
+
+                    <!-- AP Name -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">Tên trạm phát:</span>
+                        <input type="text" id="inspector-ap-name" style="width: 130px; padding: 3px 6px; background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">
+                    </div>
+
+                    <div style="height: 18px; width: 1px; background: var(--border-color);"></div>
+
+                    <!-- Channels for 2.4G / 5G / 6G -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">Kênh 2.4G:</span>
+                        <select id="inspector-ap-ch24" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;">
+                            <option value="1">Kenh 1</option>
+                            <option value="6">Kenh 6</option>
+                            <option value="11">Kenh 11</option>
+                        </select>
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">5G:</span>
+                        <select id="inspector-ap-ch5" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;">
+                            <option value="36">Kênh 36 (80MHz)</option>
+                            <option value="44">Kenh 44 (80MHz)</option>
+                            <option value="52">Kenh 52 (DFS)</option>
+                            <option value="60">Kenh 60 (DFS)</option>
+                            <option value="100">Kenh 100 (DFS)</option>
+                            <option value="149">Kenh 149 (80MHz)</option>
+                            <option value="157">Kenh 157 (80MHz)</option>
+                        </select>
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">6G:</span>
+                        <select id="inspector-ap-ch6" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;">
+                            <option value="37">Kenh 37 (PSC)</option>
+                            <option value="53">Kenh 53 (PSC)</option>
+                            <option value="69">Kenh 69 (PSC)</option>
+                            <option value="85">Kenh 85 (PSC)</option>
+                        </select>
+                    </div>
+
+                    <div style="height: 18px; width: 1px; background: var(--border-color);"></div>
+
+                    <!-- Tx Power & Antenna Gain -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">Công Suất Phát:</span>
+                        <select id="inspector-ap-txpower" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;">
+                            <option value="14">14 dBm (25 mW)</option>
+                            <option value="17">17 dBm (50 mW)</option>
+                            <option value="20">20 dBm (100 mW)</option>
+                            <option value="23">23 dBm (200 mW)</option>
+                        </select>
+                        <span style="font-size: 0.8rem; color: #475569; font-weight: 600;">Độ Lợi Anten:</span>
+                        <select id="inspector-ap-antenna" class="select-control" style="font-size: 0.8rem; padding: 3px 6px;">
+                            <option value="3">Da Huong 3 dBi</option>
+                            <option value="6">Do Loi Cao 6 dBi</option>
+                            <option value="9">Dinh Huong 9 dBi</option>
+                        </select>
+                    </div>
+
+                    <div style="height: 18px; width: 1px; background: var(--border-color);"></div>
+
+                    <!-- Failover Simulation -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <label style="font-size: 0.8rem; color: #475569; font-weight: 600; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" id="inspector-ap-enabled" checked style="accent-color: #0284c7;">
+                            Đang Phát Sóng (Bật/Tắt)
+                        </label>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                        <button class="btn btn-sm btn-primary" onclick="window.applyApInspectorChanges()" style="padding: 3px 10px; font-size: 0.78rem;">Lưu Thuộc Tính</button>
+                        <button class="btn btn-sm btn-danger" onclick="window.deleteSelectedApFromInspector()" style="background:#dc2626; color:#fff; padding: 3px 8px; font-size: 0.78rem;">Xóa Trạm Phát</button>
+                        <button class="btn btn-sm btn-secondary" onclick="window.closeApInspector()" style="padding: 3px 8px; font-size: 0.78rem;">Đóng</button>
                     </div>
                 </div>
 
                 <!-- Canvas Hint & Dynamic Mode Legend Banner -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap; gap: 8px;">
-                    <span id="planner-instruction-text" style="color: #38bdf8; font-weight: 600;">
-                        💡 Hướng dẫn: Chọn Vẽ Khung Phòng để kéo nhanh 4 bức tường khép kín, hoặc Vẽ Tường Lẻ để thêm vách ngăn. Có thể nắm kéo trực tiếp cục phát AP để xem vùng sóng thay đổi tức thì.
+                    <span id="planner-instruction-text" style="color: #0284c7; font-weight: 600;">
+                        Huong dan: Chon Vẽ Khung Phòng de keo nhanh 4 buc tuong khep kin, hoac Vẽ Tường Đơn de them vach ngan. Co the nam keo hoac nhap vao bo phat AP de tuy chinh thong so phat.
                     </span>
                     
                     <!-- Dynamic Heatmap Legend -->
                     <div id="planner-dynamic-legend" style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; flex-wrap: wrap;">
-                        <span data-i18n="label_signal_level">Mức Sóng:</span>
-                        <span style="background: #10b981; color:#fff; padding: 1px 6px; border-radius: 4px;" data-i18n="leg_sig_50">&ge; -50 dBm (Rất mạnh)</span>
-                        <span style="background: #eab308; color:#000; padding: 1px 6px; border-radius: 4px;" data-i18n="leg_sig_65">-65 dBm (Chuẩn Thoại)</span>
-                        <span style="background: #f97316; color:#fff; padding: 1px 6px; border-radius: 4px;" data-i18n="leg_sig_75">-75 dBm (Yếu)</span>
-                        <span style="background: #ef4444; color:#fff; padding: 1px 6px; border-radius: 4px;" data-i18n="leg_sig_85">&le; -85 dBm (Mất sóng)</span>
+                        <span>Mức Sóng:</span>
+                        <span style="background: #059669; color:#fff; padding: 1px 6px; border-radius: 4px;">&ge; -50 dBm (Rất mạnh)</span>
+                        <span style="background: #10b981; color:#fff; padding: 1px 6px; border-radius: 4px;">-65 dBm (Chuẩn Thoại)</span>
+                        <span style="background: #eab308; color:#000; padding: 1px 6px; border-radius: 4px;">-75 dBm (Trung Bình)</span>
+                        <span style="background: #f97316; color:#fff; padding: 1px 6px; border-radius: 4px;">-85 dBm (Yếu)</span>
+                        <span style="background: #ef4444; color:#fff; padding: 1px 6px; border-radius: 4px;">&lt; -85 dBm (Mất sóng)</span>
                     </div>
                 </div>
 
                 <!-- Floorplan Canvas Container -->
-                <div id="planner-canvas-container" style="background: radial-gradient(circle at 50% 30%, #0c1527 0%, #060a14 100%); border: 2px solid #1e293b; border-radius: 12px; box-shadow: inset 0 2px 25px rgba(0,0,0,0.85), 0 8px 32px rgba(0,0,0,0.5); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; min-height: 520px;">
+                <div id="planner-canvas-container" style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; min-height: 520px;">
                     <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px; font-size: 0.76rem; color: #64748b; font-family: var(--font-mono); flex-wrap: wrap; gap: 6px;">
-                        <span style="display: flex; align-items: center; gap: 6px; color: #38bdf8; font-weight: 700;">
-                            <i data-lucide="layout-grid" style="width: 13px; height: 13px;"></i>
-                            <span id="planner-canvas-header-label" data-i18n="planner_canvas_header">BẢNG VẼ MẶT BẰNG & BẢN ĐỒ NHIỆT PHỦ SÓNG (Interactive 2D/2.5D Floorplan)</span>
+                        <span style="display: flex; align-items: center; gap: 6px; color: #0284c7; font-weight: 700;">
+                            <span id="planner-canvas-header-label">BẢN VẼ MẶT BẰNG & BẢN ĐỒ NHIỆT PHỦ SÓNG</span>
                         </span>
-                        <span id="planner-hover-probe-readout" style="color: #10b981; font-weight: 700;">Di chuột lên bản đồ nhiệt để đo thông số điểm (Point Probe)</span>
+                        <span id="planner-hover-probe-readout" style="color: #059669; font-weight: 700;">Điểm đo: Di chuột lên bản vẽ để xem thông số sóng tại chỗ</span>
                     </div>
                     <canvas id="canvas-floorplan-heatmap" width="960" height="520" style="border-radius: 6px; width: 100%; max-width: 1000px; height: auto; cursor: crosshair; user-select: none;"></canvas>
                 </div>
 
+                <!-- Distance Calibration Modal -->
+                <div id="planner-calibration-modal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); align-items: center; justify-content: center; z-index: 1000;">
+                    <div class="modal-content" style="max-width: 440px; background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);">
+                        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="color: #0284c7; font-size: 1rem; margin: 0; font-weight: 700;">Hiệu Chuẩn Thước Đo Khoảng Cách</h4>
+                            <button class="btn-close" onclick="window.cancelDistanceCalibration()" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #64748b;">Đóng</button>
+                        </div>
+                        <div class="modal-body" style="font-size: 0.88rem; color: #475569; line-height: 1.5;">
+                            <p style="margin-bottom: 12px;">
+                                Đoạn chuẩn bạn vừa kéo trên bản vẽ có độ dài là <b id="calib-pixel-length" style="color: #0284c7;">--</b> điểm ảnh (pixels).
+                            </p>
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-weight: 600; color: #0f172a; margin-bottom: 6px;">Khoảng cách thực tế tương ứng (mét):</label>
+                                <input type="number" id="calib-real-meters" min="0.1" max="200" step="0.1" value="5.0" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; font-weight: 700; font-family: var(--font-mono); color: #0f172a;">
+                            </div>
+                            <div id="calib-hint" style="font-size: 0.78rem; color: #64748b; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                Hệ thống sẽ tự động tính toán lại chiều rộng và chiều dài mặt bằng tổng thể dựa trên tỷ lệ này.
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+                            <button class="btn btn-secondary btn-sm" onclick="window.cancelDistanceCalibration()">Hủy Bỏ</button>
+                            <button class="btn btn-primary btn-sm" onclick="window.applyDistanceCalibration()">Áp Dụng Tỷ Lệ</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Prominent Action Bar Below Canvas -->
                 <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; margin-bottom: 8px; flex-wrap: wrap;">
-                    <button id="btn-complete-planner-bottom" class="btn btn-primary" onclick="window.completeAndRunPlanner()" style="font-size: 0.95rem; padding: 11px 28px; background: linear-gradient(135deg, #10b981, #0ea5e9); box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35); font-weight: 800; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="check-circle-2"></i>
-                        <span data-i18n="btn_complete_planner_bottom">✅ Tự Động Tìm Vị Trí Đặt Router & Tính Phủ Sóng</span>
+                    <button id="btn-complete-planner-bottom" class="btn btn-primary" onclick="window.completeAndRunPlanner()" style="font-size: 0.95rem; padding: 11px 28px; background: #0284c7; box-shadow: 0 4px 18px rgba(2, 132, 199, 0.35); font-weight: 800; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <span>Tự Động Tối Ưu Vị Trí Trạm Và Tính Phủ Sóng</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="window.recalculateCurrentAPHeatmap()" style="font-size: 0.88rem; padding: 11px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Giữ nguyên vị trí các cục AP hiện tại và cập nhật lại bản đồ nhiệt">
-                        <i data-lucide="refresh-cw"></i>
-                        <span data-i18n="btn_recalc_heatmap">🔄 Tính Lại Bản Đồ Nhiệt Theo Vị Trí AP Hiện Tại</span>
+                    <button class="btn btn-secondary" onclick="window.recalculateCurrentAPHeatmap()" style="font-size: 0.88rem; padding: 11px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Giu nguyen vi tri cac cuc AP hien tai va cap nhat lai ban do nhiet">
+                        <span>Tính Toán Lại Vùng Phủ Sóng</span>
                     </button>
                 </div>
 
                 <!-- Two-Column Bottom Area: Results Summary + Object/Wall List -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; margin-top: 12px;">
                     <!-- RF Analytical Planner Results Panel -->
-                    <div id="planner-result-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                    <div id="planner-result-box" style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
                         <div class="flex-between" style="margin-bottom: 8px;">
-                            <h4 style="color: #38bdf8; display: flex; align-items: center; gap: 8px; font-size: 0.92rem;">
-                                <i data-lucide="cpu"></i> <span data-i18n="planner_results_heading">Kết Quả Đánh Giá Độ Phủ Sóng</span>
+                            <h4 style="color: #0284c7; display: flex; align-items: center; gap: 8px; font-size: 0.92rem;">
+                                <span>Kết Quả Đánh Giá Độ Phủ Sóng</span>
                             </h4>
-                            <span id="planner-coverage-badge" class="badge" style="background:#10b981; color:#fff; font-size:0.85rem;">Tỷ Lệ Phủ Sóng: -- %</span>
+                            <span id="planner-coverage-badge" class="badge" style="background:#059669; color:#fff; font-size:0.85rem;">Tỷ Lệ Phủ Sóng: -- %</span>
                         </div>
-                        <div id="planner-rationale-list" style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;" data-i18n="planner_placeholder">
-                            Bấm nút Tự Động Tìm Vị Trí Đặt Router ở trên sau khi vẽ mặt bằng xong để hệ thống tính toán vị trí lắp đặt và hiển thị vùng phủ sóng.
+                        <div id="planner-rationale-list" style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;">
+                            Bam nut Tu Đóng Toi Uu Vi Tri Tram o tren sau khi ve mat bang xong de he thong tinh toan vi tri lap dat va hien thi vung phu song.
                         </div>
                     </div>
 
-                    <!-- Sweet Home 3D Style Wall & Object Catalog Table -->
-                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; max-height: 240px; overflow-y: auto;">
+                    <!-- Wall & Object Catalog Table -->
+                    <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; max-height: 240px; overflow-y: auto;">
                         <div class="flex-between" style="margin-bottom: 8px;">
-                            <h4 style="color: #38bdf8; display: flex; align-items: center; gap: 8px; font-size: 0.92rem;">
-                                <i data-lucide="layers"></i> <span data-i18n="planner_catalog_heading">Danh Mục Vách Ngăn & Vật Cản Trên Bản Vẽ</span>
+                            <h4 style="color: #0284c7; display: flex; align-items: center; gap: 8px; font-size: 0.92rem;">
+                                <span>Danh Mục Vách Ngăn và Vật Cản Trên Bản Vẽ</span>
                             </h4>
-                            <span style="font-size: 0.76rem; color: var(--text-secondary);" data-i18n="planner_catalog_sub">Bấm vào dòng để chọn/sửa nhanh</span>
+                            <span style="font-size: 0.76rem; color: var(--text-secondary);">Bấm vào dòng để chọn hoặc sửa nhanh</span>
                         </div>
                         <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
                                     <th style="padding: 4px 6px;">#</th>
-                                    <th style="padding: 4px 6px;" data-i18n="obj_th_type">Loại Vách / Vật Cản</th>
-                                    <th style="padding: 4px 6px;" data-i18n="obj_th_coords">Tọa Độ (m)</th>
-                                    <th style="padding: 4px 6px;" data-i18n="obj_th_len">Chiều Dài</th>
-                                    <th style="padding: 4px 6px;" data-i18n="obj_th_loss">Suy Hao</th>
-                                    <th style="padding: 4px 6px; text-align: right;" data-i18n="obj_th_action">Thao Tác</th>
+                                    <th style="padding: 4px 6px;">Loại Vách / Vật Cản</th>
+                                    <th style="padding: 4px 6px;">Tọa Độ (m)</th>
+                                    <th style="padding: 4px 6px;">Chiều Dài</th>
+                                    <th style="padding: 4px 6px;">Suy Hao</th>
+                                    <th style="padding: 4px 6px; text-align: right;">Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody id="planner-object-list-body">
@@ -1005,23 +1503,23 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- /#view-ekahau-planner -->
         </section>
 
-        <!-- TAB 4: SECURITY AUDIT -->
+        <!-- TAB: SECURITY AUDIT -->
         <section id="tab-security" class="tab-pane">
             <div class="security-grid">
                 <div class="card alert-card-danger" id="sec-open-card">
-                    <div class="alert-icon"><i data-lucide="shield-alert"></i></div>
                     <div class="alert-content">
-                        <h3 data-i18n="sec_open_title">Cảnh Báo: Phát Hiện Mạng Wi-Fi Không Đặt Mật Khẩu (Open / Unencrypted)</h3>
-                        <p id="sec-open-desc" data-i18n="sec_open_desc">Đang kiểm tra các trạm phát sóng Wi-Fi không bật mã hóa WPA2/WPA3...</p>
+                        <h3>Cảnh Báo: Phát Hiện Mạng Wi-Fi Không Đặt Mật Khẩu</h3>
+                        <p id="sec-open-desc">Đang kiểm tra các trạm phát sóng Wi-Fi không bật mã hóa WPA2/WPA3...</p>
                         <div id="sec-open-list" class="vuln-list"></div>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title" data-i18n="sec_dist_title">Thống Kê Chuẩn Bảo Mật Trong Khu Vực (Security Protocol Distribution)</h3>
+                        <h3 class="card-title">Thống Kê Chuẩn Bảo Mật Trong Khu Vực</h3>
                     </div>
                     <div class="security-bars" id="sec-distribution-bars">
                     </div>
@@ -1029,63 +1527,59 @@
             </div>
 
             <!-- Deep Security Diagnosis & Actionable Fix Guide -->
-            <div class="card" style="margin-top: 20px; border-left: 4px solid #ef4444;">
+            <div class="card" style="margin-top: 20px; border-left: 4px solid #dc2626;">
                 <div class="card-header border-bottom">
                     <div class="flex-center gap-2">
-                        <i data-lucide="shield-alert" style="color: #ef4444;"></i>
-                        <h3 class="card-title" data-i18n="sec_diag_title">Phân Tích Rủi Ro Mạng Bảo Mật Thấp & Cách Khắc Phục</h3>
+                        <h3 class="card-title" style="color: #dc2626;">Phân Tích Nguy Cơ Bảo Mật Yếu và Giải Pháp Khắc Phục</h3>
                     </div>
-                    <span class="badge" style="background:#ef4444; color:#fff;" data-i18n="sec_diag_badge">Kiểm Tra An Toàn Mạng</span>
+                    <span class="badge" style="background:#dc2626; color:#fff;">Kiểm Tra An Toàn Mạng</span>
                 </div>
                 <div class="card-body" style="padding: 20px; font-size: 0.88rem; line-height: 1.6;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px;">
-                        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 16px;">
-                            <h4 style="color: #ef4444; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;" data-i18n="sec_cause_title">
-                                <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
-                                1. Tại Sao Mạng Bị Đánh Giá Bảo Mật Thấp?
+                        <div style="background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 8px; padding: 16px;">
+                            <h4 style="color: #dc2626; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;">
+                                1. Nguyên Nhân Kỹ Thuật Dẫn Đến Đánh Giá Bảo Mật Yếu
                             </h4>
-                            <p style="color: var(--text-secondary); margin-bottom: 8px;" data-i18n="sec_cause_desc_1">
-                                <b>Nguyên nhân kỹ thuật:</b> Mạng Open (None) hoặc dùng chuẩn cũ WEP / WPA-TKIP <b>không mã hóa</b> dữ liệu truyền qua sóng radio.
+                            <p style="color: var(--text-secondary); margin-bottom: 8px;">
+                                <b>Nguyên nhân:</b> Mạng không có mật khẩu (Open) hoặc dùng chuẩn cũ WEP / WPA-TKIP <b>không mã hóa</b> dữ liệu truyền qua sóng radio.
                             </p>
-                            <p style="color: var(--text-secondary);" data-i18n="sec_cause_desc_2">
+                            <p style="color: var(--text-secondary);">
                                 Sóng Wi-Fi phát lan truyền trong không khí. Bất kỳ thiết bị nào trong vùng phủ sóng đều có thể thu được gói tin nếu không bật mã hóa.
                             </p>
                         </div>
 
-                        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px;">
-                            <h4 style="color: #f59e0b; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;" data-i18n="sec_danger_title">
-                                <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i>
-                                2. Rủi Ro Thực Tế Nếu Không Khắc Phục
+                        <div style="background: rgba(217, 119, 6, 0.06); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 8px; padding: 16px;">
+                            <h4 style="color: #d97706; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;">
+                                2. Rủi Ro Thực Tế Đối Với An Toàn Dữ Liệu
                             </h4>
                             <ul style="color: var(--text-secondary); padding-left: 18px; display: flex; flex-direction: column; gap: 8px;" id="sec-danger-list">
-                                <li data-i18n="sec_danger_item1">
-                                    <b>Nghe lén gói tin (Packet Sniffing):</b> Người khác có thể dùng phần mềm bắt gói tin để đọc các dữ liệu không mã hóa trên mạng.
+                                <li>
+                                    <b>Nghe lén gói tin:</b> Kẻ xấu có thể dùng phần mềm bắt gói tin để đọc các dữ liệu không mã hóa trên mạng.
                                 </li>
-                                <li data-i18n="sec_danger_item2">
-                                    <b>Trạm phát giả mạo (Evil Twin):</b> Kẻ xấu dễ dàng phát một mạng Wi-Fi trùng tên để đánh lừa thiết bị tự động kết nối vào.
+                                <li>
+                                    <b>Trạm phát giả mạo:</b> Kẻ xấu dễ dàng phát một mạng Wi-Fi trùng tên để đánh lừa thiết bị tự động kết nối vào.
                                 </li>
-                                <li data-i18n="sec_danger_item3">
+                                <li>
                                     <b>Truy cập trái phép thiết bị nội bộ:</b> Người lạ có thể quét thấy máy in, camera IP hoặc thư mục chia sẻ trong mạng LAN.
                                 </li>
                             </ul>
                         </div>
 
-                        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 16px;">
-                            <h4 style="color: #10b981; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;" data-i18n="sec_fix_title">
-                                <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
-                                3. Các Bước Khắc Phục Cụ Thể
+                        <div style="background: rgba(5, 150, 105, 0.06); border: 1px solid rgba(5, 150, 105, 0.2); border-radius: 8px; padding: 16px;">
+                            <h4 style="color: #059669; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 0.95rem;">
+                                3. Quy Trình Các Bước Khắc Phục Cụ Thể
                             </h4>
                             <ol style="color: var(--text-secondary); padding-left: 18px; display: flex; flex-direction: column; gap: 8px;" id="sec-fix-list">
-                                <li data-i18n="sec_fix_item1">
+                                <li>
                                     <b>Đổi chuẩn mã hóa:</b> Đăng nhập vào Router (<code>192.168.1.1</code>), chuyển chế độ bảo mật sang <b>WPA2-PSK (AES)</b> hoặc <b>WPA3-SAE</b>.
                                 </li>
-                                <li data-i18n="sec_fix_item2">
+                                <li>
                                     <b>Đặt mật khẩu đủ mạnh:</b> Dùng mật khẩu từ 12 ký tự trở lên kết hợp chữ hoa, chữ thường và chữ số.
                                 </li>
-                                <li data-i18n="sec_fix_item3">
-                                    <b>Bật cách ly thiết bị (Client Isolation):</b> Đối với mạng khách ở quán cafe hoặc văn phòng, bật Guest Wi-Fi kèm Client Isolation để các máy khách không tự quét nhau.
+                                <li>
+                                    <b>Bật cách ly thiết bị:</b> Đối với mạng khách, bật Guest Wi-Fi kèm Client Isolation để các máy khách không tự quét nhau.
                                 </li>
-                                <li data-i18n="sec_fix_item4">
+                                <li>
                                     <b>Tắt tính năng WPS:</b> Tắt mã PIN WPS trên Router để tránh bị dò mật khẩu tự động.
                                 </li>
                             </ol>
@@ -1095,23 +1589,23 @@
             </div>
         </section>
 
-        <!-- TAB 5: REPORTS ARCHIVE -->
+        <!-- TAB: REPORTS ARCHIVE -->
         <section id="tab-reports" class="tab-pane">
             <div class="card">
                 <div class="card-header flex-between">
                     <div>
-                        <h3 class="card-title" data-i18n="reports_title">Kho Lưu Trữ Báo Cáo MMQ./NetScanner</h3>
-                        <p class="card-subtitle" data-i18n="reports_desc">Các file báo cáo khảo sát được lưu theo định dạng chuẩn <code>NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv</code> mở trực tiếp bằng Microsoft Excel.</p>
+                        <h3 class="card-title">Kho Lưu Trữ Báo Cáo NetScanner</h3>
+                        <p class="card-subtitle">Các file báo cáo khảo sát được lưu theo định dạng bảng tính mở trực tiếp bằng Microsoft Excel.</p>
                     </div>
                     <div class="flex-center gap-2">
                         <button class="btn btn-primary btn-sm" onclick="window.quickExportReport('csv')">
-                            <i data-lucide="sheet"></i> <span data-i18n="btn_export_csv_modal">Xuất Báo Cáo CSV</span>
+                            <span>Xuất Tệp Bảng Tính CSV</span>
                         </button>
                         <button class="btn btn-secondary btn-sm" onclick="window.quickExportReport('json')">
-                            <i data-lucide="braces"></i> <span data-i18n="btn_export_json_modal">Xuất File JSON</span>
+                            <span>Xuất Tệp Dữ Liệu JSON</span>
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="window.clearAllOldReports()" title="Xóa tất cả các bản ghi báo cáo cũ" style="background:#dc2626; color:#fff;">
-                            <i data-lucide="trash-2"></i> <span data-i18n="btn_clear_reports">Dọn Báo Cáo Cũ</span>
+                        <button class="btn btn-danger btn-sm" onclick="window.clearAllOldReports()" title="Xoa tat ca cac ban ghi bao cao cu" style="background:#dc2626; color:#fff;">
+                            <span>Xóa Báo Cáo Cũ</span>
                         </button>
                     </div>
                 </div>
@@ -1120,11 +1614,11 @@
                     <table class="reports-table">
                         <thead>
                             <tr>
-                                <th data-i18n="rep_format">Định Dạng</th>
-                                <th data-i18n="rep_filename">Tên File Báo Cáo</th>
-                                <th data-i18n="rep_created">Thời Gian Tạo</th>
-                                <th data-i18n="rep_size">Dung Lượng</th>
-                                <th data-i18n="rep_action">Thao Tác</th>
+                                <th>Định Dạng</th>
+                                <th>Tên File Báo Cáo</th>
+                                <th>Thời Gian Tao</th>
+                                <th>Dung Lượng</th>
+                                <th>Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="reports-table-body">
@@ -1140,7 +1634,6 @@
     <div id="ap-drawer" class="ap-drawer hidden">
         <div class="drawer-header">
             <div class="drawer-title">
-                <i data-lucide="radio"></i>
                 <span id="drawer-ssid">Chi Tiết Trạm Phát</span>
             </div>
             <button class="drawer-close" id="btn-close-drawer">&times;</button>
@@ -1149,59 +1642,58 @@
         </div>
     </div>
 
-    <!-- OSCIUM DEVICE FINDER MODAL (DIRECTIONAL SIGNAL TRACKER) -->
+    <!-- OSCIUM DEVICE FINDER MODAL -->
     <div id="device-finder-modal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width: 680px;">
             <div class="modal-header">
                 <div class="modal-title">
-                    <i data-lucide="crosshair"></i>
-                    <span data-i18n="df_modal_title">Bộ Dò Hướng & Định Vị Tín Hiệu Trạm Phát (Device Finder)</span>
+                    <span>Bộ Dò Hướng và Định Vị Trạm Phát Sóng</span>
                 </div>
                 <button class="modal-close" onclick="window.closeDeviceFinder()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="flex-between" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
                     <div style="flex: 1; min-width: 240px;">
-                        <label style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 700; display: block; margin-bottom: 4px;" data-i18n="df_select_target">Chọn trạm phát BSSID cần dò tìm vị trí vật lý:</label>
+                        <label style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 700; display: block; margin-bottom: 4px;">Chọn trạm phát BSSID cần dò tìm vị trí vật lý:</label>
                         <select id="df-target-select" class="select-control" style="width: 100%;" onchange="window.changeDeviceFinderTarget(this.value)">
                         </select>
                     </div>
                     <button class="btn btn-secondary btn-sm" onclick="window.resetDeviceFinderPeak()" style="margin-top: 18px;">
-                        <i data-lucide="rotate-ccw"></i> <span data-i18n="df_reset_peak">Đặt Lại Đỉnh Sóng</span>
+                        <span>Đặt Lại Đỉnh Sóng</span>
                     </button>
                 </div>
 
                 <div class="device-finder-meter">
-                    <div id="df-target-meta" style="font-size: 0.84rem; color: var(--text-secondary); font-family: var(--font-mono);">SSID: -- | BSSID: -- | Kênh: --</div>
+                    <div id="df-target-meta" style="font-size: 0.84rem; color: var(--text-secondary); font-family: var(--font-mono);">SSID: -- | BSSID: -- | Kenh: --</div>
                     <div class="device-finder-rssi-big" id="df-current-rssi">-- dBm</div>
                     <div class="device-finder-proximity-track">
                         <div class="device-finder-proximity-fill" id="df-proximity-bar" style="width: 0%;"></div>
                     </div>
                     <div class="flex-between" style="font-size: 0.82rem; font-weight: 700; margin-bottom: 12px;">
-                        <span id="df-proximity-label" style="color: #38bdf8;">Mức độ tiệm cận: --%</span>
-                        <span id="df-trend-label" style="color: #10b981;">Di chuyển máy trạm để dò hướng tăng sóng</span>
+                        <span id="df-proximity-label" style="color: #0284c7;">Mức độ tiệm cận: --%</span>
+                        <span id="df-trend-label" style="color: #059669;">Di chuyển máy trạm để dò hướng tăng sóng</span>
                     </div>
 
                     <div class="ekahau-kpi-grid" style="margin-bottom: 12px;">
                         <div class="ekahau-kpi-card">
-                            <span class="ekahau-kpi-label" data-i18n="df_peak_rssi">Đỉnh Sóng Cao Nhất (Peak)</span>
+                            <span class="ekahau-kpi-label">Đỉnh Sóng Cao Nhất</span>
                             <span class="ekahau-kpi-val" id="df-peak-rssi">-- dBm</span>
                         </div>
                         <div class="ekahau-kpi-card">
-                            <span class="ekahau-kpi-label" data-i18n="df_min_rssi">Mức Thấp Nhất (Min)</span>
+                            <span class="ekahau-kpi-label">Mức Thấp Nhất</span>
                             <span class="ekahau-kpi-val" id="df-min-rssi">-- dBm</span>
                         </div>
                         <div class="ekahau-kpi-card">
-                            <span class="ekahau-kpi-label" data-i18n="df_est_dist">Khoảng Cách Ước Tính</span>
+                            <span class="ekahau-kpi-label">Khoảng Cách Ước Tính</span>
                             <span class="ekahau-kpi-val" id="df-est-distance">-- m</span>
                         </div>
                     </div>
 
-                    <canvas id="canvas-device-finder" width="600" height="140" style="width: 100%; height: 140px; background: rgba(4, 7, 15, 0.8); border: 1px solid var(--border-color); border-radius: 8px;"></canvas>
+                    <canvas id="canvas-device-finder" width="600" height="140" style="width: 100%; height: 140px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px;"></canvas>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="window.closeDeviceFinder()" data-i18n="btn_close_inspector">Đóng</button>
+                <button class="btn btn-secondary" onclick="window.closeDeviceFinder()">Đóng</button>
             </div>
         </div>
     </div>
@@ -1211,13 +1703,12 @@
         <div class="modal-card">
             <div class="modal-header">
                 <div class="modal-title">
-                    <i data-lucide="file-down"></i>
-                    <span data-i18n="modal_export_title">Xuất Báo Cáo Khảo Sát Wi-Fi</span>
+                    <span>Xuất Báo Cáo Khảo Sát Mạng</span>
                 </div>
                 <button class="modal-close" id="btn-close-report-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="modal-desc" data-i18n="modal_export_desc">
+                <p class="modal-desc">
                     Chọn định dạng file báo cáo cần tải về. Định dạng CSV tương thích trực tiếp với Microsoft Excel hỗ trợ đầy đủ tiếng Việt.
                 </p>
 
@@ -1225,39 +1716,38 @@
                     <!-- CSV -->
                     <label class="format-card selected" data-format="csv">
                         <input type="radio" name="report_format" value="csv" checked>
-                        <div class="format-icon csv-icon"><i data-lucide="sheet"></i></div>
                         <div class="format-info">
-                            <div class="format-name" data-i18n="format_csv_name">Bảng Tính CSV (.csv) - Mở Bằng Excel</div>
-                            <div class="format-desc" data-i18n="format_csv_desc">Bao gồm kết quả gợi ý kênh, chỉ số SNR, MCS, kiểm tra bảo mật và danh sách chi tiết từng BSSID.</div>
+                            <div class="format-name">Bảng Tính CSV (.csv) - Mở Bằng Excel</div>
+                            <div class="format-desc">Bao gồm kết quả gợi ý kênh, chỉ số SNR, MCS, kiểm tra bảo mật và danh sách chi tiết từng BSSID.</div>
                         </div>
                     </label>
 
                     <!-- JSON -->
                     <label class="format-card" data-format="json">
                         <input type="radio" name="report_format" value="json">
-                        <div class="format-icon json-icon"><i data-lucide="braces"></i></div>
                         <div class="format-info">
-                            <div class="format-name" data-i18n="format_json_name">Dữ Liệu JSON (.json)</div>
-                            <div class="format-desc" data-i18n="format_json_desc">Toàn bộ dữ liệu đo đạc dạng cấu trúc JSON dùng cho lưu trữ kỹ thuật hoặc tích hợp hệ thống.</div>
+                            <div class="format-name">Dữ Liệu JSON (.json)</div>
+                            <div class="format-desc">Toàn bộ dữ liệu đo đạc dạng cấu trúc JSON dùng cho lưu trữ kỹ thuật hoặc tích hợp hệ thống.</div>
                         </div>
                     </label>
                 </div>
 
                 <div id="export-status" class="export-status-box hidden">
                     <div class="spinner mini"></div>
-                    <span id="export-status-text" data-i18n="export_generating">Đang tạo báo cáo...</span>
+                    <span id="export-status-text">Đang tạo báo cáo...</span>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-export" data-i18n="btn_cancel">Hủy</button>
+                <button class="btn btn-secondary" id="btn-cancel-export">Hủy</button>
                 <button class="btn btn-primary" id="btn-confirm-export">
-                    <i data-lucide="download"></i> <span data-i18n="btn_download_report">Tải Báo Cáo</span>
+                    <span>Tải Báo Cáo</span>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
+    <script src="/static/heatmap.js?v=2.0.0"></script>
     <script src="/static/app.js?v=5.0.0"></script>
 </body>
 </html>

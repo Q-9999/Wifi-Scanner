@@ -24,9 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
         eventSource: null,
         selectedChannel24: null,
         selectedChannel5: null,
-        theme: localStorage.getItem("netscanner_theme") || "light",
-        currentLang: localStorage.getItem("netscanner_lang") || "vi",
-        rationaleLang: localStorage.getItem("netscanner_lang") || "vi",
+        theme: "light",
+        currentLang: "vi",
+        rationaleLang: "vi",
         vowifiTested: false,
         plannerLoaded: false,
         deviceFinder: {
@@ -43,465 +43,260 @@ document.addEventListener("DOMContentLoaded", () => {
             freq_ghz: 2.4,
             heatmapMode: "primary_rssi", // "primary_rssi" | "secondary_rssi" | "snr" | "interference" | "throughput"
             slaProfile: "voice", // "voice" | "office" | "high_density"
+            slaCutoff: -65.0,
             view25D: false,
             unit: "m",
             walls: [],
             aps: [],
             roomLabels: [],
             heatmap: null,
-            activeTool: "draw", // "room" | "draw" | "select" | "place_ap" | "ruler" | "delete"
+            activeTool: "draw", // "room" | "draw" | "select" | "place_ap" | "calibrate" | "ruler" | "delete"
             dragStart: null,
             previewWall: null,
             previewRoom: null,
             rulerMeasure: null, // { x1, y1, x2, y2 }
+            calibrationMeasure: null, // { px1, py1, px2, py2 }
+            backgroundImage: null, // HTML Image element
+            backgroundImageOpacity: 0.45,
             selectedWallIndex: -1,
+            selectedApIndex: -1,
             hoveredWallIndex: -1,
             hoveredApIndex: -1,
             isComputing: false
         }
     };
 
-    // Bilingual Dictionary (VI & EN) - Basic-Meaning, Zero Quotation Marks
+        // Professional Vietnamese Dictionary (100% Clean Vietnamese, Zero Emojis, Zero Icons)
     const I18N = {
         vi: {
-            brand_subtitle: "Công Cụ Quét Sóng, Phân Tích Kênh & Quy Hoạch Mạng Wi-Fi",
+            brand_subtitle: "Phân tích phổ tần và quy hoạch vùng phủ sóng không dây",
             badge_stream_live: "ĐANG QUÉT TRỰC TIẾP",
-            scan_opt_balanced: "⚖️ Cân bằng (3s - Khuyên dùng)",
-            scan_opt_eco: "🌱 Tiết kiệm pin (5s)",
-            scan_opt_fast: "⚡ Quét nhanh (1s)",
-            scan_opt_pause: "⏸️ Tạm dừng (Quét thủ công)",
-            btn_scan_now: "Quét Ngay",
-            btn_autopick: "Tính Kênh Tự Động",
-            btn_export_csv: "Xuất CSV",
-            btn_device_finder: "🎯 Dò Hướng Tín Hiệu AP",
-            stat_aps: "Bộ Phát / APs Found",
-            stat_ssids: "Tên Mạng / Unique SSIDs",
-            stat_health: "Điểm Môi Trường / Score",
-            stat_best_24: "Kênh Tốt Nhất 2.4GHz",
-            stat_best_5: "Kênh Tốt Nhất 5GHz",
-            tab_survey: "Quét Sóng / Survey",
-            tab_spectrum: "Phổ Sóng RF / Spectrum",
-            tab_optimizer: "Tối Ưu Kênh & Chẩn Đoán / Optimizer",
-            tab_vowifi: "Thoại VoWiFi & MOS",
-            tab_planner: "Quy Hoạch AP & Bản Đồ Nhiệt RF / Planner",
-            tab_security: "Đánh Giá An Ninh / Security Audit",
-            tab_reports: "Kho Báo Cáo / Reports",
-            search_placeholder: "Tìm theo tên mạng SSID, địa chỉ MAC hoặc hãng sản xuất (Cisco, Aruba, Viettel, FPT)...",
-            filter_band: "Băng Tần:",
-            filter_all: "Tất Cả",
-            filter_security: "Bảo Mật:",
-            filter_sec_all: "Tất Cả Bảo Mật",
-            filter_sec_open: "Mạng Mở (Không Mật Khẩu)",
-            filter_sec_ent: "Doanh Nghiệp (Enterprise)",
-            view_list: "Danh Sách BSSID",
-            view_cluster: "Gom Nhóm Theo Thiết Bị Vật Lý (Hardware Grouping)",
-            th_ssid: "Tên Mạng (SSID)",
-            th_bssid: "Địa Chỉ MAC (BSSID)",
-            th_vendor: "Hãng Sản Xuất (Vendor)",
-            th_signal: "Cường Độ Sóng & SNR",
-            th_channel: "Kênh (Channel)",
-            th_band: "Băng Tần (Band)",
-            th_gen: "Chuẩn & Điều Chế MCS",
-            th_security: "Bảo Mật (Security)",
-            th_load: "Tải Kênh & Tốc Độ Thực",
-            th_details: "Chi Tiết",
-            oscium_spec_title: "Phân Loại Nguồn Nhiễu Phổ Vô Tuyến & Độ Chiếm Dụng Kênh (RF Interference Classifier)",
-            oscium_spec_desc: "Tự động phân tích giao thoa kênh lân cận (ACI), mật độ băng tần 2.45GHz ISM, kênh Radar DFS 5GHz, khối kênh 6GHz PSC và tỷ lệ phát lại gói tin.",
-            oscium_spec_badge: "Giám Sát Phổ Tầng 1 & Tầng 2",
-            oscium_checklist_title: "Bảng Kiểm Tra & Chẩn Đoán Sự Cố Wi-Fi Toàn Diện 4 Tầng (4-Layer Troubleshooting Suite)",
-            oscium_checklist_desc: "Đánh giá tự động từ Tầng Vật Lý (RF Spectrum), Tầng Liên Kết (MAC Airtime & Retry), Chuyển Vùng Đa Trạm (Mesh Roaming) đến An Toàn Mã Hóa.",
-            oscium_checklist_badge: "Chẩn Đoán Tự Động",
-            spec_24_pill: "Dải Tần 2.4 GHz ISM",
+            scan_opt_balanced: "Cân bằng (3 giây - khuyên dùng)",
+            scan_opt_eco: "Tiết kiệm pin (5 giây)",
+            scan_opt_fast: "Quét nhanh (1 giây)",
+            scan_opt_pause: "Tạm dừng quét",
+            btn_scan_now: "Quét ngay",
+            btn_autopick: "Tính toán kênh tự động",
+            btn_export_csv: "Xuất bảng tính",
+            btn_device_finder: "Dò tìm vị trí trạm phát",
+            stat_aps: "Số lượng trạm phát",
+            stat_ssids: "Số tên mạng phát hiện",
+            stat_health: "Điểm chất lượng môi trường",
+            stat_best_24: "Kênh tối ưu 2.4 GHz",
+            stat_best_5: "Kênh tối ưu 5 GHz",
+            tab_survey: "Khảo sát sóng",
+            tab_spectrum: "Phổ tần vô tuyến",
+            tab_optimizer: "Tối ưu hóa và chẩn đoán",
+            tab_vowifi: "Chất lượng cuộc gọi thoại",
+            tab_planner: "Bản đồ nhiệt sóng",
+            tab_security: "Kiểm tra an toàn bảo mật",
+            tab_reports: "Lưu trữ báo cáo",
+            search_placeholder: "Tìm kiếm theo tên mạng SSID, địa chỉ MAC BSSID hoặc hãng sản xuất...",
+            filter_band: "Dải tần:",
+            filter_all: "Tất cả dải tần",
+            filter_security: "Chuẩn bảo mật:",
+            filter_sec_all: "Tất cả chuẩn bảo mật",
+            filter_sec_open: "Mạng không mật khẩu",
+            filter_sec_ent: "Doanh nghiệp WPA Enterprise",
+            view_list: "Danh sách trạm phát",
+            view_cluster: "Nhóm theo thiết bị vật lý",
+            th_ssid: "Tên mạng (SSID)",
+            th_bssid: "Địa chỉ vật lý (MAC)",
+            th_vendor: "Hãng sản xuất",
+            th_signal: "Cường độ tín hiệu và SNR",
+            th_channel: "Kênh phát",
+            th_band: "Dải tần",
+            th_gen: "Chuẩn Wi-Fi và điều chế MCS",
+            th_security: "Chuẩn mã hóa bảo mật",
+            th_load: "Độ chiếm dụng kênh",
+            th_details: "Chi tiết",
+            oscium_spec_title: "Phân loại nguồn can nhiễu và chiếm dụng phổ tần",
+            oscium_spec_desc: "Tự động phân tích can nhiễu kênh kề, mật độ dải tần 2.4 GHz, kênh Radar thời tiết 5 GHz và tỷ lệ gửi lại gói tin.",
+            oscium_spec_badge: "Giám sát tầng vật lý và liên kết",
+            oscium_checklist_title: "Bảng kiểm tra và chẩn đoán sự cố toàn diện",
+            oscium_checklist_desc: "Đánh giá tự động từ tầng vật lý, tỷ lệ gửi lại gói tin, khả năng chuyển vùng đến an toàn bảo mật.",
+            oscium_checklist_badge: "Chẩn đoán tự động",
+            spec_24_pill: "Dải tần 2.4 GHz ISM",
             spec_24_desc: "Kênh 1 đến 14 (3 kênh chuẩn không chồng lấn: 1, 6, 11)",
-            spec_legend_active: "AP Đang Phát",
-            spec_legend_rec: "Kênh Khuyên Dùng",
-            spec_note_24: "Đang phân tích độ trùng kênh (CCI) và giao thoa kênh kề (ACI)...",
-            spec_5_pill: "Dải Tần 5 GHz UNII",
-            spec_5_desc: "UNII-1 (Kênh 36-48), UNII-2A/2C DFS (52-144), UNII-3 (149-165)",
-            spec_legend_block: "Khối Kênh Sạch",
-            spec_note_5: "Đang đánh giá phân bổ gộp kênh 20MHz, 40MHz và 80MHz...",
-            spec_time_pill: "Biểu Đồ Sóng Theo Thời Gian",
-            spec_time_desc: "Lịch sử biến thiên độ mạnh tín hiệu RSSI (dBm) theo thời gian thực",
-            spec_time_note: "Theo dõi độ ổn định sóng thu. Dao động lớn hơn 8 dBm cho thấy có vật cản di chuyển hoặc phản xạ sóng.",
-            spec_waterfall_pill: "Biểu Đồ Thác Nước Mật Độ Phổ (Channel Spectrogram Waterfall)",
-            spec_waterfall_desc: "Mật độ năng lượng sóng tích lũy trên các kênh 1-14 và 5GHz theo dòng thời gian (Xanh: Rảnh • Vàng/Đỏ: Dày đặc sóng)",
-            spec_waterfall_note: "Giúp phát hiện ngay kênh nào bị chiếm dụng liên tục theo thời gian thực.",
-            matrix_24_title: "Bảng Chấm Điểm Kênh 2.4 GHz (Channel Matrix)",
-            matrix_24_desc: "Điểm chất lượng kênh tính theo số bộ phát trùng kênh (CCI) và lấn kênh kề (ACI).",
-            matrix_5_title: "Băng Tần 5 GHz UNII & Khối Gộp Kênh 80MHz",
-            matrix_5_desc: "Đánh giá các khối kênh rộng VHT80/HE80 và cảnh báo kênh có sóng Radar thời tiết DFS.",
-            blocks_80_title: "Các Nhóm Gộp Kênh 80 MHz Khuyên Dùng (Clean Blocks)",
-            rationale_card_title: "Giải Thích Kỹ Thuật & Lý Do Chọn Kênh",
-            btn_calc_channel: "Tính Kênh Tự Động",
-            heading_diag_24: "Chẩn Đoán Kênh Băng Tần 2.4 GHz",
-            heading_diag_5: "Chẩn Đoán Kênh Băng Tần 5 GHz & 6 GHz",
-            heading_admin_rec: "Khuyến Nghị Cài Đặt Thực Tế",
-            airtime_card_title: "Phân Tích Chiếm Dụng Thời Gian Sóng (Airtime Utilization & Overhead)",
-            airtime_card_desc: "Tỷ lệ phần trăm thời gian kênh bị chiếm bởi gói tin quản lý (Beacon) và truyền dữ liệu trên các kênh chính.",
-            roaming_card_title: "Kiểm Tra Chuyển Vùng Mesh & Thiết Bị Bám Sóng Yếu (Roaming & Sticky Client Audit)",
-            roaming_card_desc: "Phát hiện các mạng phát nhiều trạm (Multi-AP / Mesh) có nguy cơ làm điện thoại bám chặt vào cục phát yếu hoặc trùng kênh giữa các tầng.",
-            router_guide_title: "Hướng Dẫn Cài Đặt Router Trực Tiếp (Router Configuration Guide)",
-            router_guide_badge: "Áp Dụng Thực Tế",
-            router_step1_title: "Bước 1: Đăng Nhập Trang Quản Trị Router",
-            router_step1_desc: "Mở trình duyệt nhập địa chỉ: <code>192.168.1.1</code> hoặc <code>192.168.0.1</code>. Tên đăng nhập và mật khẩu quản trị thường in ở tem dưới đáy router (thường là <code>admin / admin</code> hoặc mã nhà mạng).",
-            router_step2_title: "Bước 2: Cài Đặt Sóng 2.4 GHz",
-            router_step2_desc: "• <b>Độ rộng kênh (Channel Width):</b> Cố định <b>20 MHz</b> (Tránh dùng 40MHz vì sẽ chồng lấn chiếm gần hết 14 kênh gây suy giảm tốc độ toàn mạng).<br>• <b>Kênh phát (Channel):</b> Chọn kênh khuyến nghị <b>1, 6 hoặc 11</b> từ kết quả đo của NetScanner.",
-            router_step3_title: "Bước 3: Cài Đặt Sóng 5 GHz & 6 GHz",
-            router_step3_desc: "• <b>Độ rộng kênh (Channel Width):</b> Chọn <b>80 MHz</b> trên 5GHz hoặc <b>160 MHz</b> trên 6GHz.<br>• <b>Kênh phát (Channel):</b> Chọn khối UNII-1 sạch (Kênh 36-48) hoặc UNII-3 (149-161) để tránh bị ngắt kết nối do sóng Radar DFS.",
-            router_step4_title: "Bước 4: Mẹo Tách Tên Wi-Fi Tránh Nghẽn Sóng",
-            router_step4_desc: "Nếu router đời cũ không hỗ trợ tự chuyển băng tần thông minh, hãy tách thành 2 tên riêng: <code>Nha_2.4G</code> và <code>Nha_5G</code>. Kết nối điện thoại và laptop vào sóng 5G khi ở gần để đạt tốc độ cao gấp 3-4 lần.",
-            vowifi_title: "🎙️ Đo Kiểm Chất Lượng Thoại VoWiFi & Đường Truyền Đa Chặng (VoIP MOS & Multi-Hop Check)",
-            vowifi_desc: "Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, Jitter, Packet Loss và phân tách độ trễ nội bộ (Router Gateway) so với Internet bên ngoài.",
-            btn_run_vowifi: "Đo Chất Lượng Ngay",
-            stat_mos_score: "Điểm MOS Thoại (1.0 - 4.5)",
-            stat_rtt_latency: "Độ Trễ Khứ Hồi / RTT Latency",
-            stat_jitter: "Độ Biến Thiên Trễ / Jitter",
-            stat_packet_loss: "Tỷ Lệ Mất Gói / Packet Loss",
-            vowifi_rating_ready: "Trạng Thái Đường Truyền: Sẵn sàng kiểm tra",
+            spec_legend_active: "Trạm phát đang hoạt động",
+            spec_legend_rec: "Kênh tối ưu đề xuất",
+            spec_note_24: "Đang phân tích mức độ tranh chấp trùng kênh và can nhiễu kênh kề...",
+            spec_5_pill: "Dải tần 5 GHz UNII",
+            spec_5_desc: "Dải UNII-1 (Kênh 36-48), UNII-2 Radar DFS (52-144), UNII-3 (149-165)",
+            spec_legend_block: "Khối gộp kênh sạch",
+            spec_note_5: "Đang đánh giá phân bổ các khối kênh 20 MHz, 40 MHz và 80 MHz...",
+            spec_time_pill: "Biến thiên cường độ sóng theo thời gian",
+            spec_time_desc: "Lịch sử dao động mức tín hiệu RSSI (dBm) theo thời gian thực",
+            spec_time_note: "Theo dõi độ ổn định sóng thu. Dao động lớn cho thấy có vật cản di chuyển hoặc phản xạ sóng.",
+            spec_waterfall_pill: "Biểu đồ phổ năng lượng thác nước",
+            spec_waterfall_desc: "Mật độ năng lượng sóng tích lũy trên các kênh theo dòng thời gian",
+            spec_waterfall_note: "Giúp phát hiện ngay kênh tần số nào bị chiếm dụng liên tục thời gian thực.",
+            matrix_24_title: "Bảng chấm điểm kênh 2.4 GHz",
+            matrix_24_desc: "Điểm chất lượng kênh tính theo mức độ trùng kênh và lấn kênh kề.",
+            matrix_5_title: "Băng tần 5 GHz và các khối gộp kênh 80 MHz",
+            matrix_5_desc: "Đánh giá các khối kênh rộng và cảnh báo dải kênh radar thời tiết DFS.",
+            blocks_80_title: "Các khối kênh 80 MHz tối ưu khuyên dùng",
+            rationale_card_title: "Giải thích kỹ thuật và lý do chọn kênh",
+            btn_calc_channel: "Tính toán kênh tự động",
+            heading_diag_24: "Chẩn đoán kênh dải tần 2.4 GHz",
+            heading_diag_5: "Chẩn đoán kênh dải tần 5 GHz và 6 GHz",
+            heading_admin_rec: "Khuyến nghị cài đặt thực tế",
+            airtime_card_title: "Phân tích chiếm dụng thời lượng phát sóng",
+            airtime_card_desc: "Tỷ lệ thời lượng phát sóng bị chiếm bởi các khung quản lý và truyền dữ liệu.",
+            roaming_card_title: "Kiểm tra chuyển vùng và thiết bị bám sóng yếu",
+            roaming_card_desc: "Phát hiện mạng nhiều trạm phát có nguy cơ làm thiết bị bám vào trạm phát sóng yếu.",
+            router_guide_title: "Hướng dẫn cấu hình thiết bị phát Wi-Fi",
+            router_guide_badge: "Thực hành cấu hình",
+            router_step1_title: "Bước 1: Đăng nhập giao diện quản trị router",
+            router_step1_desc: "Mở trình duyệt truy cập <code>192.168.1.1</code> hoặc <code>192.168.0.1</code>. Tên đăng nhập và mật khẩu in ở mặt đáy thiết bị.",
+            router_step2_title: "Bước 2: Cấu hình dải tần 2.4 GHz",
+            router_step2_desc: "• <b>Độ rộng kênh:</b> Cố định <b>20 MHz</b> để tránh chồng lấn dải tần.<br>• <b>Kênh phát:</b> Chọn kênh khuyến nghị <b>1, 6 hoặc 11</b>.",
+            router_step3_title: "Bước 3: Cấu hình dải tần 5 GHz và 6 GHz",
+            router_step3_desc: "• <b>Độ rộng kênh:</b> Chọn <b>80 MHz</b> trên 5 GHz hoặc <b>160 MHz</b> trên 6 GHz.<br>• <b>Kênh phát:</b> Ưu tiên khối Kênh 36-48 hoặc 149-161 để tránh ngắt sóng do radar.",
+            router_step4_title: "Bước 4: Tách tên Wi-Fi nếu cần thiết",
+            router_step4_desc: "Nếu router đời cũ chuyển băng tần kém, hãy đặt 2 tên riêng biệt (ví dụ <code>WiFi_2.4G</code> và <code>WiFi_5G</code>) để kết nối sóng 5 GHz tốc độ cao khi ở gần.",
+            vowifi_title: "Đo kiểm chất lượng thoại VoWiFi và đường truyền mạng",
+            vowifi_desc: "Tính toán theo tiêu chuẩn viễn thông ITU-T G.107 E-model đánh giá độ trễ RTT, biến động trễ Jitter, tỷ lệ mất gói và phân tách đường truyền nội bộ so với Internet.",
+            btn_run_vowifi: "Bắt đầu đo kiểm",
+            stat_mos_score: "Điểm chất lượng thoại MOS",
+            stat_rtt_latency: "Độ trễ khứ hồi RTT",
+            stat_jitter: "Độ biến thiên trễ Jitter",
+            stat_packet_loss: "Tỷ lệ mất gói",
+            vowifi_rating_ready: "Trạng thái đường truyền: Sẵn sàng đo",
             vowifi_untested: "Chưa đo",
-            vowifi_verdict_ready: "Bấm nút Đo Chất Lượng Ngay để hệ thống gửi gói tin kiểm tra độ trễ và tính toán điểm MOS thực tế.",
-            vowifi_codecs_title: "Tương Thích Chuẩn Nén Âm Thanh (Voice Codecs)",
+            vowifi_verdict_ready: "Bấm nút Bắt đầu đo kiểm để hệ thống gửi gói tin kiểm tra và tính toán điểm chất lượng thực tế.",
+            vowifi_codecs_title: "Khả năng tương thích chuẩn mã hóa giọng nói",
             vowifi_codec_opus: "Tương thích cao",
-            vowifi_codec_g711: "Chuẩn thoại rõ",
-            vowifi_codec_g729: "Dự phòng tốt",
-            vowifi_why_mos: "Tại Sao Chỉ Số MOS Lại Quyết Định Cuộc Gọi?",
-            vowifi_why_mos_desc: "Trong thực tế sử dụng mạng, sóng Wi-Fi mạnh (<code>-50 dBm</code>) nhưng nếu <b>Jitter &gt; 25ms</b> hoặc <b>Packet Loss &gt; 1%</b> thì cuộc gọi thoại vẫn bị giật tiếng, rè giọng hoặc trễ lời. Điểm MOS từ <b>4.0 trở lên</b> đảm bảo cuộc họp trực tuyến mượt mà.",
-            planner_title: "🗺️ Quy Hoạch Vị Trí Trạm Phát & Bản Đồ Nhiệt Đa Chế Độ (Floorplan & Multi-Mode RF Heatmap)",
-            planner_desc: "Thiết kế mặt bằng trực quan kết hợp 5 chế độ bản đồ nhiệt chuyên sâu (Sóng chính, Sóng dự phòng chuyển vùng, Tỷ số SNR, Nhiễu tranh chấp kênh, Tốc độ & Dung lượng tải) trên 3 băng tần 2.4GHz / 5GHz / 6GHz.",
-            preset_apartment: "Căn Hộ 70m² (2 Phòng Ngủ)",
-            preset_townhouse: "Nhà Phố Dài 120m²",
-            preset_office: "Văn Phòng Mở 250m²",
-            preset_custom: "🎨 Mặt Bằng Trống (Tự Vẽ Mới)",
-            sla_voice: "🎯 Chuẩn Thoại VoWiFi (-65 dBm / SNR 25dB)",
-            sla_office: "🏢 Chuẩn Văn Phòng (-67 dBm / SNR 20dB)",
-            sla_hd: "🏟️ Hội Trường Mật Độ Cao (-60 dBm / SNR 28dB)",
-            btn_import_aps: "📥 Nạp AP Thực Tế",
-            label_heatmap_mode: "Chế độ Bản đồ nhiệt:",
-            hm_mode_primary: "1. Sóng Chính (Primary Signal dBm)",
-            hm_mode_secondary: "2. Sóng Dự Phòng (Secondary Roaming)",
-            hm_mode_snr: "3. Tỷ Số Tín Hiệu/Nhiễu (SNR dB)",
-            hm_mode_interference: "4. Nhiễu Tranh Chấp Kênh (Interference)",
-            hm_mode_throughput: "5. Tốc Độ & Dung Lượng (Data Rate Mbps)",
-            kpi_pri_cov: "Độ Phủ Sóng Chính (Primary)",
-            kpi_sec_roam: "Dự Phòng Chuyển Vùng (Secondary)",
-            kpi_avg_snr: "Tỷ Số Tín Hiệu / Nhiễu (SNR)",
-            kpi_tp_cap: "Tốc Độ & Sức Chứa Thiết Bị",
-            kpi_conflict_dead: "Tranh Chấp Kênh & Góc Khuất",
-            label_dimensions: "Khổ đất:",
-            btn_apply_dim: "Đặt Khổ",
-            label_wall_material: "Vật liệu:",
-            mat_brick: "🧱 Tường Gạch (-6 dB)",
-            mat_concrete: "🏛️ Bê Tông Cốt Thép (-12 dB)",
-            mat_glass: "🪟 Cửa Kính / Vách Kính (-3 dB)",
-            mat_wood: "🪵 Vách Gỗ / Thạch Cao (-4 dB)",
-            mat_door: "🚪 Cửa Ra Vào Mỏng (-2 dB)",
-            mat_metal: "🛡️ Tủ Sắt / Lõi Thang Máy (-15 dB)",
-            label_sim_band: "Băng tần:",
-            band_opt_24: "📶 Sóng 2.4 GHz (Xuyên tường tốt)",
-            band_opt_5: "⚡ Sóng 5.0 GHz (80MHz Tốc độ cao)",
-            band_opt_6: "🚀 Sóng 6.0 GHz (Wi-Fi 6E/7 160MHz)",
-            label_toggle_25d: "🧊 Xem Khối 2.5D",
-            tool_room: "🏠 Vẽ Khung Phòng",
-            tool_draw: "✏️ Vẽ Tường Lẻ",
-            tool_select: "👆 Chọn & Kéo Sửa",
-            tool_place_ap: "📡 Đặt Thêm AP",
-            tool_ruler: "📏 Thước Đo Suy Hao",
-            tool_delete: "🗑️ Xóa",
-            btn_undo_wall: "↩️ Hoàn Tác",
-            btn_clear_all: "🗑️ Xóa Hết",
-            label_signal_level: "Mức Sóng:",
-            legend_strong: "Rất Mạnh (-30 dBm)",
+            vowifi_codec_g711: "Chất lượng rõ ràng",
+            vowifi_codec_g729: "Dự phòng băng thông thấp",
+            vowifi_why_mos: "Tầm quan trọng của chỉ số MOS trong cuộc gọi thoại",
+            vowifi_why_mos_desc: "Khi sóng Wi-Fi mạnh nhưng biến động trễ Jitter lớn hoặc có mất gói tin thì cuộc gọi thoại vẫn bị gián đoạn, rè tiếng hoặc trễ lời. Điểm MOS từ 4.0 trở lên đảm bảo đàm thoại ổn định.",
+            planner_title: "Quy hoạch vị trí trạm phát và bản đồ nhiệt vùng phủ sóng",
+            planner_desc: "Thiết kế mặt bằng trực quan kết hợp 5 chế độ bản đồ nhiệt chuyên sâu (Sóng chính, Sóng dự phòng chuyển vùng, Tỷ số SNR, Nhiễu tranh chấp kênh, Tốc độ ước tính) trên các dải tần 2.4 GHz, 5 GHz và 6 GHz.",
+            preset_apartment: "Căn hộ 70m² (2 phòng ngủ)",
+            preset_townhouse: "Nhà phố dài 120m²",
+            preset_office: "Văn phòng mở 250m²",
+            preset_custom: "Mặt bằng trống (tự vẽ mới)",
+            sla_voice: "Tiêu chuẩn thoại VoWiFi (-65 dBm / SNR 25 dB)",
+            sla_office: "Tiêu chuẩn văn phòng (-67 dBm / SNR 20 dB)",
+            sla_hd: "Tiêu chuẩn hội trường mật độ cao (-60 dBm / SNR 28 dB)",
+            btn_import_aps: "Nạp trạm phát thực tế",
+            label_heatmap_mode: "Chế độ bản đồ nhiệt:",
+            hm_mode_primary: "1. Mức tín hiệu chính (dBm)",
+            hm_mode_secondary: "2. Tín hiệu dự phòng chuyển vùng (dBm)",
+            hm_mode_snr: "3. Tỷ số tín hiệu trên nhiễu SNR (dB)",
+            hm_mode_interference: "4. Mức độ tranh chấp kênh",
+            hm_mode_throughput: "5. Tốc độ truyền dữ liệu ước tính (Mbps)",
+            kpi_pri_cov: "Độ phủ sóng chính",
+            kpi_sec_roam: "Dự phòng chuyển vùng",
+            kpi_avg_snr: "Tỷ số tín hiệu trên nhiễu",
+            kpi_tp_cap: "Tốc độ và sức chứa trạm phát",
+            kpi_conflict_dead: "Tranh chấp kênh và điểm mất sóng",
+            label_dimensions: "Kích thước mặt bằng:",
+            btn_apply_dim: "Thiết lập",
+            label_wall_material: "Vật liệu vách ngăn:",
+            mat_brick: "Tường gạch (-6 dB)",
+            mat_concrete: "Bê tông cốt thép (-12 dB)",
+            mat_glass: "Cửa kính hoặc vách kính (-3 dB)",
+            mat_wood: "Vách gỗ hoặc thạch cao (-4 dB)",
+            mat_door: "Cửa ra vào mỏng (-2 dB)",
+            mat_metal: "Tủ kim loại hoặc thang máy (-15 dB)",
+            label_sim_band: "Dải tần mô phỏng:",
+            band_opt_24: "Dải tần 2.4 GHz (xuyên tường tốt)",
+            band_opt_5: "Dải tần 5.0 GHz (80 MHz tốc độ cao)",
+            band_opt_6: "Dải tần 6.0 GHz (160 MHz tốc độ tối đa)",
+            label_toggle_25d: "Hiển thị không gian 2.5D",
+            tool_room: "Vẽ khung phòng",
+            tool_draw: "Vẽ tường đơn",
+            tool_select: "Chọn và chỉnh sửa",
+            tool_place_ap: "Đặt trạm phát",
+            tool_ruler: "Thước đo khoảng cách",
+            tool_delete: "Xóa vật thể",
+            btn_undo_wall: "Hoàn tác",
+            btn_clear_all: "Xóa toàn bộ",
+            label_signal_level: "Mức sóng:",
+            legend_strong: "Rất mạnh (-30 dBm)",
             legend_good: "Tốt (-65 dBm)",
-            legend_weak: "Yếu / Mất Sóng (-90 dBm)",
-            inspector_label_mat: "Đổi vật liệu:",
-            inspector_label_len: "Độ dài:",
+            legend_weak: "Yếu hoặc mất sóng (-90 dBm)",
+            inspector_label_mat: "Thay đổi vật liệu:",
+            inspector_label_len: "Chiều dài:",
             unit_opt_m: "Mét (m)",
             unit_opt_in: "Inch (in)",
             unit_opt_ft: "Feet (ft)",
             unit_opt_cm: "Centimet (cm)",
-            btn_apply_len: "Áp Dụng Độ Dài",
-            btn_del_wall: "Xóa Vách Này",
-            obj_th_type: "Loại Vách / Vật Cản",
-            obj_th_coords: "Tọa Độ (m)",
-            obj_th_len: "Chiều Dài",
-            obj_th_loss: "Suy Hao",
-            obj_th_action: "Thao Tác",
-            btn_complete_planner: "✅ Tự Động Đặt AP & Tính Phủ Sóng",
-            btn_complete_planner_bottom: "✅ Tự Động Tìm Vị Trí Đặt Router & Tính Phủ Sóng",
-            btn_recalc_heatmap: "🔄 Tính Lại Bản Đồ Nhiệt Theo Vị Trí AP Hiện Tại",
-            planner_results_heading: "Kết Quả Đánh Giá Độ Phủ Sóng",
-            planner_placeholder: "Bấm nút Tự Động Tìm Vị Trí Đặt Router ở trên sau khi vẽ mặt bằng xong để hệ thống tính toán vị trí lắp đặt và hiển thị vùng phủ sóng.",
-            df_modal_title: "Bộ Dò Hướng & Định Vị Tín Hiệu Trạm Phát (Device Finder)",
+            btn_apply_len: "Áp dụng",
+            btn_del_wall: "Xóa vách ngăn",
+            obj_th_type: "Loại vách ngăn",
+            obj_th_coords: "Tọa độ (m)",
+            obj_th_len: "Chiều dài",
+            obj_th_loss: "Độ suy hao",
+            obj_th_action: "Thao tác",
+            btn_complete_planner: "Tự động đặt trạm và tính phủ sóng",
+            btn_complete_planner_bottom: "Tự động tối ưu vị trí trạm và tính phủ sóng",
+            btn_recalc_heatmap: "Tính toán lại vùng phủ sóng",
+            planner_results_heading: "Kết quả đánh giá độ phủ sóng",
+            planner_placeholder: "Vẽ mặt bằng kiến trúc và bấm nút Tự động đặt trạm và tính phủ sóng để hiển thị kết quả phân tích.",
+            df_modal_title: "Bộ dò hướng và định vị trạm phát sóng",
             df_select_target: "Chọn trạm phát BSSID cần dò tìm vị trí vật lý:",
-            df_reset_peak: "Đặt Lại Đỉnh Sóng",
-            df_peak_rssi: "Đỉnh Sóng Cao Nhất (Peak)",
-            df_min_rssi: "Mức Thấp Nhất (Min)",
-            df_est_dist: "Khoảng Cách Ước Tính",
-            sec_open_title: "Cảnh Báo: Phát Hiện Mạng Wi-Fi Không Đặt Mật Khẩu (Open / Unencrypted)",
-            sec_open_desc: "Đang kiểm tra các trạm phát sóng Wi-Fi không bật mã hóa WPA2/WPA3...",
-            sec_dist_title: "Thống Kê Chuẩn Bảo Mật Trong Khu Vực (Security Protocol Distribution)",
-            sec_diag_title: "Phân Tích Rủi Ro Mạng Bảo Mật Thấp & Cách Khắc Phục",
-            sec_diag_badge: "Kiểm Tra An Toàn Mạng",
-            sec_cause_title: "1. Tại Sao Mạng Bị Đánh Giá Bảo Mật Thấp?",
-            sec_cause_desc_1: "<b>Nguyên nhân kỹ thuật:</b> Mạng Open (None) hoặc dùng chuẩn cũ WEP / WPA-TKIP <b>không mã hóa</b> dữ liệu truyền qua sóng radio.",
-            sec_cause_desc_2: "Sóng Wi-Fi phát lan truyền trong không khí. Bất kỳ thiết bị nào trong vùng phủ sóng đều có thể thu được gói tin nếu không bật mã hóa.",
-            sec_danger_title: "2. Rủi Ro Thực Tế Nếu Không Khắc Phục",
-            sec_danger_item1: "<b>Nghe lén gói tin (Packet Sniffing):</b> Người khác có thể dùng phần mềm bắt gói tin để đọc các dữ liệu không mã hóa trên mạng.",
-            sec_danger_item2: "<b>Trạm phát giả mạo (Evil Twin):</b> Kẻ xấu dễ dàng phát một mạng Wi-Fi trùng tên để đánh lừa thiết bị tự động kết nối vào.",
-            sec_danger_item3: "<b>Truy cập trái phép thiết bị nội bộ:</b> Người lạ có thể quét thấy máy in, camera IP hoặc thư mục chia sẻ trong mạng LAN.",
-            sec_fix_title: "3. Các Bước Khắc Phục Cụ Thể",
-            sec_fix_item1: "<b>Đổi chuẩn mã hóa:</b> Đăng nhập vào Router (<code>192.168.1.1</code>), chuyển chế độ bảo mật sang <b>WPA2-PSK (AES)</b> hoặc <b>WPA3-SAE</b>.",
-            sec_fix_item2: "<b>Đặt mật khẩu đủ mạnh:</b> Dùng mật khẩu từ 12 ký tự trở lên kết hợp chữ hoa, chữ thường và chữ số.",
-            sec_fix_item3: "<b>Bật cách ly thiết bị (Client Isolation):</b> Đối với mạng khách ở quán cafe hoặc văn phòng, bật Guest Wi-Fi kèm Client Isolation để các máy khách không tự quét nhau.",
-            sec_fix_item4: "<b>Tắt tính năng WPS:</b> Tắt mã PIN WPS trên Router để tránh bị dò mật khẩu tự động.",
-            reports_title: "Kho Lưu Trữ Báo Cáo MMQ./NetScanner",
-            reports_desc: "Các file báo cáo khảo sát được lưu theo định dạng chuẩn <code>NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv</code> mở trực tiếp bằng Microsoft Excel.",
-            btn_export_csv_modal: "Xuất Báo Cáo CSV",
-            btn_export_json_modal: "Xuất File JSON",
-            btn_clear_reports: "Dọn Báo Cáo Cũ",
-            rep_format: "Định Dạng",
-            rep_filename: "Tên File Báo Cáo",
-            rep_created: "Thời Gian Tạo",
-            rep_size: "Dung Lượng",
-            rep_action: "Thao Tác",
-            modal_export_title: "Xuất Báo Cáo Khảo Sát Wi-Fi",
-            modal_export_desc: "Chọn định dạng file báo cáo cần tải về. Định dạng CSV tương thích trực tiếp với Microsoft Excel hỗ trợ đầy đủ tiếng Việt.",
-            format_csv_name: "Bảng Tính CSV (.csv) - Mở Bằng Excel",
-            format_csv_desc: "Bao gồm kết quả gợi ý kênh, chỉ số SNR, MCS, kiểm tra bảo mật và danh sách chi tiết từng BSSID.",
-            format_json_name: "Dữ Liệu JSON (.json)",
-            format_json_desc: "Toàn bộ dữ liệu đo đạc dạng cấu trúc JSON dùng cho lưu trữ kỹ thuật hoặc tích hợp hệ thống.",
-            export_generating: "Đang tạo báo cáo...",
-            btn_cancel: "Hủy",
-            btn_download_report: "Tải Báo Cáo"
-        },
-        en: {
-            brand_subtitle: "Wi-Fi Network Scanner, Channel Analyzer & Floorplan Coverage Tool",
-            badge_stream_live: "LIVE SCANNING",
-            scan_opt_balanced: "⚖️ Balanced (3s - Recommended)",
-            scan_opt_eco: "🌱 Power Saver (5s)",
-            scan_opt_fast: "⚡ Fast (1s)",
-            scan_opt_pause: "⏸️ Paused (Manual)",
-            btn_scan_now: "Scan Now",
-            btn_autopick: "Auto-Pick Channel",
-            btn_export_csv: "Export CSV",
-            btn_device_finder: "🎯 Signal Finder",
-            stat_aps: "Access Points Found",
-            stat_ssids: "Unique SSIDs",
-            stat_health: "Environment Score",
-            stat_best_24: "Best 2.4GHz Channel",
-            stat_best_5: "Best 5GHz Channel",
-            tab_survey: "Network Survey",
-            tab_spectrum: "RF Spectrum",
-            tab_optimizer: "Channel & Diagnostics",
-            tab_vowifi: "VoWiFi & MOS Voice",
-            tab_planner: "AP & RF Heatmap Planner",
-            tab_security: "Security Audit",
-            tab_reports: "Reports Archive",
-            search_placeholder: "Search by SSID, MAC BSSID, or Vendor (Cisco, Aruba, Apple)...",
-            filter_band: "Band:",
-            filter_all: "All",
-            filter_security: "Security:",
-            filter_sec_all: "All Security",
-            filter_sec_open: "Open (No Password)",
-            filter_sec_ent: "Enterprise (802.1X)",
-            view_list: "BSSID List",
-            view_cluster: "Hardware Device Grouping",
-            th_ssid: "Network Name (SSID)",
-            th_bssid: "MAC Address (BSSID)",
-            th_vendor: "Vendor / Hardware",
-            th_signal: "Signal & SNR",
-            th_channel: "Channel",
-            th_band: "Band",
-            th_gen: "Wi-Fi Gen & MCS",
-            th_security: "Security Protocol",
-            th_load: "Channel Load & Speed",
-            th_details: "Details",
-            oscium_spec_title: "RF Spectrum Interference & Contention Classifier",
-            oscium_spec_desc: "Automatically classifies Adjacent-Channel Interference (ACI), 2.45GHz ISM density, 5GHz DFS radar channels, 6GHz PSC blocks, and frame retry rates.",
-            oscium_spec_badge: "Layer 1 & Layer 2 Monitor",
-            oscium_checklist_title: "4-Layer All-in-One Wi-Fi Troubleshooting Checklist",
-            oscium_checklist_desc: "Automated health check across Physical RF Spectrum, MAC Airtime & Retries, Multi-AP Roaming, and Security Encryption.",
-            oscium_checklist_badge: "Automated Diagnostics",
-            spec_24_pill: "2.4 GHz ISM Band",
-            spec_24_desc: "Channels 1 to 14 (3 non-overlapping standard channels: 1, 6, 11)",
-            spec_legend_active: "Active APs",
-            spec_legend_rec: "Recommended Channel",
-            spec_note_24: "Analyzing Co-Channel Interference (CCI) and Adjacent-Channel Interference (ACI)...",
-            spec_5_pill: "5 GHz UNII Band",
-            spec_5_desc: "UNII-1 (Ch 36-48), UNII-2A/2C DFS (52-144), UNII-3 (149-165)",
-            spec_legend_block: "Clean Bonding Block",
-            spec_note_5: "Evaluating 20MHz, 40MHz, and 80MHz channel allocations...",
-            spec_time_pill: "Live Signal Strength vs Time",
-            spec_time_desc: "Real-time RSSI signal variation and link stability history",
-            spec_time_note: "Monitors link stability. Fluctuations above 8 dBm indicate moving obstacles or multipath reflections.",
-            spec_waterfall_pill: "Channel Spectrogram Waterfall",
-            spec_waterfall_desc: "Accumulated RF energy across 2.4GHz and 5GHz channels over time (Blue: Quiet • Yellow/Red: Busy)",
-            spec_waterfall_note: "Identifies persistent channel congestion over time.",
-            matrix_24_title: "2.4 GHz Channel Quality Matrix",
-            matrix_24_desc: "Channel scores calculated from Co-Channel (CCI) and Adjacent-Channel Interference (ACI).",
-            matrix_5_title: "5 GHz UNII Band & 80MHz Channel Blocks",
-            matrix_5_desc: "Evaluates 80MHz channel blocks and warns about DFS weather radar channels.",
-            blocks_80_title: "Recommended 80 MHz Channel Blocks (Clean Blocks)",
-            rationale_card_title: "Technical Explanation & Channel Selection",
-            btn_calc_channel: "Auto-Pick Channel",
-            heading_diag_24: "2.4 GHz Band Channel Diagnosis",
-            heading_diag_5: "5 GHz & 6 GHz Band Channel Diagnosis",
-            heading_admin_rec: "Practical Setup Advice",
-            airtime_card_title: "Airtime Utilization & Management Overhead",
-            airtime_card_desc: "Percentage of channel time consumed by management beacons and data frames on primary channels.",
-            roaming_card_title: "Mesh Roaming & Sticky Client Audit",
-            roaming_card_desc: "Detects multi-AP networks where clients may stay stuck on a distant AP or suffer same-channel interference.",
-            router_guide_title: "Direct Router Setup Guide (Configuration Guide)",
-            router_guide_badge: "Practical Steps",
-            router_step1_title: "Step 1: Log In to Router Admin Page",
-            router_step1_desc: "Open a browser and enter <code>192.168.1.1</code> or <code>192.168.0.1</code>. Login credentials are printed on the bottom label of the router.",
-            router_step2_title: "Step 2: Configure 2.4 GHz Radio",
-            router_step2_desc: "• <b>Channel Width:</b> Lock to <b>20 MHz</b> (Avoid 40MHz on 2.4GHz as it overlaps nearby channels).<br>• <b>Channel:</b> Select recommended channel <b>1, 6, or 11</b>.",
-            router_step3_title: "Step 3: Configure 5 GHz & 6 GHz Radio",
-            router_step3_desc: "• <b>Channel Width:</b> Select <b>80 MHz</b> on 5GHz or <b>160 MHz</b> on 6GHz.<br>• <b>Channel:</b> Choose non-DFS UNII-1 (36-48) or UNII-3 (149-161) to prevent radar disconnects.",
-            router_step4_title: "Step 4: Separate Band Names if Needed",
-            router_step4_desc: "If an older router does not steer bands well, use separate names like <code>Home_2.4G</code> and <code>Home_5G</code>.",
-            vowifi_title: "🎙️ VoWiFi Voice Quality & Multi-Hop Path Test (VoIP MOS)",
-            vowifi_desc: "ITU-T G.107 E-model metric evaluating RTT latency, Jitter, Packet Loss, and separating local Gateway latency from WAN Internet latency.",
-            btn_run_vowifi: "Run Quality Test",
-            stat_mos_score: "Voice MOS Score (1.0 - 4.5)",
-            stat_rtt_latency: "Round-Trip Latency (RTT)",
-            stat_jitter: "Latency Jitter",
-            stat_packet_loss: "Packet Loss Rate",
-            vowifi_rating_ready: "Link Status: Ready to test",
-            vowifi_untested: "Untested",
-            vowifi_verdict_ready: "Click Run Quality Test to send test packets and calculate the actual MOS score.",
-            vowifi_codecs_title: "Voice Codec Compatibility",
-            vowifi_codec_opus: "Compatible",
-            vowifi_codec_g711: "Clear Voice",
-            vowifi_codec_g729: "Low-Bandwidth Fallback",
-            vowifi_why_mos: "Why Does the MOS Score Matter?",
-            vowifi_why_mos_desc: "Even with strong signal (<code>-50 dBm</code>), if <b>Jitter &gt; 25ms</b> or <b>Packet Loss &gt; 1%</b>, voice calls suffer audio drops or delay. A MOS score of <b>4.0 or higher</b> ensures smooth calls.",
-            planner_title: "🗺️ AP Placement Planner & Multi-Mode RF Heatmap",
-            planner_desc: "Interactive floorplan design with 5 heatmap modes (Primary Signal, Secondary Roaming, SNR, Channel Interference, Data Rate & Capacity) across 2.4GHz / 5GHz / 6GHz.",
-            preset_apartment: "Apartment 70m² (2 Bedrooms)",
-            preset_townhouse: "Townhouse 120m²",
-            preset_office: "Open Office 250m²",
-            preset_custom: "🎨 Blank Floorplan (Draw from Scratch)",
-            sla_voice: "🎯 VoWiFi Voice Grade (-65 dBm / SNR 25dB)",
-            sla_office: "🏢 Standard Office (-67 dBm / SNR 20dB)",
-            sla_hd: "🏟️ High-Density Venue (-60 dBm / SNR 28dB)",
-            btn_import_aps: "📥 Import Live APs",
-            label_heatmap_mode: "Heatmap Mode:",
-            hm_mode_primary: "1. Primary Signal (dBm)",
-            hm_mode_secondary: "2. Secondary Roaming (dBm)",
-            hm_mode_snr: "3. Signal-to-Noise Ratio (SNR dB)",
-            hm_mode_interference: "4. Channel Interference",
-            hm_mode_throughput: "5. Data Rate & Capacity (Mbps)",
-            kpi_pri_cov: "Primary Coverage",
-            kpi_sec_roam: "Roaming Redundancy (Secondary)",
-            kpi_avg_snr: "Average SNR Margin",
-            kpi_tp_cap: "Throughput & Client Capacity",
-            kpi_conflict_dead: "Channel Conflict & Deadzones",
-            label_dimensions: "Plot Size:",
-            btn_apply_dim: "Apply Size",
-            label_wall_material: "Material:",
-            mat_brick: "🧱 Brick Wall (-6 dB)",
-            mat_concrete: "🏛️ Concrete Wall (-12 dB)",
-            mat_glass: "🪟 Glass Window/Wall (-3 dB)",
-            mat_wood: "🪵 Wood / Drywall (-4 dB)",
-            mat_door: "🚪 Interior Door (-2 dB)",
-            mat_metal: "🛡️ Metal / Elevator Shaft (-15 dB)",
-            label_sim_band: "Band:",
-            band_opt_24: "📶 2.4 GHz (Wall Penetration)",
-            band_opt_5: "⚡ 5.0 GHz (80MHz High Speed)",
-            band_opt_6: "🚀 6.0 GHz (Wi-Fi 6E/7 160MHz)",
-            label_toggle_25d: "🧊 2.5D View",
-            tool_room: "🏠 Draw Room Box",
-            tool_draw: "✏️ Draw Wall",
-            tool_select: "👆 Select & Drag",
-            tool_place_ap: "📡 Place AP",
-            tool_ruler: "📏 Measure Loss",
-            tool_delete: "🗑️ Delete",
-            btn_undo_wall: "↩️ Undo",
-            btn_clear_all: "🗑️ Clear All",
-            label_signal_level: "Signal Level:",
-            legend_strong: "Strong (-30 dBm)",
-            legend_good: "Good (-65 dBm)",
-            legend_weak: "Weak / Dead Zone (-90 dBm)",
-            inspector_label_mat: "Change Material:",
-            inspector_label_len: "Length:",
-            unit_opt_m: "Meters (m)",
-            unit_opt_in: "Inches (in)",
-            unit_opt_ft: "Feet (ft)",
-            unit_opt_cm: "Centimeters (cm)",
-            btn_apply_len: "Apply Length",
-            btn_del_wall: "Delete Wall",
-            obj_th_type: "Wall / Obstacle Type",
-            obj_th_coords: "Coordinates (m)",
-            obj_th_len: "Length",
-            obj_th_loss: "RF Attenuation",
-            obj_th_action: "Actions",
-            btn_complete_planner: "✅ Auto-Place APs & Calculate Coverage",
-            btn_complete_planner_bottom: "✅ Auto-Place APs & Compute Coverage",
-            btn_recalc_heatmap: "🔄 Recalculate Heatmap for Current APs",
-            planner_results_heading: "RF Coverage Results",
-            planner_placeholder: "Click Auto-Place APs & Calculate Coverage above after sketching your floorplan to compute router locations.",
-            df_modal_title: "Directional AP Signal Tracker (Device Finder)",
-            df_select_target: "Select target BSSID to track physical location:",
-            df_reset_peak: "Reset Peak",
-            df_peak_rssi: "Peak Signal Recorded",
-            df_min_rssi: "Minimum Signal",
-            df_est_dist: "Estimated Distance",
-            sec_open_title: "Warning: Unencrypted Wi-Fi Networks Detected (Open)",
-            sec_open_desc: "Checking for nearby Access Points operating without WPA2/WPA3 password protection...",
-            sec_dist_title: "Security Protocol Distribution in Area",
-            sec_diag_title: "Low Security Risk Analysis & Fix Guide",
-            sec_diag_badge: "Network Security Check",
-            sec_cause_title: "1. Why Is the Network Rated Low Security?",
-            sec_cause_desc_1: "<b>Technical Cause:</b> Open (None) or legacy WEP / WPA-TKIP networks transmit radio frames <b>without encryption</b>.",
-            sec_cause_desc_2: "Wi-Fi signals travel through shared air. Anyone within range can capture unencrypted packets.",
-            sec_danger_title: "2. Practical Risks If Unfixed",
-            sec_danger_item1: "<b>Packet Sniffing:</b> Unencrypted traffic can be captured using packet analysis tools.",
-            sec_danger_item2: "<b>Evil Twin Spoofing:</b> Attackers can set up a duplicate SSID to trick devices into connecting.",
-            sec_danger_item3: "<b>LAN Access:</b> Unauthorized users can discover printers, IP cameras, or shared folders on the local network.",
-            sec_fix_title: "3. Concrete Fix Steps",
-            sec_fix_item1: "<b>Enable WPA2/WPA3:</b> Log in to the Router (<code>192.168.1.1</code>) and set security to <b>WPA2-PSK (AES)</b> or <b>WPA3-SAE</b>.",
-            sec_fix_item2: "<b>Strong Password:</b> Set a password with at least 12 characters.",
-            sec_fix_item3: "<b>Client Isolation:</b> Enable Guest Network with Client Isolation for visitor Wi-Fi.",
-            sec_fix_item4: "<b>Disable WPS:</b> Turn off WPS PIN authentication on the router.",
-            reports_title: "MMQ./NetScanner Reports Archive",
-            reports_desc: "Survey reports saved locally as <code>NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv</code> for direct viewing in Microsoft Excel.",
-            btn_export_csv_modal: "Export CSV Report",
-            btn_export_json_modal: "Export JSON File",
-            btn_clear_reports: "Clear Old Reports",
-            rep_format: "Format",
-            rep_filename: "Report File Name",
-            rep_created: "Created Time",
-            rep_size: "File Size",
-            rep_action: "Actions",
-            modal_export_title: "Export Wi-Fi Survey Report",
-            modal_export_desc: "Choose an export file format. CSV opens directly in Microsoft Excel with full bilingual support.",
-            format_csv_name: "CSV Spreadsheet (.csv) - Open in Excel",
-            format_csv_desc: "Contains channel recommendations, SNR, MCS, security audit, and BSSID inventory.",
-            format_json_name: "JSON Data (.json)",
-            format_json_desc: "Complete scan data in JSON structure for technical archiving or automation.",
-            export_generating: "Generating report...",
-            btn_cancel: "Cancel",
-            btn_download_report: "Download Report"
+            df_reset_peak: "Đặt lại đỉnh sóng",
+            df_peak_rssi: "Mức tín hiệu mạnh nhất ghi nhận",
+            df_min_rssi: "Mức tín hiệu thấp nhất",
+            df_est_dist: "Khoảng cách ước tính",
+            sec_open_title: "Cảnh báo: Phát hiện mạng Wi-Fi không đặt mật khẩu",
+            sec_open_desc: "Đang kiểm tra các trạm phát sóng Wi-Fi không kích hoạt mật khẩu bảo vệ...",
+            sec_dist_title: "Phân bố các chuẩn bảo mật trong khu vực",
+            sec_diag_title: "Phân tích nguy cơ bảo mật yếu và giải pháp khắc phục",
+            sec_diag_badge: "Kiểm tra an toàn bảo mật",
+            sec_cause_title: "1. Nguyên nhân kỹ thuật dẫn đến đánh giá bảo mật yếu",
+            sec_cause_desc_1: "<b>Nguyên nhân kỹ thuật:</b> Mạng không mật khẩu (Open) hoặc sử dụng chuẩn cũ WEP / WPA-TKIP không mã hóa dữ liệu truyền tải.",
+            sec_cause_desc_2: "Sóng vô tuyến truyền lan trong không gian. Thiết bị bất kỳ trong vùng phủ sóng đều có thể thu thập các gói tin chưa mã hóa.",
+            sec_danger_title: "2. Rủi ro thực tế đối với an toàn dữ liệu",
+            sec_danger_item1: "<b>Thu thập gói tin mạng:</b> Kẻ xấu có thể bắt và đọc dữ liệu chưa mã hóa truyền trong mạng.",
+            sec_danger_item2: "<b>Trạm phát giả mạo:</b> Dễ dàng tạo tên mạng trùng lặp nhằm đánh lừa người dùng kết nối.",
+            sec_danger_item3: "<b>Truy cập trái phép thiết bị nội bộ:</b> Người ngoài có thể quét thấy máy in, camera và thiết bị chia sẻ trong mạng LAN.",
+            sec_fix_title: "3. Quy trình các bước khắc phục cụ thể",
+            sec_fix_item1: "<b>Kích hoạt chuẩn mã hóa an toàn:</b> Đăng nhập router chuyển chế độ bảo mật sang <b>WPA2-PSK (AES)</b> hoặc <b>WPA3-SAE</b>.",
+            sec_fix_item2: "<b>Thiết lập mật khẩu độ dài phù hợp:</b> Sử dụng mật khẩu từ 12 ký tự trở lên kết hợp chữ hoa, chữ thường và chữ số.",
+            sec_fix_item3: "<b>Bật chế độ cách ly máy khách:</b> Đối với mạng khách, bật tính năng cách ly máy khách để tránh các thiết bị quét lẫn nhau.",
+            sec_fix_item4: "<b>Vô hiệu hóa tính năng WPS:</b> Tắt xác thực PIN WPS trên router nhằm ngăn chặn dò quét tự động.",
+            reports_title: "Lưu trữ báo cáo khảo sát hệ thống",
+            reports_desc: "Các tệp báo cáo khảo sát được lưu trữ định dạng bảng tính mở trực tiếp bằng Microsoft Excel.",
+            btn_export_csv_modal: "Xuất tệp bảng tính CSV",
+            btn_export_json_modal: "Xuất tệp dữ liệu JSON",
+            btn_clear_reports: "Xóa báo cáo cũ",
+            rep_format: "Định dạng",
+            rep_filename: "Tên tệp báo cáo",
+            rep_created: "Thời điểm tạo",
+            rep_size: "Dung lượng",
+            rep_action: "Thao tác",
+            modal_export_title: "Xuất báo cáo khảo sát mạng",
+            modal_export_desc: "Lựa chọn định dạng tệp báo cáo cần tải về máy tính.",
+            format_csv_name: "Bảng tính CSV (.csv) - Mở bằng Microsoft Excel",
+            format_csv_desc: "Chứa gợi ý kênh tối ưu, chỉ số SNR, điều chế MCS, an toàn bảo mật và danh sách trạm phát.",
+            format_json_name: "Tệp dữ liệu JSON (.json)",
+            format_json_desc: "Toàn bộ cấu trúc dữ liệu đo kiểm kỹ thuật phục vụ lưu trữ hoặc tích hợp.",
+            export_generating: "Đang khởi tạo tệp báo cáo...",
+            btn_cancel: "Hủy bỏ",
+            btn_download_report: "Tải báo cáo"
         }
     };
+    I18N.en = I18N.vi;
 
     function setLanguage(lang) {
-        state.currentLang = lang;
-        state.rationaleLang = lang;
-        localStorage.setItem("netscanner_lang", lang);
-        document.documentElement.setAttribute("lang", lang);
+        state.currentLang = "vi";
+        state.rationaleLang = "vi";
+        localStorage.setItem("netscanner_lang", "vi");
+        document.documentElement.setAttribute("lang", "vi");
 
         const langLabel = document.getElementById("lang-current-label");
-        if (langLabel) langLabel.textContent = lang.toUpperCase();
+        if (langLabel) langLabel.textContent = "VI";
 
         const translateLabel = document.getElementById("translate-rationale-label");
         if (translateLabel) {
-            translateLabel.textContent = lang === "vi" ? "🌐 Dịch sang English" : "🌐 Dịch sang Tiếng Việt";
+            translateLabel.textContent = "Dịch chẩn đoán";
         }
 
-        const dict = I18N[lang] || I18N.vi;
+        const dict = I18N.vi;
 
         document.querySelectorAll("[data-i18n]").forEach(el => {
             const key = el.getAttribute("data-i18n");
@@ -537,17 +332,12 @@ document.addEventListener("DOMContentLoaded", () => {
         safeCreateIcons();
     }
 
-    // Helper for safe Lucide icons creation
-    function safeCreateIcons() {
-        try {
-            if (window.lucide && typeof lucide.createIcons === "function") {
-                lucide.createIcons();
-            }
-        } catch (e) {}
-    }
+    // Helper for safe Lucide icons creation (No-op in pure Light Mode)
+    function safeCreateIcons() {}
+    function updateThemeIcon() {}
 
-    // Apply Initial Theme
-    document.documentElement.setAttribute("data-theme", state.theme);
+    // Apply Initial Theme (Fixed Light Mode)
+    document.documentElement.setAttribute("data-theme", "light");
     updateThemeIcon();
     safeCreateIcons();
 
@@ -568,18 +358,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const langCurrentLabel = document.getElementById("lang-current-label");
     const btnTranslateRationale = document.getElementById("btn-translate-rationale");
     const translateRationaleLabel = document.getElementById("translate-rationale-label");
-    const networkSearch = document.getElementById("network-search");
+    const networkSearch = document.getElementById("search-input") || document.getElementById("network-search");
     const filterSecurity = document.getElementById("filter-security");
-    const surveyTableBody = document.getElementById("survey-table-body");
+    const surveyTableBody = document.getElementById("survey-tbody") || document.getElementById("survey-table-body");
     const apDrawer = document.getElementById("ap-drawer");
-    const btnCloseDrawer = document.getElementById("btn-close-drawer");
+    const btnCloseDrawer = document.getElementById("btn-close-drawer") || document.getElementById("btnCloseDrawer");
     const reportModal = document.getElementById("report-modal");
 
     // Canvases
     const canvas24 = document.getElementById("canvas-spectrum-24");
-    const canvas5 = document.getElementById("canvas-spectrum-5");
+    const canvas5 = document.getElementById("canvas-spectrum-50") || document.getElementById("canvas-spectrum-5");
     const canvasSignal = document.getElementById("canvas-signal-history");
-    const canvasWaterfall = document.getElementById("canvas-spectrum-waterfall");
+    const canvasWaterfall = document.getElementById("canvas-waterfall") || document.getElementById("canvas-spectrum-waterfall");
 
     // Tab Navigation: Tab-Aware rendering saves CPU
     document.querySelectorAll(".nav-tab").forEach(tabBtn => {
@@ -595,34 +385,37 @@ document.addEventListener("DOMContentLoaded", () => {
             renderCurrentTab();
             if (tabId === "tab-reports") {
                 fetchReportsArchive();
+            } else if (tabId === "tab-speedtest") {
+                window.renderSpeedTestHistoryTable();
+            } else if (tabId === "tab-optimizer") {
+                window.refreshOsciumDiagnostics();
+            } else if (tabId === "tab-planner") {
+                if (window.refreshInvasionoHeatmap) window.refreshInvasionoHeatmap();
             }
         });
     });
 
-    // Theme Toggle
-    btnThemeToggle.addEventListener("click", () => {
-        state.theme = state.theme === "dark" ? "light" : "dark";
-        localStorage.setItem("netscanner_theme", state.theme);
-        document.documentElement.setAttribute("data-theme", state.theme);
-        updateThemeIcon();
-        drawSpectrumGraphs();
-    });
+    // Theme Toggle (Safely guarded)
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener("click", () => {
+            state.theme = "light";
+            document.documentElement.setAttribute("data-theme", "light");
+            updateThemeIcon();
+            drawSpectrumGraphs();
+        });
+    }
 
-    // Global Language Toggle (VI <-> EN)
+    // Global Language Toggle (Fixed Vietnamese)
     if (btnLangToggle) {
         btnLangToggle.addEventListener("click", () => {
-            const nextLang = state.currentLang === "vi" ? "en" : "vi";
-            setLanguage(nextLang);
+            setLanguage("vi");
         });
     }
 
     // Inline Technical Rationale Translator (Tab 3)
     if (btnTranslateRationale) {
         btnTranslateRationale.addEventListener("click", () => {
-            state.rationaleLang = state.rationaleLang === "vi" ? "en" : "vi";
-            if (translateRationaleLabel) {
-                translateRationaleLabel.textContent = state.rationaleLang === "vi" ? "🌐 Dịch sang English" : "🌐 Dịch sang Tiếng Việt";
-            }
+            state.rationaleLang = "vi";
             if (state.analysis) {
                 updateRationaleDisplay(state.analysis.evaluation_24ghz, state.analysis.evaluation_5ghz);
             }
@@ -633,8 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateThemeIcon() {
         const icon = document.getElementById("theme-icon");
         if (icon) {
-            icon.setAttribute("data-lucide", state.theme === "dark" ? "sun" : "moon");
-            safeCreateIcons();
+            // Theme toggle removed
         }
     }
 
@@ -761,10 +553,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderSurveyTable();
             }
             updateThreatBanner();
+        } else if (state.currentTab === "tab-speedtest") {
+            window.renderSpeedTestHistoryTable();
         } else if (state.currentTab === "tab-spectrum") {
             drawSpectrumGraphs();
         } else if (state.currentTab === "tab-optimizer") {
             renderOptimizerChannels();
+            window.refreshOsciumDiagnostics();
         } else if (state.currentTab === "tab-vowifi") {
             if (!state.vowifiTested) {
                 window.runVoWifiTest();
@@ -858,33 +653,55 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Search and Filters
-    networkSearch.addEventListener("input", (e) => {
-        state.searchQuery = e.target.value.toLowerCase().trim();
-        renderSurveyTable();
-    });
+    if (networkSearch) {
+        networkSearch.addEventListener("input", (e) => {
+            state.searchQuery = e.target.value.toLowerCase().trim();
+            renderSurveyTable();
+        });
+    }
 
     document.querySelectorAll(".filter-pill").forEach(pill => {
         pill.addEventListener("click", () => {
-            document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
-            pill.classList.add("active");
-            state.filterBand = pill.getAttribute("data-filter-band");
-            renderSurveyTable();
+            const bandVal = pill.getAttribute("data-band") || pill.getAttribute("data-filter-band");
+            if (bandVal) {
+                document.querySelectorAll("#filter-chips .filter-pill").forEach(p => p.classList.remove("active"));
+                pill.classList.add("active");
+                state.filterBand = bandVal;
+                renderSurveyTable();
+                return;
+            }
+            const secVal = pill.getAttribute("data-sec");
+            if (secVal) {
+                document.querySelectorAll("#sec-chips .filter-pill").forEach(p => p.classList.remove("active"));
+                pill.classList.add("active");
+                state.filterSecurity = secVal;
+                renderSurveyTable();
+                return;
+            }
         });
     });
 
     document.querySelectorAll(".chip-filter").forEach(chip => {
         chip.addEventListener("click", () => {
-            document.querySelectorAll(".chip-filter").forEach(c => c.classList.remove("active"));
-            chip.classList.add("active");
-            state.filterQuick = chip.getAttribute("data-quick-filter") || "all";
+            const quick = chip.getAttribute("data-filter") || chip.getAttribute("data-quick-filter") || "all";
+            if (chip.classList.contains("active") && state.filterQuick === quick) {
+                chip.classList.remove("active");
+                state.filterQuick = "all";
+            } else {
+                document.querySelectorAll(".chip-filter").forEach(c => c.classList.remove("active"));
+                chip.classList.add("active");
+                state.filterQuick = quick;
+            }
             renderSurveyTable();
         });
     });
 
-    filterSecurity.addEventListener("change", (e) => {
-        state.filterSecurity = e.target.value;
-        renderSurveyTable();
-    });
+    if (filterSecurity) {
+        filterSecurity.addEventListener("change", (e) => {
+            state.filterSecurity = e.target.value;
+            renderSurveyTable();
+        });
+    }
 
     // Table Header Sorting
     document.querySelectorAll("#survey-table th[data-sort]").forEach(th => {
@@ -901,9 +718,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Scan Actions
-    btnScan.addEventListener("click", () => {
-        fetchScanData(true);
-    });
+    if (btnScan) {
+        btnScan.addEventListener("click", () => {
+            fetchScanData(true);
+        });
+    }
 
     // Auto-Pick Actions
     if (btnQuickAutoPick) btnQuickAutoPick.addEventListener("click", () => {
@@ -911,9 +730,11 @@ document.addEventListener("DOMContentLoaded", () => {
         triggerAutoPick();
     });
 
-    btnTriggerAutoPick.addEventListener("click", () => {
-        triggerAutoPick();
-    });
+    if (btnTriggerAutoPick) {
+        btnTriggerAutoPick.addEventListener("click", () => {
+            triggerAutoPick();
+        });
+    }
 
     function switchToTab(tabId) {
         document.querySelectorAll(".nav-tab").forEach(b => {
@@ -929,9 +750,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Close AP Drawer
-    btnCloseDrawer.addEventListener("click", () => {
-        apDrawer.classList.add("hidden");
-    });
+    if (btnCloseDrawer) {
+        btnCloseDrawer.addEventListener("click", () => {
+            if (apDrawer) apDrawer.classList.add("hidden");
+        });
+    }
 
     // Fetch Live Scan Data (HTTP REST fallback)
     async function fetchScanData(force = false) {
@@ -1035,7 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (String(conn.band).includes("2.4")) {
                 const alt5g = (state.networks || []).find(n => n.ssid === conn.ssid && String(n.band).includes("5") && (n.signal_dbm || -100) > -75);
                 if (alt5g) {
-                    roamNotice = ` • <span style="color:#10b981; font-weight:700;" title="Router nhà bạn có phát cả sóng 5GHz siêu tốc! Hãy kết nối sóng 5G để tăng tốc gấp 3 lần!">💡 Mẹo: Chuyển sang sóng 5GHz (${alt5g.signal_dbm} dBm)</span>`;
+                    roamNotice = ` • <span style="color:#10b981; font-weight:700;" title="Router nhà bạn có phát cả sóng 5GHz siêu tốc! Hãy kết nối sóng 5G để tăng tốc gấp 3 lần!">Mẹo: Chuyển sang sóng 5GHz (${alt5g.signal_dbm} dBm)</span>`;
                 }
             }
             document.getElementById("conn-rates").innerHTML = (conn.tx_rate ? `${conn.tx_rate} Mbps` : (conn.radio_type || '')) + roamNotice;
@@ -1046,8 +869,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Render Survey Table with Filters and Sorting
     function renderSurveyTable() {
+        const tbody = document.getElementById("survey-tbody") || document.getElementById("survey-table-body");
+        if (!tbody) return;
         if (!state.networks || state.networks.length === 0) {
-            surveyTableBody.innerHTML = `<tr><td colspan="11" class="loading-row">Không tìm thấy sóng Wi-Fi xung quanh. Đang quét...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" class="loading-row">Không tìm thấy sóng Wi-Fi xung quanh. Đang quét...</td></tr>`;
             return;
         }
 
@@ -1102,12 +927,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (filtered.length === 0) {
-            surveyTableBody.innerHTML = `<tr><td colspan="11" class="loading-row">Không có mạng Wi-Fi nào khớp với bộ lọc tìm kiếm.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" class="loading-row">Không có mạng Wi-Fi nào khớp với bộ lọc tìm kiếm.</td></tr>`;
             return;
         }
 
         const isVi = state.currentLang === "vi";
-        surveyTableBody.innerHTML = filtered.map(net => {
+        tbody.innerHTML = filtered.map(net => {
             const sig = net.signal_percent || 0;
             const dbm = net.signal_dbm || -100;
             const snr = net.snr_db !== undefined ? net.snr_db : Math.max(0, dbm + 95);
@@ -1151,7 +976,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const activeRowClass = net.is_connected ? "active-row" : "";
-            const connIcon = net.is_connected ? `<i data-lucide="check-circle" class="conn-indicator"></i>` : ``;
+            const connIcon = net.is_connected ? `<span class="conn-indicator" style="font-size:0.75rem; color:#059669; font-weight:700;">Đang kết nối</span> ` : ``;
 
             const bssLoadDisplay = net.channel_utilization_pct !== null ? `${net.channel_utilization_pct}%` : `N/A`;
             const clientsDisplay = net.connected_stations > 0 ? (isVi ? `(${net.connected_stations} máy)` : `(${net.connected_stations} stas)`) : ``;
@@ -1161,7 +986,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ssidHtml = `
                     <div class="decloaked-wrapper">
                         <span class="decloaked-badge" title="${isVi ? 'Giải mã thành công nhờ phân tích phần cứng BSSID! Độ tin cậy: ' : 'De-cloaked via BSSID Topology! Confidence: '}${net.decloak_confidence}%">
-                            <i data-lucide="unlock" style="width:11px; height:11px; display:inline; margin-right:3px;"></i>${isVi ? 'ĐÃ GIẢI MÃ' : 'UNCLOAKED'}
+                            ${isVi ? 'ĐÃ GIẢI MÃ' : 'UNCLOAKED'}
                         </span>
                         <span class="decloaked-name">${escapeHtml(net.decloaked_ssid)}</span>
                         <span class="decloaked-sub">${escapeHtml(net.decloak_role || (isVi ? 'Mạng liên kết ẩn' : 'Hidden Link'))}</span>
@@ -1173,14 +998,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let threatBadge = "";
             if (net.threat_level === "CRITICAL") {
-                threatBadge = ` <span class="badge badge-threat-crit" title="${escapeHtml(net.threat_description || '')}">⚠️ ${isVi ? 'GIẢ MẠO AP' : 'EVIL TWIN'}</span>`;
+                threatBadge = ` <span class="badge badge-threat-crit" title="${escapeHtml(net.threat_description || '')}">${isVi ? 'GIẢ MẠO AP' : 'EVIL TWIN'}</span>`;
             } else if (net.threat_level === "WARNING") {
-                threatBadge = ` <span class="badge badge-threat-warn" title="${escapeHtml(net.threat_description || '')}">⚠️ ${isVi ? 'CẢNH BÁO' : 'WARNING'}</span>`;
+                threatBadge = ` <span class="badge badge-threat-warn" title="${escapeHtml(net.threat_description || '')}">${isVi ? 'CẢNH BÁO' : 'WARNING'}</span>`;
             }
 
             let roamBadge = "";
             if (net.roaming_status === "STICKY_CLIENT") {
-                roamBadge = ` <span class="badge" style="background:#f59e0b; color:#111; font-weight:700;" title="${escapeHtml(net.roaming_note || '')}">🔄 ${isVi ? 'CẦN ROAMING' : 'STICKY CLIENT'}</span>`;
+                roamBadge = ` <span class="badge" style="background:#f59e0b; color:#111; font-weight:700;" title="${escapeHtml(net.roaming_note || '')}">${isVi ? 'CẦN ROAMING' : 'STICKY CLIENT'}</span>`;
             }
 
             const dfsBadge = net.is_dfs ? `<span class="badge badge-dfs" title="${isVi ? 'Kênh Radar quân sự/khí tượng (DFS - UNII-2)' : 'DFS Radar Channel'}">DFS</span>` : '';
@@ -1193,8 +1018,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${threatBadge}
                         ${roamBadge}
                         ${net.is_connected ? `<span class="badge" style="background:#10b981; color:#fff;">${isVi ? 'ĐANG NỐI' : 'CONNECTED'}</span>` : ''}
-                        ${(net.cluster_size && net.cluster_size > 1) ? `<span class="badge" style="background:#182238; border:1px solid #0ea5e9; color:#38bdf8; font-size:0.68rem;" title="${isVi ? 'Cùng thiết bị phần cứng đa băng tần' : 'Same physical multi-band hardware'}">🔗 Cụm ${net.cluster_size} BSSID</span>` : ''}
-                        ${isOpenSec ? `<span class="badge" style="background:#ef4444; color:#fff; font-size:0.65rem;" title="${isVi ? 'Mạng không mã hóa! Nguy cơ lộ thông tin' : 'Unencrypted network! High sniffing risk'}">${isVi ? '⚠️ KHÔNG BẢO MẬT' : '⚠️ UNSECURED'}</span>` : ''}
+                        ${(net.cluster_size && net.cluster_size > 1) ? `<span class="badge badge-cluster" title="${isVi ? 'Cùng thiết bị phần cứng đa băng tần' : 'Same physical multi-band hardware'}">Cụm ${net.cluster_size} BSSID</span>` : ''}
+                        ${isOpenSec ? `<span class="badge" style="background:#ef4444; color:#fff; font-size:0.65rem;" title="${isVi ? 'Mạng không mã hóa! Nguy cơ lộ thông tin' : 'Unencrypted network! High sniffing risk'}">${isVi ? 'KHÔNG BẢO MẬT' : 'UNSECURED'}</span>` : ''}
                     </td>
                     <td class="mac-cell">${net.bssid}</td>
                     <td>${escapeHtml(net.vendor || (isVi ? 'Không rõ' : 'Unknown'))}</td>
@@ -1203,7 +1028,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <div class="signal-bar-bg">
                                 <div class="signal-bar-fill ${sigClass}" style="width: ${sig}%;"></div>
                             </div>
-                            <span><b>${dbm}</b> dBm (${sig}%) &bull; <b style="color:#38bdf8;">SNR ${snr} dB</b> <small style="display:block; font-size:0.72rem; color:var(--text-secondary);">NF: ${nf} dBm | ${sigLabel}</small></span>
+                            <span><b>${dbm}</b> dBm (${sig}%) &bull; <b style="color:#0284c7;">SNR ${snr} dB</b> <small style="display:block; font-size:0.72rem; color:var(--text-secondary);">NF: ${nf} dBm | ${sigLabel}</small></span>
                         </div>
                     </td>
                     <td><b>${isVi ? 'Kênh' : 'Ch'} ${net.channel}</b> <small style="color:var(--text-secondary);">(${bw})</small> ${dfsBadge}</td>
@@ -1222,8 +1047,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.inspectAP('${net.bssid}')">
                                 ${isVi ? 'Chi Tiết' : 'Details'}
                             </button>
-                            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.openDeviceFinder('${net.bssid}')" title="${isVi ? 'Dò hướng tín hiệu vật lý của trạm phát này' : 'Track directional signal for this AP'}" style="border-color:rgba(14,165,233,0.4); color:#38bdf8;">
-                                🎯
+                            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); window.openDeviceFinder('${net.bssid}')" title="${isVi ? 'Dò hướng tín hiệu vật lý của trạm phát này' : 'Track directional signal for this AP'}" style="border-color:#0284c7; color:#0284c7;">
+                                Dò tìm
                             </button>
                         </div>
                     </td>
@@ -1239,22 +1064,33 @@ document.addEventListener("DOMContentLoaded", () => {
         state.surveyView = view;
         const btnList = document.getElementById("btn-view-list");
         const btnCluster = document.getElementById("btn-view-cluster");
-        const tableContainer = document.getElementById("table-container-view");
-        const clusterContainer = document.getElementById("cluster-container");
+        const tableContainer = document.getElementById("view-list-container") || document.getElementById("table-container-view");
+        const clusterContainer = document.getElementById("view-cluster-container") || document.getElementById("cluster-container");
 
         if (view === "cluster") {
-            if (btnList) { btnList.classList.remove("active", "btn-primary"); btnList.classList.add("btn-secondary"); }
-            if (btnCluster) { btnCluster.classList.add("active", "btn-primary"); btnCluster.classList.remove("btn-secondary"); }
+            if (btnList) btnList.classList.remove("active");
+            if (btnCluster) btnCluster.classList.add("active");
             if (tableContainer) tableContainer.classList.add("hidden");
-            if (clusterContainer) { clusterContainer.classList.remove("hidden"); renderClusterView(); }
+            if (clusterContainer) {
+                clusterContainer.classList.remove("hidden");
+                renderClusterView();
+            }
         } else {
-            if (btnCluster) { btnCluster.classList.remove("active", "btn-primary"); btnCluster.classList.add("btn-secondary"); }
-            if (btnList) { btnList.classList.add("active", "btn-primary"); btnList.classList.remove("btn-secondary"); }
+            if (btnCluster) btnCluster.classList.remove("active");
+            if (btnList) btnList.classList.add("active");
             if (clusterContainer) clusterContainer.classList.add("hidden");
-            if (tableContainer) { tableContainer.classList.remove("hidden"); renderSurveyTable(); }
+            if (tableContainer) {
+                tableContainer.classList.remove("hidden");
+                renderSurveyTable();
+            }
         }
         safeCreateIcons();
     };
+
+    const btnViewList = document.getElementById("btn-view-list");
+    if (btnViewList) btnViewList.addEventListener("click", () => window.switchSurveyView("list"));
+    const btnViewCluster = document.getElementById("btn-view-cluster");
+    if (btnViewCluster) btnViewCluster.addEventListener("click", () => window.switchSurveyView("cluster"));
 
     // Update RF Security Banner
     function updateThreatBanner() {
@@ -1264,28 +1100,32 @@ document.addEventListener("DOMContentLoaded", () => {
         const isVi = state.currentLang === "vi";
         const threats = state.threats;
         if (!threats || threats.status === "SECURE" || threats.total_threats === 0) {
-            badge.style.color = "#10b981";
-            badge.style.background = "rgba(16, 185, 129, 0.08)";
-            badge.style.borderColor = "rgba(16, 185, 129, 0.2)";
-            badge.innerHTML = `<i data-lucide="shield-check" style="width:16px; height:16px;"></i> <span>${isVi ? 'An Ninh Sóng: An Toàn (Không có trạm giả mạo)' : 'RF Security: Clean (No Rogue APs)'}</span>`;
+            badge.style.color = "#059669";
+            badge.style.background = "rgba(5, 150, 105, 0.08)";
+            badge.style.borderColor = "rgba(5, 150, 105, 0.2)";
+            badge.innerHTML = `<span>${isVi ? 'An Ninh Sóng: An Toàn (Không có trạm giả mạo)' : 'RF Security: Clean'}</span>`;
         } else if (threats.status === "DANGER" || threats.critical_count > 0) {
-            badge.style.color = "#ef4444";
-            badge.style.background = "rgba(239, 68, 68, 0.12)";
-            badge.style.borderColor = "rgba(239, 68, 68, 0.3)";
-            badge.innerHTML = `<i data-lucide="alert-triangle" style="width:16px; height:16px;"></i> <span>${isVi ? `CẢNH BÁO: Phát hiện ${threats.critical_count} trạm phát giả mạo!` : `CRITICAL: ${threats.critical_count} Evil Twin AP Detected!`}</span>`;
+            badge.style.color = "#dc2626";
+            badge.style.background = "rgba(220, 38, 38, 0.10)";
+            badge.style.borderColor = "rgba(220, 38, 38, 0.3)";
+            badge.innerHTML = `<span>${isVi ? `CẢNH BÁO: Phát hiện ${threats.critical_count} trạm phát giả mạo!` : `CRITICAL: ${threats.critical_count} Rogue AP Detected!`}</span>`;
         } else {
-            badge.style.color = "#f59e0b";
-            badge.style.background = "rgba(245, 158, 11, 0.1)";
-            badge.style.borderColor = "rgba(245, 158, 11, 0.25)";
-            badge.innerHTML = `<i data-lucide="alert-circle" style="width:16px; height:16px;"></i> <span>${isVi ? `Lưu ý: Có ${threats.warning_count} trạm phát cần chú ý` : `Notice: ${threats.warning_count} anomaly APs`}</span>`;
+            badge.style.color = "#d97706";
+            badge.style.background = "rgba(217, 119, 6, 0.10)";
+            badge.style.borderColor = "rgba(217, 119, 6, 0.25)";
+            badge.innerHTML = `<span>${isVi ? `Lưu ý: Có ${threats.warning_count} trạm phát cần chú ý` : `Notice: ${threats.warning_count} anomaly APs`}</span>`;
         }
         safeCreateIcons();
     }
 
     // Render Hardware Topology & Mesh Clusters View
     function renderClusterView() {
-        const container = document.getElementById("cluster-container");
+        const container = document.getElementById("clusters-grid") || document.getElementById("view-cluster-container") || document.getElementById("cluster-container");
         if (!container) return;
+        const banner = document.getElementById("cluster-summary-banner");
+        if (banner) {
+            banner.textContent = `Tổng cộng phát hiện ${(state.clusters || []).length} cụm thiết bị vật lý (${(state.networks || []).length} trạm phát BSSID).`;
+        }
 
         const isVi = state.currentLang === "vi";
         const clusters = state.clusters || [];
@@ -1310,7 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let nameDisplay = escapeHtml(m.ssid);
                 if (isHidden && isDecloaked) {
-                    nameDisplay = `<span class="decloaked-badge"><i data-lucide="unlock" style="width:10px; height:10px; margin-right:3px; display:inline;"></i>${isVi ? 'ĐÃ GIẢI MÃ' : 'UNCLOAKED'}</span> <b style="color:#38bdf8;">${escapeHtml(m.decloaked_ssid)}</b> <span style="font-size:0.75rem; color:var(--text-secondary); font-style:italic;">(${escapeHtml(m.decloak_role || '')})</span>`;
+                    nameDisplay = `<span class="decloaked-badge">${isVi ? 'ĐÃ GIẢI MÃ' : 'UNCLOAKED'}</span> <b style="color:#0284c7;">${escapeHtml(m.decloaked_ssid)}</b> <span style="font-size:0.75rem; color:var(--text-secondary); font-style:italic;">(${escapeHtml(m.decloak_role || '')})</span>`;
                 } else if (isHidden) {
                     nameDisplay = `<span class="hidden-raw">[Hidden Network]</span>`;
                 }
@@ -1329,7 +1169,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 ${isVi ? 'Chi Tiết' : 'Details'}
                             </button>
                             <button class="btn btn-sm btn-secondary" onclick="window.openDeviceFinder('${m.bssid}')" title="Dò hướng tín hiệu">
-                                🎯
+                                Dò tìm
                             </button>
                         </td>
                     </tr>
@@ -1341,7 +1181,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="cluster-header">
                         <div class="cluster-title-wrap">
                             <div class="cluster-icon">
-                                <i data-lucide="router"></i>
+                                <span>AP</span>
                             </div>
                             <div>
                                 <div class="cluster-title">${escapeHtml(c.parent_ssid || 'Access Point')}</div>
@@ -1349,8 +1189,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
                         <div class="cluster-badges">
-                            ${hasDecloaked ? `<span class="badge" style="background:linear-gradient(135deg, #059669, #10b981); color:#fff; font-size:0.75rem;"><i data-lucide="unlock" style="width:12px; height:12px; display:inline; margin-right:4px;"></i>${isVi ? 'CHỨA MẠNG MESH ẨN ĐÃ GIẢI MÃ' : 'UNCLOAKED MESH LINK'}</span>` : ''}
-                            <span class="badge" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8;">${bssCount} BSSIDs</span>
+                            ${hasDecloaked ? `<span class="badge" style="background:#059669; color:#fff; font-size:0.75rem;">${isVi ? 'CHỨA MẠNG MESH ẨN ĐÃ GIẢI MÃ' : 'UNCLOAKED MESH LINK'}</span>` : ''}
+                            <span class="badge badge-cluster">${bssCount} BSSIDs</span>
                             <span class="badge" style="background:rgba(148, 163, 184, 0.15); color:var(--text-secondary);">${bandsStr} (Kênh ${channelsStr})</span>
                             <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:#10b981;"><b>${maxDbm} dBm</b> (${maxPct}%)</span>
                         </div>
@@ -1393,7 +1233,7 @@ document.addEventListener("DOMContentLoaded", () => {
         body.innerHTML = `
             <div style="margin-bottom: 12px;">
                 <button class="btn btn-primary btn-sm" style="width: 100%; justify-content: center;" onclick="window.openDeviceFinder('${net.bssid}')">
-                    🎯 ${isVi ? 'Dò Hướng & Định Vị Vật Lý Trạm Phát Này (Device Finder)' : 'Track Directional Signal for This AP (Device Finder)'}
+                    ${isVi ? 'Dò Hướng & Định Vị Vật Lý Trạm Phát Này (Device Finder)' : 'Track Directional Signal for This AP (Device Finder)'}
                 </button>
             </div>
             <div class="drawer-field">
@@ -1411,7 +1251,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="drawer-field">
                 <div class="drawer-field-label">${isVi ? 'Tín Hiệu Thu (RSSI) & Tỷ Lệ Tín Hiệu/Nhiễu (SNR)' : 'Signal (RSSI) & SNR / Noise Floor'}</div>
                 <div class="drawer-field-val">
-                    <b>${net.signal_dbm} dBm</b> (${net.signal_percent}%) &bull; <b style="color:#38bdf8;">SNR: ${snr} dB</b>
+                    <b>${net.signal_dbm} dBm</b> (${net.signal_percent}%) &bull; <b style="color:#0284c7;">SNR: ${snr} dB</b>
                     <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">${isVi ? 'Nhiễu nền ước tính (Noise Floor):' : 'Estimated Noise Floor:'} ${nf} dBm</div>
                 </div>
             </div>
@@ -1435,7 +1275,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="drawer-field-label">${isVi ? 'Chế Độ Bảo Mật & Mã Hóa' : 'Security Mode & Encryption'}</div>
                 <div class="drawer-field-val">
                     ${net.authentication} / ${net.encryption}
-                    ${isOpen ? `<div style="margin-top:6px; color:#ef4444; font-size:0.8rem; line-height:1.4;">${isVi ? '⚠️ <b>Cảnh báo an ninh:</b> Sóng truyền dữ liệu không mã hóa! Bất kỳ ai cũng có thể bắt gói tin hoặc giả mạo trạm phát sóng. Nên vào Router bật WPA2-PSK (AES) hoặc WPA3-SAE ngay.' : '⚠️ <b>Security Alert:</b> Unencrypted transmission! Anyone within range can capture packets or deploy a rogue AP. Enable WPA2-PSK (AES) or WPA3-SAE immediately.'}</div>` : ''}
+                    ${isOpen ? `<div style="margin-top:6px; color:#ef4444; font-size:0.8rem; line-height:1.4;">${isVi ? '<b>Cảnh báo an ninh:</b> Sóng truyền dữ liệu không mã hóa! Bất kỳ ai cũng có thể bắt gói tin hoặc giả mạo trạm phát sóng. Nên vào Router bật WPA2-PSK (AES) hoặc WPA3-SAE ngay.' : '<b>Security Alert:</b> Unencrypted transmission! Anyone within range can capture packets or deploy a rogue AP. Enable WPA2-PSK (AES) or WPA3-SAE immediately.'}</div>` : ''}
                 </div>
             </div>
             <div class="drawer-field">
@@ -1453,7 +1293,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${net.roaming_note ? `
             <div class="drawer-field" style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; padding: 10px; border-radius: 4px; margin-top: 10px;">
                 <div class="drawer-field-label" style="color: #fbbf24; font-weight: 700;">
-                    🔄 ${isVi ? 'ĐÁNH GIÁ CHUYỂN VÙNG (MULTI-AP ROAMING)' : 'MULTI-AP ROAMING AUDIT'}
+                    ${isVi ? 'ĐÁNH GIÁ CHUYỂN VÙNG (MULTI-AP ROAMING)' : 'MULTI-AP ROAMING AUDIT'}
                 </div>
                 <div class="drawer-field-val" style="font-size: 0.8rem; line-height: 1.4; color: var(--text-primary); margin-top: 4px;">
                     ${escapeHtml(net.roaming_note)}
@@ -1463,7 +1303,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${net.is_hidden ? `
             <div class="drawer-field" style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; padding: 10px; border-radius: 4px; margin-top: 10px;">
                 <div class="drawer-field-label" style="color: #10b981; font-weight: 700;">
-                    <i data-lucide="unlock" style="width:14px; height:14px; display:inline; vertical-align:middle;"></i> ${isVi ? 'THÔNG TIN GIẢI MÃ MẠNG ẨN (BSSID CLUSTERING)' : 'HIDDEN SSID DE-CLOAKING DETAILS'}
+                    ${isVi ? 'THÔNG TIN GIẢI MÃ MẠNG ẨN (BSSID CLUSTERING)' : 'HIDDEN SSID DE-CLOAKING DETAILS'}
                 </div>
                 <div class="drawer-field-val" style="font-size: 0.82rem; line-height: 1.5; margin-top: 5px;">
                     <div>• <b>${isVi ? 'Tên giải mã' : 'De-cloaked Name'}:</b> <span style="color:#38bdf8; font-weight:600;">${escapeHtml(net.decloaked_ssid || net.ssid)}</span></div>
@@ -1471,7 +1311,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div>• <b>${isVi ? 'Bản chất mạng' : 'Inferred Role'}:</b> ${escapeHtml(net.decloak_role || (isVi ? 'Mạng ngầm nội bộ' : 'Internal Backhaul'))}</div>
                     <div>• <b>${isVi ? 'Độ tin cậy' : 'Confidence'}:</b> ${net.decloak_confidence}%</div>
                     <div style="margin-top:6px; font-size:0.75rem; color:var(--text-secondary);">
-                        ${isVi ? 'ℹ️ <b>Nguyên lý:</b> Bộ phát Wi-Fi Mesh hoặc bộ phát đa băng tần thường tạo thêm địa chỉ BSSID ẩn trên cùng phần cứng để truyền dữ liệu nội bộ (Backhaul). Hệ thống đối chiếu dải địa chỉ MAC và mức sóng thu để tìm ra bộ phát gốc.' : 'ℹ️ <b>Mechanism:</b> Mesh and dual-band routers generate unadvertised virtual BSSIDs on identical hardware for backhaul links. BSSID clustering correlates MAC offsets and RSSI to identify the parent AP.'}
+                        ${isVi ? '<b>Nguyên lý:</b> Bộ phát Wi-Fi Mesh hoặc bộ phát đa băng tần thường tạo thêm địa chỉ BSSID ẩn trên cùng phần cứng để truyền dữ liệu nội bộ (Backhaul). Hệ thống đối chiếu dải địa chỉ MAC và mức sóng thu để tìm ra bộ phát gốc.' : '<b>Mechanism:</b> Mesh and dual-band routers generate unadvertised virtual BSSIDs on identical hardware for backhaul links. BSSID clustering correlates MAC offsets and RSSI to identify the parent AP.'}
                     </div>
                 </div>
             </div>
@@ -1479,7 +1319,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${net.is_dfs ? `
             <div class="drawer-field" style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid #6366f1; padding: 10px; border-radius: 4px; margin-top: 10px;">
                 <div class="drawer-field-label" style="color: #818cf8; font-weight: 700;">
-                    📡 ${isVi ? 'THÔNG TIN KÊNH RADAR DFS (UNII-2)' : 'DFS RADAR CHANNEL METRICS'}
+                    ${isVi ? 'THÔNG TIN KÊNH RADAR DFS (UNII-2)' : 'DFS RADAR CHANNEL METRICS'}
                 </div>
                 <div class="drawer-field-val" style="font-size: 0.78rem; line-height: 1.5; color: var(--text-secondary); margin-top: 4px;">
                     ${isVi ? `Kênh ${net.channel} nằm trong dải tần chia sẻ với hệ thống Radar thời tiết và quân sự. Theo chuẩn IEEE 802.11h, nếu bộ phát phát hiện tín hiệu radar, nó bắt buộc phải tự động chuyển kênh trong vòng 60 giây.` : `Channel ${net.channel} resides in the UNII-2 DFS radar spectrum. In compliance with 802.11h, the AP must vacate this frequency upon detecting radar pulses.`}
@@ -1489,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${net.threat_description ? `
             <div class="drawer-field" style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; padding: 10px; border-radius: 4px; margin-top: 10px;">
                 <div class="drawer-field-label" style="color: #ef4444; font-weight: 700;">
-                    ⚠️ ${isVi ? 'CẢNH BÁO AN NINH SÓNG' : 'RF SECURITY ALERT'}
+                    ${isVi ? 'CẢNH BÁO AN NINH SÓNG' : 'RF SECURITY ALERT'}
                 </div>
                 <div class="drawer-field-val" style="font-size: 0.8rem; line-height: 1.4; color: #fca5a5; margin-top: 4px;">
                     ${escapeHtml(net.threat_description)}
@@ -1780,7 +1620,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                         <div class="oscium-diag-metric">${escapeHtml(item.metric || "")}</div>
                         <div class="oscium-diag-desc">${escapeHtml(desc || "")}</div>
-                        ${remed ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #38bdf8; font-weight: 600;">💡 ${escapeHtml(remed)}</div>` : ''}
+                        ${remed ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #0284c7; font-weight: 600;">Khắc phục: ${escapeHtml(remed)}</div>` : ''}
                     </div>
                 `;
             }).join("");
@@ -1807,7 +1647,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${escapeHtml(isVi ? nw.impact_vi : nw.impact_en)}
                         </div>
                         <div style="color: #38bdf8; font-size: 0.74rem; font-weight: 600;">
-                            🛠️ ${escapeHtml(isVi ? nw.remediation_vi : (nw.remediation_en || nw.remediation_vi))}
+                            ${escapeHtml(isVi ? nw.remediation_vi : (nw.remediation_en || nw.remediation_vi))}
                         </div>
                     </div>
                 `;
@@ -1823,7 +1663,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const freePct = at.free_airtime_pct ?? 81;
 
             let roamHtml = roam.length === 0
-                ? `<div style="color:#10b981; font-size:0.8rem;">✓ ${isVi ? 'Không có mạng đa AP nào gặp lỗi bám sóng yếu (Sticky Client).' : 'No multi-AP roaming sticky client anomalies detected.'}</div>`
+                ? `<div style="color:#059669; font-size:0.8rem;">${isVi ? 'Không có mạng đa AP nào gặp lỗi bám sóng yếu (Sticky Client).' : 'No multi-AP roaming sticky client anomalies detected.'}</div>`
                 : roam.map(r => `
                     <div style="padding:6px 8px; background:rgba(15,23,42,0.6); border-left:3px solid ${r.status === 'STICKY_CLIENT_RISK' ? '#f59e0b' : '#38bdf8'}; border-radius:4px; margin-top:5px;">
                         <b>${escapeHtml(r.ssid)}</b> (${r.ap_count} BSSIDs &bull; ${r.bands.join('/')}) — Max: <b>${r.best_dbm} dBm</b> / Min: <b>${r.weakest_dbm} dBm</b> (Spread ${r.spread_db} dB)
@@ -1920,7 +1760,7 @@ document.addEventListener("DOMContentLoaded", () => {
             alert((isVi ? "Tối ưu kênh tự động thất bại: " : "Auto-pick optimization failed: ") + err.message);
         } finally {
             btnTriggerAutoPick.disabled = false;
-            btnTriggerAutoPick.innerHTML = `<i data-lucide="sparkles"></i> <span>${isVi ? 'Tính Kênh Tự Động' : 'Run Auto-Pick'}</span>`;
+            btnTriggerAutoPick.innerHTML = `<span>${isVi ? 'Tính Kênh Tự Động' : 'Run Auto-Pick'}</span>`;
             safeCreateIcons();
         }
     }
@@ -2095,7 +1935,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span class="badge" style="background:${badgeBg}; color:#fff;">${escapeHtml(c.band || "RF")}</span>
                     </div>
                     <div class="oscium-diag-desc">${escapeHtml(desc)}</div>
-                    ${action ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #38bdf8; font-weight: 600;">🛠️ ${escapeHtml(action)}</div>` : ''}
+                    ${action ? `<div style="margin-top: 6px; font-size: 0.76rem; color: #0284c7; font-weight: 600;">Khắc phục: ${escapeHtml(action)}</div>` : ''}
                 </div>
             `;
         }).join("");
@@ -2616,7 +2456,7 @@ document.addEventListener("DOMContentLoaded", () => {
             a.click();
             document.body.removeChild(a);
 
-            if (btn) btn.innerHTML = `<i data-lucide="check"></i> <span>${state.currentLang === 'vi' ? 'Đã tải!' : 'Downloaded!'}</span>`;
+            if (btn) btn.innerHTML = `<span>${state.currentLang === 'vi' ? 'Đã tải!' : 'Downloaded!'}</span>`;
             if (state.currentTab === "tab-reports") fetchReportsArchive();
         } catch (err) {
             alert((state.currentLang === 'vi' ? "Lỗi xuất báo cáo: " : "Export error: ") + err.message);
@@ -2625,7 +2465,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<i data-lucide="file-spreadsheet"></i> <span>${state.currentLang === 'vi' ? 'Xuất CSV' : 'Export CSV'}</span>`;
+                    btn.innerHTML = `<span>${state.currentLang === 'vi' ? 'Xuất bảng tính' : 'Export CSV'}</span>`;
                     safeCreateIcons();
                 }
             }, 1500);
@@ -2647,13 +2487,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    btnCloseReportModal.addEventListener("click", () => {
-        reportModal.classList.add("hidden");
-    });
+    if (btnCloseReportModal) {
+        btnCloseReportModal.addEventListener("click", () => {
+            if (reportModal) reportModal.classList.add("hidden");
+        });
+    }
 
-    btnCancelExport.addEventListener("click", () => {
-        reportModal.classList.add("hidden");
-    });
+    if (btnCancelExport) {
+        btnCancelExport.addEventListener("click", () => {
+            if (reportModal) reportModal.classList.add("hidden");
+        });
+    }
 
     document.querySelectorAll(".format-card").forEach(card => {
         card.addEventListener("click", () => {
@@ -2664,7 +2508,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    btnConfirmExport.addEventListener("click", async () => {
+    if (btnConfirmExport) {
+        btnConfirmExport.addEventListener("click", async () => {
         const selectedRadio = document.querySelector("input[name='report_format']:checked");
         if (!selectedRadio) return;
         const format = selectedRadio.value;
@@ -2706,6 +2551,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btnConfirmExport.disabled = false;
         }
     });
+    }
 
     async function fetchReportsArchive() {
         const tbody = document.getElementById("reports-table-body");
@@ -2740,10 +2586,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>
                             <div class="flex-center gap-2">
                                 <a href="${r.download_url}" download class="btn btn-sm btn-primary">
-                                    <i data-lucide="download" style="width:12px; height:12px;"></i> ${isVi ? 'Tải' : 'Download'}
+                                    ${isVi ? 'Tải về' : 'Download'}
                                 </a>
                                 <button class="btn btn-sm btn-danger" onclick="window.deleteSingleReport('${escapeHtml(r.filename)}')" style="background:#dc2626; color:#fff;" title="${isVi ? 'Xóa file báo cáo này' : 'Delete this report file'}">
-                                    <i data-lucide="trash" style="width:12px; height:12px;"></i> ${isVi ? 'Xóa' : 'Delete'}
+                                    ${isVi ? 'Xóa' : 'Delete'}
                                 </button>
                             </div>
                         </td>
@@ -2878,7 +2724,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="play"></i> ${isVi ? 'Đo Chất Lượng Ngay' : 'Run Quality Test'}`;
+                btn.innerHTML = `${isVi ? 'Đo Chất Lượng Ngay' : 'Run Quality Test'}`;
                 safeCreateIcons();
             }
         }
@@ -2958,7 +2804,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (slaEl) {
             const passed = Boolean(hm.sla_pass);
-            slaEl.textContent = passed ? (isVi ? "ĐẠT CHUẨN SLA ✓" : "SLA PASS ✓") : (isVi ? "CHƯA ĐẠT SLA ⚠" : "SLA WARNING ⚠");
+            slaEl.textContent = passed ? (isVi ? "ĐẠT CHUẨN SLA" : "SLA PASS") : (isVi ? "CHƯA ĐẠT SLA" : "SLA WARNING");
             slaEl.style.color = passed ? "#10b981" : "#f59e0b";
         }
         if (confEl) {
@@ -3135,8 +2981,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const apCount = (state.planner.aps || []).length;
             const isVi = state.currentLang === "vi";
             countBadge.textContent = isVi
-                ? `🧱 ${count} vách ngăn • 📡 ${apCount} AP`
-                : `🧱 ${count} walls • 📡 ${apCount} APs`;
+                ? `${count} vách ngăn • ${apCount} trạm phát`
+                : `${count} walls • ${apCount} APs`;
         }
         renderPlannerObjectTable();
     }
@@ -3185,7 +3031,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const apRows = (state.planner.aps || []).map((ap, apIdx) => `
             <tr style="border-bottom:1px solid rgba(148,163,184,0.12); background:rgba(6,182,212,0.08);">
-                <td style="padding:5px 8px; font-weight:700; color:#06b6d4;">📡 AP-${apIdx + 1}</td>
+                <td style="padding:5px 8px; font-weight:700; color:#0284c7;">Trạm AP-${apIdx + 1}</td>
                 <td style="padding:5px 8px; font-weight:600;">${escapeHtml(ap.name || `AP-${apIdx + 1}`)} (${escapeHtml(ap.role || "Router")})</td>
                 <td style="padding:5px 8px; font-family:monospace;">(x=${ap.x}m, y=${ap.y}m)</td>
                 <td style="padding:5px 8px; font-weight:600;">Ch ${ap.channel_24 || 1} / ${ap.channel_5 || 36} / 6G:${ap.channel_6 || 37}</td>
@@ -3309,8 +3155,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                         <div style="margin-top:8px; display:flex; gap:10px; flex-wrap:wrap;">
                             ${state.planner.aps.map(a => `
-                                <span class="badge" style="background:#1e293b; border:1px solid #06b6d4; color:#fff; padding:6px 10px; font-size:0.82rem;">
-                                    📍 <b>${escapeHtml(a.name || "AP")}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24 || 1}</b> • 5G: <b>Ch ${a.channel_5 || 36}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${escapeHtml(a.role || "Router")})
+                                <span class="badge" style="background:#f1f5f9; border:1px solid #0284c7; color:#0f172a; padding:6px 10px; font-size:0.82rem;">
+                                    <b>${escapeHtml(a.name || "AP")}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Kênh ${a.channel_24 || 1}</b> • 5G: <b>Ch ${a.channel_5 || 36}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${escapeHtml(a.role || "Router")})
                                 </span>
                             `).join("")}
                         </div>
@@ -3327,11 +3173,13 @@ document.addEventListener("DOMContentLoaded", () => {
     window.setPlannerTool = function(tool) {
         state.planner.activeTool = tool;
         state.planner.rulerMeasure = null;
+        state.planner.calibrationMeasure = null;
         const toolButtons = {
             room: document.getElementById("btn-tool-room"),
             draw: document.getElementById("btn-tool-draw"),
             select: document.getElementById("btn-tool-select"),
             place_ap: document.getElementById("btn-tool-place-ap"),
+            calibrate: document.getElementById("btn-tool-calibrate"),
             ruler: document.getElementById("btn-tool-ruler"),
             delete: document.getElementById("btn-tool-delete")
         };
@@ -3352,44 +3200,37 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tool === "room") {
             if (canvas) canvas.style.cursor = "crosshair";
             if (hintText) {
-                hintText.textContent = isVi
-                    ? "💡 Hướng dẫn: Đang ở chế độ Vẽ Khung Phòng (kiểu Sweet Home 3D). Nhấp chuột và kéo tạo hình chữ nhật để dựng nhanh 4 bức tường khép kín kèm diện tích m²."
-                    : "💡 Guide: Draw Room Box mode (Sweet Home 3D style). Click and drag a rectangle to create 4 connected walls with automatic area m² label.";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Vẽ khung phòng. Nhấp chuột và kéo tạo hình chữ nhật để dựng nhanh 4 bức tường khép kín kèm diện tích m².";
             }
         } else if (tool === "draw") {
             if (canvas) canvas.style.cursor = "crosshair";
             if (hintText) {
-                hintText.textContent = isVi 
-                    ? "💡 Hướng dẫn: Đang ở chế độ Vẽ Tường Lẻ. Nhấp chuột và kéo trên bản đồ để tạo vách ngăn (giữ Shift để khóa phương thẳng). Bấm vào tường bất kỳ để kéo sửa." 
-                    : "💡 Guide: Draw Wall mode. Click and drag on canvas to create walls (hold Shift for orthogonal lines). Click any wall to drag or resize.";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Vẽ tường đơn. Nhấp chuột và kéo trên bản đồ để tạo vách ngăn (giữ Shift để khóa phương thẳng).";
             }
         } else if (tool === "select") {
             if (canvas) canvas.style.cursor = "pointer";
             if (hintText) {
-                hintText.textContent = isVi 
-                    ? "💡 Hướng dẫn: Đang ở chế độ Chọn & Kéo Sửa. Nhấp vào bức tường hoặc bộ phát AP bất kỳ để kéo di chuyển vị trí, hoặc kéo 2 đầu mút bức tường để thay đổi độ dài." 
-                    : "💡 Guide: Select & Move mode. Click and drag any wall or AP marker to move it, or drag wall endpoints to resize.";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Chọn & Di chuyển. Nhấp vào bức tường hoặc bộ phát AP bất kỳ để kéo di chuyển vị trí, hoặc chỉnh sửa thuộc tính.";
             }
         } else if (tool === "place_ap") {
             if (canvas) canvas.style.cursor = "copy";
             if (hintText) {
-                hintText.textContent = isVi
-                    ? "💡 Hướng dẫn: Đang ở chế độ Đặt Thêm AP Thủ Công. Nhấp vào vị trí bất kỳ trên mặt bằng để đặt bộ phát Wi-Fi và xem ngay vùng phủ sóng thực tế, hoặc kéo AP hiện có."
-                    : "💡 Guide: Place AP mode. Click anywhere on the floorplan to place a Wi-Fi AP and immediately compute its heatmap, or drag an existing AP.";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Đặt thêm AP. Nhấp vào vị trí bất kỳ trên mặt bằng để đặt bộ phát Wi-Fi và cập nhật vùng phủ sóng.";
+            }
+        } else if (tool === "calibrate") {
+            if (canvas) canvas.style.cursor = "crosshair";
+            if (hintText) {
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Hiệu chuẩn thước đo. Kéo một đoạn mốc đã biết độ dài trên bản vẽ để quy đổi tỷ lệ sang mét thực tế.";
             }
         } else if (tool === "ruler") {
             if (canvas) canvas.style.cursor = "crosshair";
             if (hintText) {
-                hintText.textContent = isVi
-                    ? "💡 Hướng dẫn: Đang ở chế độ Thước Đo Suy Hao (kiểu SketchUp Tape Measure). Nhấp và kéo từ điểm A đến điểm B để đo khoảng cách thực, số vách ngăn xuyên qua và tổng mức suy hao (dB)."
-                    : "💡 Guide: Tape Measure mode (SketchUp style). Click and drag between two points to measure distance, wall intersections, and total path loss (dB).";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Thước đo suy hao. Nhấp và kéo từ điểm A đến điểm B để đo khoảng cách thực, số vách ngăn xuyên qua và tổng mức suy hao (dB).";
             }
         } else {
             if (canvas) canvas.style.cursor = "pointer";
             if (hintText) {
-                hintText.textContent = isVi 
-                    ? "💡 Hướng dẫn: Đang ở chế độ Xóa. Nhấp vào bức tường hoặc bộ phát AP trên bản đồ để xóa bỏ." 
-                    : "💡 Guide: Delete mode. Click on any wall or AP marker to remove it.";
+                hintText.textContent = "Hướng dẫn: Đang ở chế độ Xóa. Nhấp vào bức tường hoặc bộ phát AP trên bản đồ để xóa bỏ.";
             }
         }
         drawFloorplanHeatmap();
@@ -3636,8 +3477,8 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             if (btnLabel) {
                 btnLabel.innerHTML = loading 
-                    ? `<div class="spinner mini" style="display:inline-block; margin-right:8px;"></div> ${isVi ? '⚙️ Đang tính toán vị trí bộ phát & tạo bản đồ nhiệt...' : '⚙️ Calculating optimal AP placement & Heatmap...'}`
-                    : (isVi ? '✅ Tự Động Bố Trí AP & Tính Độ Phủ Sóng' : '✅ Auto-Place APs & Compute Coverage');
+                    ? `<div class="spinner mini" style="display:inline-block; margin-right:8px;"></div> ${isVi ? 'Đang tính toán vị trí bộ phát và tạo bản đồ nhiệt...' : 'Calculating optimal AP placement...'}`
+                    : (isVi ? 'Tự Động Bố Trí AP & Tính Độ Phủ Sóng' : 'Auto-Place APs & Compute Coverage');
             }
         };
 
@@ -3699,8 +3540,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     </ul>
                     <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
                         ${data.access_points.map(a => `
-                            <span class="badge" style="background:#1e293b; border:1px solid #06b6d4; color:#fff; padding:6px 10px; font-size:0.82rem;">
-                                📍 <b>${a.name}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Ch ${a.channel_24}</b> • 5G: <b>Ch ${a.channel_5}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${a.role})
+                            <span class="badge" style="background:#f1f5f9; border:1px solid #0284c7; color:#0f172a; padding:6px 10px; font-size:0.82rem;">
+                                <b>${a.name}</b> (x=${a.x}m, y=${a.y}m) • 2.4G: <b>Kênh ${a.channel_24}</b> • 5G: <b>Ch ${a.channel_5}</b> • 6G: <b>Ch ${a.channel_6 || 37}</b> (${a.role})
                             </span>
                         `).join("")}
                     </div>
@@ -3764,6 +3605,186 @@ document.addEventListener("DOMContentLoaded", () => {
         const m = getPlotMetrics();
         return RULER_TOP + my * m.scaleY;
     }
+
+    // =========================================================================
+    // AP PROPERTY INSPECTOR CONTROLLERS (R3 EKAHAU BENCHMARK)
+    // =========================================================================
+
+    window.openApInspector = function(apIndex) {
+        if (apIndex < 0 || apIndex >= state.planner.aps.length) {
+            window.closeApInspector();
+            return;
+        }
+        window.deselectWall();
+        state.planner.selectedApIndex = apIndex;
+        const ap = state.planner.aps[apIndex];
+
+        const inspector = document.getElementById("planner-ap-inspector");
+        const titleEl = document.getElementById("inspector-ap-title");
+        const nameEl = document.getElementById("inspector-ap-name");
+        const ch24El = document.getElementById("inspector-ap-ch24");
+        const ch5El = document.getElementById("inspector-ap-ch5");
+        const ch6El = document.getElementById("inspector-ap-ch6");
+        const txEl = document.getElementById("inspector-ap-txpower");
+        const antEl = document.getElementById("inspector-ap-antenna");
+        const enEl = document.getElementById("inspector-ap-enabled");
+
+        if (inspector) inspector.style.display = "flex";
+        if (titleEl) titleEl.textContent = `Điểm Truy Cập #${apIndex + 1} (${ap.x.toFixed(1)}m, ${ap.y.toFixed(1)}m)`;
+        if (nameEl) nameEl.value = ap.name || `AP-${apIndex + 1}`;
+        if (ch24El) ch24El.value = ap.channel_24 || 1;
+        if (ch5El) ch5El.value = ap.channel_5 || 36;
+        if (ch6El) ch6El.value = ap.channel_6 || 37;
+        if (txEl) txEl.value = ap.tx_power_dbm || 20;
+        if (antEl) antEl.value = ap.antenna_gain_dbi || 3;
+        if (enEl) enEl.checked = (ap.enabled !== false);
+
+        renderPlannerObjectTable();
+        drawFloorplanHeatmap();
+    };
+
+    window.closeApInspector = function() {
+        state.planner.selectedApIndex = -1;
+        const inspector = document.getElementById("planner-ap-inspector");
+        if (inspector) inspector.style.display = "none";
+        renderPlannerObjectTable();
+        drawFloorplanHeatmap();
+    };
+
+    window.applyApInspectorChanges = function() {
+        const idx = state.planner.selectedApIndex;
+        if (idx < 0 || idx >= state.planner.aps.length) return;
+        const ap = state.planner.aps[idx];
+
+        const nameEl = document.getElementById("inspector-ap-name");
+        const ch24El = document.getElementById("inspector-ap-ch24");
+        const ch5El = document.getElementById("inspector-ap-ch5");
+        const ch6El = document.getElementById("inspector-ap-ch6");
+        const txEl = document.getElementById("inspector-ap-txpower");
+        const antEl = document.getElementById("inspector-ap-antenna");
+        const enEl = document.getElementById("inspector-ap-enabled");
+
+        if (nameEl && nameEl.value.trim()) ap.name = nameEl.value.trim();
+        if (ch24El) ap.channel_24 = parseInt(ch24El.value) || 1;
+        if (ch5El) ap.channel_5 = parseInt(ch5El.value) || 36;
+        if (ch6El) ap.channel_6 = parseInt(ch6El.value) || 37;
+        if (txEl) ap.tx_power_dbm = parseInt(txEl.value) || 20;
+        if (antEl) ap.antenna_gain_dbi = parseInt(antEl.value) || 3;
+        if (enEl) ap.enabled = enEl.checked;
+
+        renderPlannerObjectTable();
+        window.recalculateCurrentAPHeatmap();
+    };
+
+    window.deleteSelectedApFromInspector = function() {
+        const idx = state.planner.selectedApIndex;
+        if (idx < 0 || idx >= state.planner.aps.length) return;
+        window.deletePlacedAp(idx);
+        window.closeApInspector();
+    };
+
+    // =========================================================================
+    // DISTANCE CALIBRATION CONTROLLERS (R3 ACRYLIC BENCHMARK)
+    // =========================================================================
+
+    let pendingCalibrationPixelDist = 0;
+
+    window.openCalibrationModal = function(pixelDist) {
+        pendingCalibrationPixelDist = pixelDist;
+        const modal = document.getElementById("planner-calibration-modal");
+        const pxEl = document.getElementById("calib-pixel-length");
+        const realEl = document.getElementById("calib-real-meters");
+
+        if (pxEl) pxEl.textContent = pixelDist.toFixed(1);
+        if (realEl) {
+            const m = getPlotMetrics();
+            const estM = (pixelDist / m.scaleX).toFixed(1);
+            realEl.value = Math.max(0.5, estM);
+        }
+        if (modal) modal.style.display = "flex";
+    };
+
+    window.cancelDistanceCalibration = function() {
+        pendingCalibrationPixelDist = 0;
+        state.planner.calibrationMeasure = null;
+        const modal = document.getElementById("planner-calibration-modal");
+        if (modal) modal.style.display = "none";
+        window.setPlannerTool("select");
+        drawFloorplanHeatmap();
+    };
+
+    window.applyDistanceCalibration = function() {
+        const realEl = document.getElementById("calib-real-meters");
+        const realM = parseFloat(realEl ? realEl.value : 0);
+        if (!realM || realM <= 0.1 || pendingCalibrationPixelDist <= 5) {
+            window.cancelDistanceCalibration();
+            return;
+        }
+
+        const ppm = pendingCalibrationPixelDist / realM;
+        const m = getPlotMetrics();
+        const newW = Math.max(4, Math.min(100, Math.round((m.plotW / ppm) * 10) / 10));
+        const newH = Math.max(4, Math.min(100, Math.round((m.plotH / ppm) * 10) / 10));
+
+        state.planner.width_m = newW;
+        state.planner.height_m = newH;
+
+        const wInput = document.getElementById("planner-width-input");
+        const hInput = document.getElementById("planner-height-input");
+        if (wInput) wInput.value = newW;
+        if (hInput) hInput.value = newH;
+
+        window.cancelDistanceCalibration();
+        if (state.planner.aps && state.planner.aps.length > 0) {
+            window.recalculateCurrentAPHeatmap();
+        } else {
+            drawFloorplanHeatmap();
+        }
+    };
+
+    // =========================================================================
+    // FLOORPLAN BACKGROUND IMAGE CONTROLLERS (R3 ACRYLIC BENCHMARK)
+    // =========================================================================
+
+    window.handleFloorplanImageUpload = function(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                state.planner.backgroundImage = img;
+                state.planner.backgroundImageOpacity = 0.45;
+                const opGroup = document.getElementById("planner-image-opacity-group");
+                if (opGroup) opGroup.style.display = "flex";
+                drawFloorplanHeatmap();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    window.setFloorplanImageOpacity = function(val) {
+        const op = Math.max(0.05, Math.min(1.0, parseFloat(val)));
+        state.planner.backgroundImageOpacity = op;
+        const label = document.getElementById("planner-image-opacity-val");
+        if (label) label.textContent = `${Math.round(op * 100)}%`;
+        drawFloorplanHeatmap();
+    };
+
+    window.clearFloorplanImage = function() {
+        state.planner.backgroundImage = null;
+        const opGroup = document.getElementById("planner-image-opacity-group");
+        if (opGroup) opGroup.style.display = "none";
+        const fileInput = document.getElementById("planner-floorplan-file");
+        if (fileInput) fileInput.value = "";
+        drawFloorplanHeatmap();
+    };
+
+    // =========================================================================
+    // PLANNER CANVAS INTERACTION (SETUP)
+    // =========================================================================
 
     function setupPlannerCanvasInteraction() {
         const canvas = document.getElementById("canvas-floorplan-heatmap");
@@ -3842,7 +3863,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return bestHit;
         }
 
-        let dragMode = null; // null | 'draw' | 'room' | 'ruler' | 'move_ap' | 'move_wall' | 'drag_handle1' | 'drag_handle2'
+        let dragMode = null; // null | 'draw' | 'room' | 'ruler' | 'calibrate' | 'move_ap' | 'move_wall' | 'drag_handle1' | 'drag_handle2'
         let dragWallIdx = -1;
         let dragApIdx = -1;
         let dragStartPt = null;
@@ -3866,8 +3887,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            if (tool === "calibrate") {
+                window.deselectWall();
+                window.closeApInspector();
+                dragMode = "calibrate";
+                dragStartPt = { px: pt.px, py: pt.py, mx: pt.x, my: pt.y };
+                state.planner.calibrationMeasure = { px1: pt.px, py1: pt.py, px2: pt.px, py2: pt.py };
+                drawFloorplanHeatmap();
+                return;
+            }
+
             if (tool === "ruler") {
                 window.deselectWall();
+                window.closeApInspector();
                 dragMode = "ruler";
                 dragStartPt = { x: snap(pt.x, 0.25), y: snap(pt.y, 0.25) };
                 state.planner.rulerMeasure = { x1: dragStartPt.x, y1: dragStartPt.y, x2: dragStartPt.x, y2: dragStartPt.y };
@@ -3876,6 +3908,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (apHit >= 0) {
+                window.openApInspector(apHit);
                 dragApIdx = apHit;
                 dragMode = "move_ap";
                 canvas.style.cursor = "grabbing";
@@ -3902,6 +3935,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (hit && hit.wallIdx >= 0 && tool !== "room") {
+                window.closeApInspector();
                 dragWallIdx = hit.wallIdx;
                 window.selectWall(dragWallIdx);
                 const w = state.planner.walls[dragWallIdx];
@@ -3924,16 +3958,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (tool === "room") {
                 window.deselectWall();
+                window.closeApInspector();
                 dragMode = "room";
                 dragStartPt = { x: snap(pt.x, 0.5), y: snap(pt.y, 0.5) };
                 state.planner.previewRoom = null;
             } else if (tool === "draw") {
                 window.deselectWall();
+                window.closeApInspector();
                 dragMode = "draw";
                 dragStartPt = { x: snap(pt.x, 0.5), y: snap(pt.y, 0.5) };
                 state.planner.previewWall = null;
             } else {
                 window.deselectWall();
+                window.closeApInspector();
             }
             drawFloorplanHeatmap();
         });
@@ -3951,6 +3988,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                if (dragMode === "calibrate" && dragStartPt) {
+                    state.planner.calibrationMeasure = {
+                        px1: dragStartPt.px,
+                        py1: dragStartPt.py,
+                        px2: pt.px,
+                        py2: pt.py
+                    };
+                    drawFloorplanHeatmap();
+                    return;
+                }
+
                 if (dragMode === "ruler" && dragStartPt) {
                     state.planner.rulerMeasure = {
                         x1: dragStartPt.x,
@@ -3963,135 +4011,126 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (dragMode === "room" && dragStartPt) {
-                    const matSelect = document.getElementById("planner-material-select");
-                    const mat = matSelect ? matSelect.value : "brick";
                     state.planner.previewRoom = {
                         x1: dragStartPt.x,
                         y1: dragStartPt.y,
                         x2: snap(pt.x, 0.5),
                         y2: snap(pt.y, 0.5),
-                        material: mat
+                        material: document.getElementById("planner-wall-material-select")?.value || "brick"
                     };
                     drawFloorplanHeatmap();
                     return;
                 }
 
-                if (dragMode === "drag_handle1" && dragWallIdx >= 0 && dragWallIdx < state.planner.walls.length) {
-                    const w = state.planner.walls[dragWallIdx];
-                    let nx = snap(pt.x, 0.25);
-                    let ny = snap(pt.y, 0.25);
-
+                if (dragMode === "draw" && dragStartPt) {
+                    let endX = snap(pt.x, 0.25);
+                    let endY = snap(pt.y, 0.25);
                     if (e.shiftKey) {
-                        if (Math.abs(nx - w.x2) > Math.abs(ny - w.y2)) ny = w.y2;
-                        else nx = w.x2;
+                        const dx = Math.abs(endX - dragStartPt.x);
+                        const dy = Math.abs(endY - dragStartPt.y);
+                        if (dx > dy) endY = dragStartPt.y;
+                        else endX = dragStartPt.x;
                     }
-                    w.x1 = Math.max(0, Math.min(m.width_m, nx));
-                    w.y1 = Math.max(0, Math.min(m.height_m, ny));
-
-                    const liveLen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-                    const lenEl = document.getElementById("inspector-wall-length");
-                    if (lenEl) lenEl.value = convertMetersToUnit(liveLen, state.planner.unit || "m");
-
-                    drawFloorplanHeatmap();
-                    return;
-                }
-
-                if (dragMode === "drag_handle2" && dragWallIdx >= 0 && dragWallIdx < state.planner.walls.length) {
-                    const w = state.planner.walls[dragWallIdx];
-                    let nx = snap(pt.x, 0.25);
-                    let ny = snap(pt.y, 0.25);
-
-                    if (e.shiftKey) {
-                        if (Math.abs(nx - w.x1) > Math.abs(ny - w.y1)) ny = w.y1;
-                        else nx = w.x1;
-                    }
-                    w.x2 = Math.max(0, Math.min(m.width_m, nx));
-                    w.y2 = Math.max(0, Math.min(m.height_m, ny));
-
-                    const liveLen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-                    const lenEl = document.getElementById("inspector-wall-length");
-                    if (lenEl) lenEl.value = convertMetersToUnit(liveLen, state.planner.unit || "m");
-
+                    state.planner.previewWall = {
+                        x1: dragStartPt.x,
+                        y1: dragStartPt.y,
+                        x2: endX,
+                        y2: endY,
+                        material: document.getElementById("planner-wall-material-select")?.value || "brick"
+                    };
                     drawFloorplanHeatmap();
                     return;
                 }
 
                 if (dragMode === "move_wall" && dragWallIdx >= 0 && dragOrigWall && dragStartPt) {
+                    const dx = snap(pt.x - dragStartPt.x, 0.25);
+                    const dy = snap(pt.y - dragStartPt.y, 0.25);
                     const w = state.planner.walls[dragWallIdx];
-                    let dx = snap(pt.x - dragStartPt.x, 0.25);
-                    let dy = snap(pt.y - dragStartPt.y, 0.25);
-
-                    let nx1 = dragOrigWall.x1 + dx;
-                    let ny1 = dragOrigWall.y1 + dy;
-                    let nx2 = dragOrigWall.x2 + dx;
-                    let ny2 = dragOrigWall.y2 + dy;
+                    let nx1 = dragOrigWall.x1 + dx, ny1 = dragOrigWall.y1 + dy;
+                    let nx2 = dragOrigWall.x2 + dx, ny2 = dragOrigWall.y2 + dy;
 
                     const minX = Math.min(nx1, nx2);
                     const maxX = Math.max(nx1, nx2);
                     const minY = Math.min(ny1, ny2);
                     const maxY = Math.max(ny1, ny2);
 
-                    if (minX < 0) { nx1 -= minX; nx2 -= minX; }
-                    if (maxX > m.width_m) { const shift = maxX - m.width_m; nx1 -= shift; nx2 -= shift; }
-                    if (minY < 0) { ny1 -= minY; ny2 -= minY; }
-                    if (maxY > m.height_m) { const shift = maxY - m.height_m; ny1 -= shift; ny2 -= shift; }
-
-                    w.x1 = Math.round(nx1 * 100) / 100;
-                    w.y1 = Math.round(ny1 * 100) / 100;
-                    w.x2 = Math.round(nx2 * 100) / 100;
-                    w.y2 = Math.round(ny2 * 100) / 100;
-
+                    if (minX >= 0 && maxX <= m.width_m && minY >= 0 && maxY <= m.height_m) {
+                        w.x1 = nx1; w.y1 = ny1;
+                        w.x2 = nx2; w.y2 = ny2;
+                    }
                     drawFloorplanHeatmap();
                     return;
                 }
 
-                if (dragMode === "draw" && dragStartPt) {
-                    let endX = snap(pt.x, 0.5);
-                    let endY = snap(pt.y, 0.5);
-
+                if ((dragMode === "drag_handle1" || dragMode === "drag_handle2") && dragWallIdx >= 0) {
+                    const w = state.planner.walls[dragWallIdx];
+                    let nx = snap(pt.x, 0.25);
+                    let ny = snap(pt.y, 0.25);
                     if (e.shiftKey) {
-                        if (Math.abs(endX - dragStartPt.x) > Math.abs(endY - dragStartPt.y)) endY = dragStartPt.y;
-                        else endX = dragStartPt.x;
+                        const anchorX = (dragMode === "drag_handle1") ? w.x2 : w.x1;
+                        const anchorY = (dragMode === "drag_handle1") ? w.y2 : w.y1;
+                        const dx = Math.abs(nx - anchorX);
+                        const dy = Math.abs(ny - anchorY);
+                        if (dx > dy) ny = anchorY;
+                        else nx = anchorX;
                     }
 
-                    const matSelect = document.getElementById("planner-material-select");
-                    const mat = matSelect ? matSelect.value : "brick";
-
-                    state.planner.previewWall = {
-                        x1: dragStartPt.x,
-                        y1: dragStartPt.y,
-                        x2: endX,
-                        y2: endY,
-                        material: mat
-                    };
+                    if (dragMode === "drag_handle1") {
+                        w.x1 = Math.max(0, Math.min(m.width_m, nx));
+                        w.y1 = Math.max(0, Math.min(m.height_m, ny));
+                    } else {
+                        w.x2 = Math.max(0, Math.min(m.width_m, nx));
+                        w.y2 = Math.max(0, Math.min(m.height_m, ny));
+                    }
                     drawFloorplanHeatmap();
                     return;
                 }
             }
 
+            // Hover state updates
             const apHit = findApHit(pt);
             const hit = findHitTarget(pt);
+            let prevHoveredWall = state.planner.hoveredWallIndex;
+            let prevHoveredAp = state.planner.hoveredApIndex;
+
             state.planner.hoveredWallIndex = hit ? hit.wallIdx : -1;
             state.planner.hoveredPart = hit ? hit.part : null;
+            state.planner.hoveredApIndex = apHit;
 
-            if (apHit >= 0) {
-                canvas.style.cursor = (state.planner.activeTool === "delete") ? "pointer" : "grab";
-            } else if (state.planner.activeTool === "delete") {
-                canvas.style.cursor = hit ? "pointer" : "default";
-            } else if (hit && state.planner.activeTool !== "room" && state.planner.activeTool !== "ruler") {
-                if (hit.part === "handle1" || hit.part === "handle2") canvas.style.cursor = "crosshair";
-                else canvas.style.cursor = "grab";
-            } else {
-                canvas.style.cursor = (state.planner.activeTool === "draw" || state.planner.activeTool === "room" || state.planner.activeTool === "ruler") ? "crosshair" : "default";
+            if (prevHoveredWall !== state.planner.hoveredWallIndex || prevHoveredAp !== state.planner.hoveredApIndex) {
+                drawFloorplanHeatmap();
             }
-            drawFloorplanHeatmap();
+
+            if (!dragMode) {
+                const tool = state.planner.activeTool;
+                if (tool === "calibrate" || tool === "ruler" || tool === "draw" || tool === "room") {
+                    canvas.style.cursor = "crosshair";
+                } else if (tool === "place_ap") {
+                    canvas.style.cursor = "copy";
+                } else if (apHit >= 0) {
+                    canvas.style.cursor = "grab";
+                } else if (hit) {
+                    if (hit.part === "handle1" || hit.part === "handle2") canvas.style.cursor = "crosshair";
+                    else if (hit.part === "midpoint" || hit.part === "body") canvas.style.cursor = "grab";
+                } else {
+                    canvas.style.cursor = "default";
+                }
+            }
         });
 
         const finishDragging = (e) => {
             if (!dragMode) return;
             const pt = getCoords(e);
 
-            if (dragMode === "move_ap") {
+            if (dragMode === "calibrate" && state.planner.calibrationMeasure) {
+                const cm = state.planner.calibrationMeasure;
+                const pDist = Math.hypot(cm.px2 - cm.px1, cm.py2 - cm.py1);
+                if (pDist >= 15) {
+                    window.openCalibrationModal(pDist);
+                } else {
+                    state.planner.calibrationMeasure = null;
+                }
+            } else if (dragMode === "move_ap") {
                 window.recalculateCurrentAPHeatmap();
             } else if (dragMode === "room" && dragStartPt) {
                 const xA = Math.min(dragStartPt.x, snap(pt.x, 0.5));
@@ -4100,39 +4139,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 const yB = Math.max(dragStartPt.y, snap(pt.y, 0.5));
                 const rw = xB - xA;
                 const rh = yB - yA;
+
                 if (rw >= 1.0 && rh >= 1.0) {
-                    const matSelect = document.getElementById("planner-material-select");
+                    const matSelect = document.getElementById("planner-wall-material-select");
                     const mat = matSelect ? matSelect.value : "brick";
                     const roomId = Date.now() + Math.floor(Math.random() * 1000);
-                    state.planner.walls.push(
-                        { x1: xA, y1: yA, x2: xB, y2: yA, material: mat, roomId },
-                        { x1: xB, y1: yA, x2: xB, y2: yB, material: mat, roomId },
-                        { x1: xB, y1: yB, x2: xA, y2: yB, material: mat, roomId },
-                        { x1: xA, y1: yB, x2: xA, y2: yA, material: mat, roomId }
-                    );
+
+                    state.planner.walls.push({ x1: xA, y1: yA, x2: xB, y2: yA, material: mat, roomId });
+                    state.planner.walls.push({ x1: xB, y1: yA, x2: xB, y2: yB, material: mat, roomId });
+                    state.planner.walls.push({ x1: xB, y1: yB, x2: xA, y2: yB, material: mat, roomId });
+                    state.planner.walls.push({ x1: xA, y1: yB, x2: xA, y2: yA, material: mat, roomId });
+
+                    if (!state.planner.roomLabels) state.planner.roomLabels = [];
                     const areaM2 = (rw * rh).toFixed(1);
                     const roomNum = (state.planner.roomLabels || []).length + 1;
                     state.planner.roomLabels.push({
                         roomId,
-                        text: `Phòng #${roomNum} (${rw}m×${rh}m • ${areaM2}m²)`,
                         x: (xA + xB) / 2,
-                        y: (yA + yB) / 2
+                        y: (yA + yB) / 2,
+                        text: `Phòng ${roomNum} (${areaM2}m²)`
                     });
-                    updateWallCountBadge();
-                    if (state.planner.aps && state.planner.aps.length > 0) window.recalculateCurrentAPHeatmap();
-                }
-            } else if (dragMode === "draw" && dragStartPt) {
-                let endX = snap(pt.x, 0.5);
-                let endY = snap(pt.y, 0.5);
 
+                    updateWallCountBadge();
+                    window.recalculateCurrentAPHeatmap();
+                }
+                state.planner.previewRoom = null;
+            } else if (dragMode === "draw" && dragStartPt) {
+                let endX = snap(pt.x, 0.25);
+                let endY = snap(pt.y, 0.25);
                 if (e.shiftKey) {
-                    if (Math.abs(endX - dragStartPt.x) > Math.abs(endY - dragStartPt.y)) endY = dragStartPt.y;
+                    const dx = Math.abs(endX - dragStartPt.x);
+                    const dy = Math.abs(endY - dragStartPt.y);
+                    if (dx > dy) endY = dragStartPt.y;
                     else endX = dragStartPt.x;
                 }
-
                 const dist = Math.hypot(endX - dragStartPt.x, endY - dragStartPt.y);
                 if (dist >= 0.5) {
-                    const matSelect = document.getElementById("planner-material-select");
+                    const matSelect = document.getElementById("planner-wall-material-select");
                     const mat = matSelect ? matSelect.value : "brick";
                     state.planner.walls.push({
                         x1: dragStartPt.x,
@@ -4141,27 +4184,33 @@ document.addEventListener("DOMContentLoaded", () => {
                         y2: endY,
                         material: mat
                     });
-                    updateWallCountBadge();
                     const newIdx = state.planner.walls.length - 1;
                     window.selectWall(newIdx);
-                    if (state.planner.aps && state.planner.aps.length > 0) window.recalculateCurrentAPHeatmap();
+                    updateWallCountBadge();
+                    window.recalculateCurrentAPHeatmap();
                 }
-            } else if (dragMode === "drag_handle1" || dragMode === "drag_handle2" || dragMode === "move_wall") {
+                state.planner.previewWall = null;
+            } else if (dragMode === "drag_handle1" || dragMode === "drag_handle2") {
                 if (dragWallIdx >= 0 && dragWallIdx < state.planner.walls.length) {
                     const w = state.planner.walls[dragWallIdx];
                     const dist = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-                    if (dist < 0.25 && dragOrigWall) {
-                        w.x1 = dragOrigWall.x1;
-                        w.y1 = dragOrigWall.y1;
-                        w.x2 = dragOrigWall.x2;
-                        w.y2 = dragOrigWall.y2;
+                    if (dist < 0.25) {
+                        window.deleteWallAt(dragWallIdx);
+                    } else {
+                        window.recalculateCurrentAPHeatmap();
                     }
+                }
+            } else if (dragMode === "move_wall") {
+                if (dragWallIdx >= 0 && dragWallIdx < state.planner.walls.length) {
+                    const w = state.planner.walls[dragWallIdx];
                     const finalLen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
                     const lenEl = document.getElementById("inspector-wall-length");
-                    if (lenEl) lenEl.value = convertMetersToUnit(finalLen, state.planner.unit || "m");
+                    if (lenEl) {
+                        const curUnit = state.planner.unit || "m";
+                        lenEl.value = convertMetersToUnit(finalLen, curUnit);
+                    }
+                    window.recalculateCurrentAPHeatmap();
                 }
-                renderPlannerObjectTable();
-                if (state.planner.aps && state.planner.aps.length > 0) window.recalculateCurrentAPHeatmap();
             }
 
             dragMode = null;
@@ -4169,8 +4218,6 @@ document.addEventListener("DOMContentLoaded", () => {
             dragApIdx = -1;
             dragStartPt = null;
             dragOrigWall = null;
-            state.planner.previewWall = null;
-            state.planner.previewRoom = null;
             drawFloorplanHeatmap();
         };
 
@@ -4186,16 +4233,165 @@ document.addEventListener("DOMContentLoaded", () => {
             if (e.key === "Delete" || e.key === "Backspace") {
                 if (state.planner.selectedWallIndex >= 0) {
                     e.preventDefault();
-                    window.deleteSelectedWall();
+                    window.deleteWallAt(state.planner.selectedWallIndex);
+                } else if (state.planner.selectedApIndex >= 0) {
+                    e.preventDefault();
+                    window.deletePlacedAp(state.planner.selectedApIndex);
+                    window.closeApInspector();
                 }
-            } else if (e.key === "Escape") {
-                state.planner.rulerMeasure = null;
-                window.deselectWall();
             }
         });
     }
 
-    // DRAW FLOORPLAN DRAFTING & RF HEATMAP CANVAS
+    // =========================================================================
+    // 5-TIER CONTINUOUS RF COLOR SCALES (EKAHAU & ACRYLIC WI-FI BENCHMARK)
+    // =========================================================================
+
+    function interpolateColorStops(val, stops) {
+        if (val >= stops[0].val) {
+            return { r: stops[0].r, g: stops[0].g, b: stops[0].b, a: stops[0].a };
+        }
+        const last = stops[stops.length - 1];
+        if (val <= last.val) {
+            return { r: last.r, g: last.g, b: last.b, a: last.a };
+        }
+        for (let i = 0; i < stops.length - 1; i++) {
+            const s1 = stops[i];
+            const s2 = stops[i + 1];
+            if (val <= s1.val && val >= s2.val) {
+                const range = s1.val - s2.val;
+                const t = range === 0 ? 0 : (val - s2.val) / range;
+                return {
+                    r: Math.round(s2.r + t * (s1.r - s2.r)),
+                    g: Math.round(s2.g + t * (s1.g - s2.g)),
+                    b: Math.round(s2.b + t * (s1.b - s2.b)),
+                    a: Number((s2.a + t * (s1.a - s2.a)).toFixed(3))
+                };
+            }
+        }
+        return { r: last.r, g: last.g, b: last.b, a: last.a };
+    }
+
+    const RSSI_STOPS = [
+        { val: -45, r: 5,   g: 150, b: 105, a: 0.70 }, // Very Strong: #059669
+        { val: -55, r: 16,  g: 185, b: 129, a: 0.65 }, // Good: #10b981
+        { val: -65, r: 234, g: 179, b: 8,   a: 0.60 }, // Moderate: #eab308
+        { val: -75, r: 249, g: 115, b: 22,  a: 0.55 }, // Weak: #f97316
+        { val: -85, r: 239, g: 68,  b: 68,  a: 0.50 }, // Critical: #ef4444
+        { val: -95, r: 148, g: 163, b: 184, a: 0.15 }  // Dead Zone: #94a3b8
+    ];
+
+    function getContinuousRssiColor(rssi) {
+        return interpolateColorStops(rssi, RSSI_STOPS);
+    }
+
+    function getContinuousColor(rssi) {
+        const c = getContinuousRssiColor(rssi);
+        return `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`;
+    }
+
+    const SNR_STOPS = [
+        { val: 40, r: 5,   g: 150, b: 105, a: 0.70 },
+        { val: 30, r: 16,  g: 185, b: 129, a: 0.65 },
+        { val: 20, r: 234, g: 179, b: 8,   a: 0.60 },
+        { val: 12, r: 249, g: 115, b: 22,  a: 0.55 },
+        { val: 0,  r: 239, g: 68,  b: 68,  a: 0.45 }
+    ];
+    function getContinuousSnrColor(snr) {
+        return interpolateColorStops(snr, SNR_STOPS);
+    }
+
+    const INTERFERENCE_STOPS = [
+        { val: 0, r: 16,  g: 185, b: 129, a: 0.55 },
+        { val: 1, r: 234, g: 179, b: 8,   a: 0.60 },
+        { val: 2, r: 249, g: 115, b: 22,  a: 0.65 },
+        { val: 4, r: 239, g: 68,  b: 68,  a: 0.70 }
+    ];
+    function getContinuousInterferenceColor(conflicts) {
+        if (conflicts <= 0) return { r: 16, g: 185, b: 129, a: 0.55 };
+        if (conflicts >= 4) return { r: 239, g: 68, b: 68, a: 0.70 };
+        for (let i = 0; i < INTERFERENCE_STOPS.length - 1; i++) {
+            const s1 = INTERFERENCE_STOPS[i];
+            const s2 = INTERFERENCE_STOPS[i + 1];
+            if (conflicts >= s1.val && conflicts <= s2.val) {
+                const t = (conflicts - s1.val) / (s2.val - s1.val);
+                return {
+                    r: Math.round(s1.r + t * (s2.r - s1.r)),
+                    g: Math.round(s2.g + t * (s1.g - s2.g)),
+                    b: Math.round(s2.b + t * (s1.b - s2.b)),
+                    a: Number((s1.a + t * (s2.a - s1.a)).toFixed(3))
+                };
+            }
+        }
+        return { r: 239, g: 68, b: 68, a: 0.70 };
+    }
+
+    const THROUGHPUT_STOPS = [
+        { val: 800, r: 5,   g: 150, b: 105, a: 0.70 },
+        { val: 400, r: 16,  g: 185, b: 129, a: 0.65 },
+        { val: 150, r: 234, g: 179, b: 8,   a: 0.60 },
+        { val: 50,  r: 249, g: 115, b: 22,  a: 0.55 },
+        { val: 0,   r: 239, g: 68,  b: 68,  a: 0.45 }
+    ];
+    function getContinuousThroughputColor(mbps) {
+        return interpolateColorStops(mbps, THROUGHPUT_STOPS);
+    }
+
+    function getRssiColor(rssi) { return getContinuousColor(rssi); }
+    function getSnrColor(snr) { const c = getContinuousSnrColor(snr); return `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`; }
+    function getInterferenceColor(cCount) { const c = getContinuousInterferenceColor(cCount); return `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`; }
+    function getThroughputColor(mbps) { const c = getContinuousThroughputColor(mbps); return `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`; }
+
+    // Hidden Offscreen Canvas for smooth GPU-accelerated Bilinear Heatmap interpolation
+    let offscreenHeatmapCanvas = null;
+
+    function renderSmoothHeatmapBuffer(activeGrid, activeMode, gridW, gridH, slaCutoff) {
+        if (!offscreenHeatmapCanvas) {
+            offscreenHeatmapCanvas = document.createElement("canvas");
+        }
+        if (offscreenHeatmapCanvas.width !== gridW || offscreenHeatmapCanvas.height !== gridH) {
+            offscreenHeatmapCanvas.width = gridW;
+            offscreenHeatmapCanvas.height = gridH;
+        }
+        const offCtx = offscreenHeatmapCanvas.getContext("2d");
+        const imgData = offCtx.createImageData(gridW, gridH);
+        const data = imgData.data;
+
+        for (let j = 0; j < gridH; j++) {
+            for (let i = 0; i < gridW; i++) {
+                const val = activeGrid[j][i];
+                const idx = (j * gridW + i) * 4;
+                let rgba;
+
+                if (activeMode === "snr") {
+                    rgba = getContinuousSnrColor(val);
+                } else if (activeMode === "interference") {
+                    rgba = getContinuousInterferenceColor(val);
+                } else if (activeMode === "throughput") {
+                    rgba = getContinuousThroughputColor(val);
+                } else {
+                    rgba = getContinuousRssiColor(val);
+                }
+
+                data[idx] = rgba.r;
+                data[idx + 1] = rgba.g;
+                data[idx + 2] = rgba.b;
+
+                if ((activeMode === "primary_rssi" || activeMode === "secondary_rssi") && val < slaCutoff) {
+                    data[idx + 3] = Math.round(rgba.a * 0.35 * 255);
+                } else {
+                    data[idx + 3] = Math.round(rgba.a * 255);
+                }
+            }
+        }
+        offCtx.putImageData(imgData, 0, 0);
+        return offscreenHeatmapCanvas;
+    }
+
+    // =========================================================================
+    // DRAW FLOORPLAN HEATMAP (LIGHT MODE PRO MAX & BILINEAR UPSAMPLING)
+    // =========================================================================
+
     function drawFloorplanHeatmap() {
         const canvas = document.getElementById("canvas-floorplan-heatmap");
         if (!canvas) return;
@@ -4218,16 +4414,22 @@ document.addEventListener("DOMContentLoaded", () => {
         function toX(mx) { return plotX + mx * scaleX; }
         function toY(my) { return plotY + my * scaleY; }
 
-        const isDark = state.theme === "dark";
-
-        // 1. CLEAR & FILL BASE (Light & Dark Theme adaptive)
-        ctx.fillStyle = isDark ? "#070c17" : "#f1f5f9";
+        // 1. BASE FILL (Pure Light Theme Styling)
+        ctx.fillStyle = "#f8fafc";
         ctx.fillRect(0, 0, W, H);
 
-        ctx.fillStyle = isDark ? "#0a1324" : "#ffffff";
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(plotX, plotY, plotW, plotH);
 
-        // 2. DRAW HEATMAP (Ekahau 5-Mode Matrix Renderer)
+        // 1.5. DRAW FLOORPLAN BACKGROUND IMAGE LAYER (IF LOADED)
+        if (state.planner.backgroundImage && state.planner.backgroundImage.complete) {
+            ctx.save();
+            ctx.globalAlpha = state.planner.backgroundImageOpacity !== undefined ? state.planner.backgroundImageOpacity : 0.45;
+            ctx.drawImage(state.planner.backgroundImage, plotX, plotY, plotW, plotH);
+            ctx.restore();
+        }
+
+        // 2. DRAW HEATMAP (SMOOTH BILINEAR GPU UPSAMPLING)
         const hm = state.planner.heatmap;
         const activeMode = state.planner.heatmapMode || "primary_rssi";
         if (hm && hm.grid && hm.grid.length > 0) {
@@ -4239,35 +4441,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const gridH = activeGrid.length;
             const gridW = activeGrid[0].length;
-            const cellW = plotW / gridW;
-            const cellH = plotH / gridH;
-
             const slaCutoff = state.planner.slaCutoff !== undefined ? state.planner.slaCutoff : -65.0;
+
+            // Render buffer and draw with bilinear filtering enabled
+            const buffer = renderSmoothHeatmapBuffer(activeGrid, activeMode, gridW, gridH, slaCutoff);
+            ctx.save();
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(buffer, 0, 0, gridW, gridH, plotX, plotY, plotW, plotH);
+            ctx.restore();
+
+            // Hazard cross-hatching for non-compliant dead zones
             let compliantCells = 0;
             const totalCells = gridH * gridW;
+            const cellW = plotW / gridW;
+            const cellH = plotH / gridH;
 
             for (let j = 0; j < gridH; j++) {
                 for (let i = 0; i < gridW; i++) {
                     const val = activeGrid[j][i];
-                    const cx = plotX + i * cellW;
-                    const cy = plotY + j * cellH;
-
-                    if (activeMode === "snr") ctx.fillStyle = getSnrColor(val);
-                    else if (activeMode === "interference") ctx.fillStyle = getInterferenceColor(val);
-                    else if (activeMode === "throughput") ctx.fillStyle = getThroughputColor(val);
-                    else ctx.fillStyle = getRssiColor(val);
-                    ctx.fillRect(cx, cy, cellW + 0.8, cellH + 0.8);
-
-                    // Ekahau SLA Requirement Cutoff Shading & Hazard Cross-Hatching
                     if (activeMode === "primary_rssi" || activeMode === "secondary_rssi") {
                         if (val >= slaCutoff) {
                             compliantCells++;
                         } else {
-                            // Darken non-compliant dead-zone
-                            ctx.fillStyle = isDark ? "rgba(10, 16, 30, 0.78)" : "rgba(226, 232, 240, 0.85)";
-                            ctx.fillRect(cx, cy, cellW + 0.8, cellH + 0.8);
-                            // Subtle hazard cross-hatching
-                            ctx.strokeStyle = isDark ? "rgba(239, 68, 68, 0.38)" : "rgba(239, 68, 68, 0.52)";
+                            const cx = plotX + i * cellW;
+                            const cy = plotY + j * cellH;
+                            ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
                             ctx.lineWidth = 1;
                             ctx.beginPath();
                             ctx.moveTo(cx, cy);
@@ -4288,25 +4487,24 @@ document.addEventListener("DOMContentLoaded", () => {
             const slaBadge = document.getElementById("ekahau-sla-status-badge");
             if (slaBadge) {
                 const slaPct = totalCells > 0 ? ((compliantCells / totalCells) * 100).toFixed(1) : 0;
-                const isVi = state.currentLang === "vi";
                 if (activeMode === "primary_rssi") {
-                    slaBadge.textContent = isVi ? `SLA Sóng Chính: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)` : `Primary SLA: ${slaPct}% Pass (Cutoff ${slaCutoff} dBm)`;
+                    slaBadge.textContent = `SLA Sóng Chính: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)`;
                 } else if (activeMode === "secondary_rssi") {
-                    slaBadge.textContent = isVi ? `SLA Chuyển Vùng: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)` : `Roaming SLA: ${slaPct}% Pass (Cutoff ${slaCutoff} dBm)`;
+                    slaBadge.textContent = `SLA Chuyển Vùng: Đạt ${slaPct}% (Ngưỡng ${slaCutoff} dBm)`;
                 } else if (activeMode === "snr") {
-                    slaBadge.textContent = isVi ? `SLA Tỷ Số SNR: Đạt ${slaPct}% (≥ 20 dB)` : `SNR SLA: ${slaPct}% Pass (≥ 20 dB)`;
+                    slaBadge.textContent = `SLA Tỷ Số SNR: Đạt ${slaPct}% (≥ 20 dB)`;
                 } else if (activeMode === "interference") {
-                    slaBadge.textContent = isVi ? `SLA Không Nhiễu: Đạt ${slaPct}% (≤ 1 AP)` : `Clean Spectrum SLA: ${slaPct}% Pass`;
+                    slaBadge.textContent = `SLA Không Nhiễu: Đạt ${slaPct}% (≤ 1 AP)`;
                 } else {
-                    slaBadge.textContent = isVi ? `SLA Băng Thông: Đạt ${slaPct}% (≥ 100 Mbps)` : `Throughput SLA: ${slaPct}% Pass`;
+                    slaBadge.textContent = `SLA Băng Thông: Đạt ${slaPct}% (≥ 100 Mbps)`;
                 }
-                slaBadge.style.background = slaPct >= 85 ? "rgba(16, 185, 129, 0.2)" : (slaPct >= 65 ? "rgba(245, 158, 11, 0.2)" : "rgba(239, 68, 68, 0.2)");
-                slaBadge.style.color = slaPct >= 85 ? "#10b981" : (slaPct >= 65 ? "#f59e0b" : "#ef4444");
+                slaBadge.style.background = slaPct >= 85 ? "rgba(16, 185, 129, 0.15)" : (slaPct >= 65 ? "rgba(245, 158, 11, 0.15)" : "rgba(239, 68, 68, 0.15)");
+                slaBadge.style.color = slaPct >= 85 ? "#059669" : (slaPct >= 65 ? "#d97706" : "#dc2626");
                 slaBadge.style.borderColor = slaPct >= 85 ? "#10b981" : (slaPct >= 65 ? "#f59e0b" : "#ef4444");
             }
         }
 
-        // Update Live Point Probe Readout badge on hover
+        // Live Point Probe Readout
         const probeEl = document.getElementById("planner-hover-probe-readout");
         const curProbeM = state.planner.cursorMeters;
         if (probeEl) {
@@ -4320,16 +4518,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 const pSnr = hm.snr_grid?.[gj]?.[gi] ?? "--";
                 const pInt = hm.interference_grid?.[gj]?.[gi] ?? 0;
                 const pTput = hm.throughput_grid?.[gj]?.[gi] ?? "--";
-                probeEl.textContent = `🎯 Probe (${curProbeM.x.toFixed(1)}m, ${curProbeM.y.toFixed(1)}m): Pri ${pRssi}dBm | Sec ${sRssi}dBm | SNR ${pSnr}dB | CCI ${pInt} | ${pTput}Mbps`;
+                probeEl.textContent = `Điểm đo: Tọa độ (${curProbeM.x.toFixed(1)}m, ${curProbeM.y.toFixed(1)}m) | Sóng chính: ${pRssi} dBm | Sóng phụ: ${sRssi} dBm | SNR: ${pSnr} dB | Tranh chấp: ${pInt} AP | Tốc độ: ${pTput} Mbps`;
             } else {
-                probeEl.textContent = state.currentLang === "vi"
-                    ? "🎯 Điểm đo: Di chuột lên bản vẽ để xem thông số sóng tại chỗ"
-                    : "🎯 Point Probe: Move cursor over canvas to inspect live RF values";
+                probeEl.textContent = "Điểm đo: Di chuột lên bản vẽ để xem thông số sóng tại chỗ";
             }
         }
 
-        // 3. ARCHITECTURAL GRID (Theme adaptive)
-        ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.05)" : "rgba(15, 23, 42, 0.04)";
+        // 3. ARCHITECTURAL GRID (Light Theme Styling)
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.04)";
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
         for (let x = 0.5; x < width_m; x += 1.0) {
@@ -4347,9 +4543,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (let x = 1; x < width_m; x++) {
             const isMajor5 = (x % 5 === 0);
-            ctx.strokeStyle = isMajor5 
-                ? (isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(2, 132, 199, 0.22)") 
-                : (isDark ? "rgba(56, 189, 248, 0.10)" : "rgba(15, 23, 42, 0.07)");
+            ctx.strokeStyle = isMajor5 ? "rgba(2, 132, 199, 0.20)" : "rgba(15, 23, 42, 0.07)";
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.beginPath();
             ctx.moveTo(toX(x), plotY);
@@ -4358,9 +4552,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         for (let y = 1; y < height_m; y++) {
             const isMajor5 = (y % 5 === 0);
-            ctx.strokeStyle = isMajor5 
-                ? (isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(2, 132, 199, 0.22)") 
-                : (isDark ? "rgba(56, 189, 248, 0.10)" : "rgba(15, 23, 42, 0.07)");
+            ctx.strokeStyle = isMajor5 ? "rgba(2, 132, 199, 0.20)" : "rgba(15, 23, 42, 0.07)";
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.beginPath();
             ctx.moveTo(plotX, toY(y));
@@ -4368,26 +4560,13 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.stroke();
         }
 
-        ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.45)" : "rgba(2, 132, 199, 0.35)";
-        ctx.lineWidth = 1;
-        for (let x = 2; x < width_m; x += 2) {
-            for (let y = 2; y < height_m; y += 2) {
-                const gx = toX(x);
-                const gy = toY(y);
-                ctx.beginPath();
-                ctx.moveTo(gx - 4, gy); ctx.lineTo(gx + 4, gy);
-                ctx.moveTo(gx, gy - 4); ctx.lineTo(gx, gy + 4);
-                ctx.stroke();
-            }
-        }
-
         // 4. PERIMETER FRAME & CORNER BRACKETS
-        ctx.strokeStyle = isDark ? "#0284c7" : "#0284c7";
+        ctx.strokeStyle = "#0284c7";
         ctx.lineWidth = 2;
         ctx.strokeRect(plotX, plotY, plotW, plotH);
 
         const bracketLen = 10;
-        ctx.strokeStyle = isDark ? "#38bdf8" : "#0284c7";
+        ctx.strokeStyle = "#0284c7";
         ctx.lineWidth = 2.5;
         [
             { x: plotX, y: plotY, dx: 1, dy: 1 },
@@ -4402,20 +4581,20 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.stroke();
         });
 
-        // 5. PRESET & CREATED ROOM LABELS
+        // 5. ROOM LABELS
         if (state.planner.roomLabels) {
             for (const r of state.planner.roomLabels) {
                 const rx = toX(r.x);
                 const ry = toY(r.y);
                 ctx.font = "bold 11px sans-serif";
                 const tw = ctx.measureText(r.text).width;
-                ctx.fillStyle = isDark ? "rgba(10, 19, 36, 0.75)" : "rgba(255, 255, 255, 0.92)";
+                ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
                 ctx.fillRect(rx - tw/2 - 6, ry - 10, tw + 12, 20);
-                ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.25)" : "#cbd5e1";
+                ctx.strokeStyle = "#cbd5e1";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(rx - tw/2 - 6, ry - 10, tw + 12, 20);
 
-                ctx.fillStyle = isDark ? "rgba(226, 232, 240, 0.85)" : "#0f172a";
+                ctx.fillStyle = "#0f172a";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(r.text, rx, ry);
@@ -4428,7 +4607,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const cx = toX(curM.x);
             const cy = toY(curM.y);
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = "rgba(14, 165, 233, 0.35)";
+            ctx.strokeStyle = "rgba(2, 132, 199, 0.35)";
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(cx, plotY);
@@ -4439,25 +4618,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         function getWallStyle(mat) {
-            if (mat === "concrete") {
-                return { casing: "#334155", core: "#94a3b8", center: "#e2e8f0", width: 8 };
-            }
-            if (mat === "metal") {
-                return { casing: "#4c1d95", core: "#a855f7", center: "#f3e8ff", width: 9 };
-            }
-            if (mat === "glass") {
-                return { casing: "rgba(56, 189, 248, 0.28)", core: "#38bdf8", center: "#ffffff", width: 7 };
-            }
-            if (mat === "wood") {
-                return { casing: "#b45309", core: "#d97706", center: "#fef08a", width: 6 };
-            }
-            if (mat === "door") {
-                return { casing: "#065f46", core: "#10b981", center: "#d1fae5", width: 5 };
-            }
+            if (mat === "concrete") return { casing: "#334155", core: "#94a3b8", center: "#e2e8f0", width: 8 };
+            if (mat === "metal") return { casing: "#4c1d95", core: "#a855f7", center: "#f3e8ff", width: 9 };
+            if (mat === "glass") return { casing: "rgba(2, 132, 199, 0.28)", core: "#0284c7", center: "#ffffff", width: 7 };
+            if (mat === "wood") return { casing: "#b45309", core: "#d97706", center: "#fef08a", width: 6 };
+            if (mat === "door") return { casing: "#065f46", core: "#10b981", center: "#d1fae5", width: 5 };
             return { casing: "#c2410c", core: "#ea580c", center: "#fed7aa", width: 6 };
         }
 
-        // 7. DRAW SAVED WALLS (With 2.5D Isometric Extrusion Support)
+        // 7. DRAW WALLS
         state.planner.walls.forEach((wall, idx) => {
             const isSelected = (state.planner.selectedWallIndex === idx);
             const isHovered = (state.planner.hoveredWallIndex === idx);
@@ -4470,7 +4639,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
 
-            // Optional 2.5D Wall Block Extrusion (Sweet Home 3D perspective preview)
             if (state.planner.view25D) {
                 const extX = -6;
                 const extY = -12;
@@ -4481,18 +4649,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.lineTo(x2 + extX, y2 + extY);
                 ctx.lineTo(x1 + extX, y1 + extY);
                 ctx.closePath();
-                ctx.fillStyle = wall.material === "glass" ? "rgba(56, 189, 248, 0.22)" : "rgba(15, 23, 42, 0.72)";
+                ctx.fillStyle = wall.material === "glass" ? "rgba(2, 132, 199, 0.18)" : "rgba(15, 23, 42, 0.65)";
                 ctx.fill();
                 ctx.strokeStyle = style.core;
                 ctx.lineWidth = 1.2;
-                ctx.stroke();
-
-                // Top roof edge of 2.5D wall
-                ctx.beginPath();
-                ctx.moveTo(x1 + extX, y1 + extY);
-                ctx.lineTo(x2 + extX, y2 + extY);
-                ctx.strokeStyle = style.center;
-                ctx.lineWidth = Math.max(2, style.width - 2);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -4502,7 +4662,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.lineCap = "round";
-                ctx.strokeStyle = "#0ea5e9";
+                ctx.strokeStyle = "#0284c7";
                 ctx.lineWidth = style.width + 10;
                 ctx.setLineDash([8, 5]);
                 ctx.stroke();
@@ -4522,7 +4682,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
                 ctx.lineCap = "round";
-                ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+                ctx.strokeStyle = "rgba(2, 132, 199, 0.35)";
                 ctx.lineWidth = style.width + 6;
                 ctx.stroke();
             }
@@ -4562,7 +4722,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (isSelected) {
-                [ { x: x1, y: y1 }, { x: x2, y: y2 } ].forEach((pt, pIdx) => {
+                [{ x: x1, y: y1 }, { x: x2, y: y2 }].forEach((pt, pIdx) => {
                     const isPartHovered = isHovered && (
                         (pIdx === 0 && state.planner.hoveredPart === "handle1") ||
                         (pIdx === 1 && state.planner.hoveredPart === "handle2")
@@ -4571,7 +4731,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     ctx.beginPath();
                     ctx.arc(pt.x, pt.y, r + 4, 0, Math.PI * 2);
-                    ctx.fillStyle = "rgba(14, 165, 233, 0.3)";
+                    ctx.fillStyle = "rgba(2, 132, 199, 0.25)";
                     ctx.fill();
 
                     ctx.beginPath();
@@ -4589,10 +4749,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 const isMidHovered = isHovered && (state.planner.hoveredPart === "midpoint" || state.planner.hoveredPart === "body");
-                const pillW = 86;
+                const pillW = 96;
                 const pillH = 20;
-                ctx.fillStyle = isMidHovered ? (isDark ? "#0e2a4a" : "#e0f2fe") : (isDark ? "#091220" : "#ffffff");
-                ctx.strokeStyle = isMidHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#0ea5e9" : "#cbd5e1");
+                ctx.fillStyle = isMidHovered ? "#e0f2fe" : "#ffffff";
+                ctx.strokeStyle = isMidHovered ? "#0284c7" : "#cbd5e1";
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.roundRect(midX - pillW/2, midY - pillH/2, pillW, pillH, 10);
@@ -4600,27 +4760,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.stroke();
 
                 ctx.font = "bold 10px sans-serif";
-                ctx.fillStyle = isMidHovered ? (isDark ? "#7dd3fc" : "#0284c7") : (isDark ? "#38bdf8" : "#0369a1");
+                ctx.fillStyle = "#0284c7";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillText(state.currentLang === "vi" ? "✥ Di Chuyển" : "✥ Move Wall", midX, midY);
+                ctx.fillText("Di Chuyển Vách", midX, midY);
 
                 const lenM = Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1);
                 const formattedLen = `${convertMetersToUnit(lenM, curUnit)} ${curUnit}`;
                 const theta = Math.round(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1) * 180 / Math.PI);
-                const dimText = `📏 ${formattedLen} (${Math.abs(theta)}°)`;
+                const dimText = `${formattedLen} (${Math.abs(theta)}°)`;
 
                 ctx.font = "bold 11px monospace";
                 const tw = ctx.measureText(dimText).width;
-                ctx.fillStyle = isDark ? "#060b14" : "#ffffff";
+                ctx.fillStyle = "#ffffff";
                 ctx.fillRect(midX - tw/2 - 6, midY - 28, tw + 12, 18);
-                ctx.strokeStyle = isDark ? "#0ea5e9" : "#0284c7";
+                ctx.strokeStyle = "#0284c7";
                 ctx.lineWidth = 1.2;
                 ctx.strokeRect(midX - tw/2 - 6, midY - 28, tw + 12, 18);
 
-                ctx.fillStyle = isDark ? "#38bdf8" : "#0284c7";
+                ctx.fillStyle = "#0284c7";
                 ctx.fillText(dimText, midX, midY - 19);
-
             } else {
                 ctx.fillStyle = (isHovered && state.planner.activeTool === "delete") ? "#ef4444" : style.core;
                 ctx.beginPath();
@@ -4637,10 +4796,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (state.planner.activeTool === "delete") {
                         ctx.fillStyle = "#ef4444";
-                        ctx.fillText("🗑️ Bấm để Xóa / Click to Delete", midX, midY - 14);
+                        ctx.fillText("Bấm để Xóa Vách", midX, midY - 14);
                     } else {
-                        ctx.fillStyle = "#38bdf8";
-                        ctx.fillText(`👆 Bấm Chọn & Kéo Sửa (${formattedLen})`, midX, midY - 14);
+                        ctx.fillStyle = "#0284c7";
+                        ctx.fillText(`Bấm Chọn & Di Chuyển (${formattedLen})`, midX, midY - 14);
                     }
                 }
             }
@@ -4670,13 +4829,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const midX = (px1 + px2) / 2;
             const midY = (py1 + py2) / 2;
             ctx.font = "bold 11px monospace";
-            ctx.fillStyle = "#38bdf8";
+            ctx.fillStyle = "#0284c7";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(formattedLen, midX, midY - 14);
         }
 
-        // 8B. LIVE DRAWING PREVIEW ROOM BOX (Sweet Home 3D style)
+        // 8B. LIVE DRAWING PREVIEW ROOM BOX
         const pr = state.planner.previewRoom;
         if (pr) {
             const style = getWallStyle(pr.material);
@@ -4690,7 +4849,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const rhPx = toY(yB) - ry;
 
             ctx.save();
-            ctx.fillStyle = "rgba(14, 165, 233, 0.12)";
+            ctx.fillStyle = "rgba(2, 132, 199, 0.08)";
             ctx.fillRect(rx, ry, rwPx, rhPx);
             ctx.strokeStyle = style.core;
             ctx.lineWidth = style.width;
@@ -4702,7 +4861,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const hM = (yB - yA).toFixed(1);
             const areaM2 = ((xB - xA) * (yB - yA)).toFixed(1);
             ctx.font = "bold 11px monospace";
-            ctx.fillStyle = "#38bdf8";
+            ctx.fillStyle = "#0284c7";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(`${wM}m × ${hM}m (${areaM2} m²)`, rx + rwPx / 2, ry + rhPx / 2);
@@ -4739,7 +4898,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.beginPath();
             ctx.moveTo(rx1, ry1);
             ctx.lineTo(rx2, ry2);
-            ctx.strokeStyle = "#facc15";
+            ctx.strokeStyle = "#d97706";
             ctx.lineWidth = 2.2;
             ctx.setLineDash([6, 4]);
             ctx.stroke();
@@ -4748,7 +4907,7 @@ document.addEventListener("DOMContentLoaded", () => {
             [{ x: rx1, y: ry1 }, { x: rx2, y: ry2 }].forEach(pt => {
                 ctx.beginPath();
                 ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-                ctx.fillStyle = "#facc15";
+                ctx.fillStyle = "#f59e0b";
                 ctx.fill();
                 ctx.strokeStyle = "#0f172a";
                 ctx.lineWidth = 1.5;
@@ -4757,69 +4916,114 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const midX = (rx1 + rx2) / 2;
             const midY = (ry1 + ry2) / 2;
-            const isVi = state.currentLang === "vi";
-            const label = isVi
-                ? `📐 ${convertMetersToUnit(distM, curUnit)} ${curUnit} | ${wallHits} vách (-${wallLoss.toFixed(1)}dB) | Tổng suy hao: -${totalLoss} dB`
-                : `📐 ${convertMetersToUnit(distM, curUnit)} ${curUnit} | ${wallHits} walls (-${wallLoss.toFixed(1)}dB) | Total loss: -${totalLoss} dB`;
+            const label = `${convertMetersToUnit(distM, curUnit)} ${curUnit} | ${wallHits} vách (-${wallLoss.toFixed(1)}dB) | Tổng suy hao: -${totalLoss} dB`;
             ctx.font = "bold 11px monospace";
             const tw = ctx.measureText(label).width;
-            ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+            ctx.fillStyle = "#ffffff";
             ctx.fillRect(midX - tw / 2 - 8, midY - 26, tw + 16, 20);
-            ctx.strokeStyle = "#facc15";
+            ctx.strokeStyle = "#d97706";
             ctx.lineWidth = 1.5;
             ctx.strokeRect(midX - tw / 2 - 8, midY - 26, tw + 16, 20);
-            ctx.fillStyle = "#fef08a";
+            ctx.fillStyle = "#b45309";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, midX, midY - 16);
             ctx.restore();
         }
 
-        // 9. DRAW OPTIMIZED OR MANUALLY PLACED AP MARKERS
-        for (const ap of state.planner.aps) {
+        // 8D. DISTANCE CALIBRATION MEASUREMENT PREVIEW (R3)
+        const cm = state.planner.calibrationMeasure;
+        if (cm) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cm.px1, cm.py1);
+            ctx.lineTo(cm.px2, cm.py2);
+            ctx.strokeStyle = "#0284c7";
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            [{ x: cm.px1, y: cm.py1 }, { x: cm.px2, y: cm.py2 }].forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = "#0284c7";
+                ctx.fill();
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            const pDist = Math.hypot(cm.px2 - cm.px1, cm.py2 - cm.py1);
+            const midX = (cm.px1 + cm.px2) / 2;
+            const midY = (cm.py1 + cm.py2) / 2;
+            const calibLabel = `Hiệu chuẩn: ${pDist.toFixed(1)} điểm ảnh`;
+            ctx.font = "bold 11px sans-serif";
+            const tw = ctx.measureText(calibLabel).width;
+            ctx.fillStyle = "#0284c7";
+            ctx.fillRect(midX - tw/2 - 6, midY - 24, tw + 12, 18);
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(calibLabel, midX, midY - 15);
+            ctx.restore();
+        }
+
+        // 9. DRAW AP MARKERS & SELECTION RINGS
+        state.planner.aps.forEach((ap, apIdx) => {
             const cx = toX(ap.x);
             const cy = toY(ap.y);
+            const isApSelected = (state.planner.selectedApIndex === apIdx);
+            const isApDisabled = ap.enabled === false;
 
+            // Outer pulse ring
             ctx.beginPath();
             ctx.arc(cx, cy, 26, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(6, 182, 212, 0.20)";
+            ctx.fillStyle = isApDisabled ? "rgba(148, 163, 184, 0.12)" : "rgba(2, 132, 199, 0.15)";
             ctx.fill();
-            ctx.strokeStyle = "rgba(6, 182, 212, 0.75)";
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = isApSelected ? "#0284c7" : (isApDisabled ? "#94a3b8" : "rgba(2, 132, 199, 0.6)");
+            ctx.lineWidth = isApSelected ? 2.5 : 1.5;
+            if (isApSelected) ctx.setLineDash([4, 4]);
             ctx.stroke();
+            ctx.setLineDash([]);
 
+            // Middle ring
             ctx.beginPath();
             ctx.arc(cx, cy, 16, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(6, 182, 212, 0.35)";
+            ctx.fillStyle = isApDisabled ? "rgba(148, 163, 184, 0.20)" : "rgba(2, 132, 199, 0.25)";
             ctx.fill();
 
+            // Center AP core
             ctx.beginPath();
             ctx.arc(cx, cy, 9, 0, Math.PI * 2);
-            ctx.fillStyle = "#06b6d4";
+            ctx.fillStyle = isApDisabled ? "#64748b" : (isApSelected ? "#0284c7" : "#0ea5e9");
             ctx.fill();
             ctx.strokeStyle = "#ffffff";
             ctx.lineWidth = 2.5;
             ctx.stroke();
 
+            // AP Label Tag
             ctx.font = "bold 11px sans-serif";
-            const label = `${ap.name} (Ch ${ap.channel_24}/${ap.channel_5}/6G:${ap.channel_6 || 37})`;
+            const chText = `Ch ${ap.channel_24 || 1}/${ap.channel_5 || 36}/6G:${ap.channel_6 || 37}`;
+            const label = isApDisabled ? `${ap.name} (Tạm ngắt)` : `${ap.name} (${chText} • ${ap.tx_power_dbm || 20}dBm)`;
             const tw = ctx.measureText(label).width;
-            ctx.fillStyle = "rgba(8, 14, 26, 0.90)";
+
+            ctx.fillStyle = "#ffffff";
             ctx.fillRect(cx - tw/2 - 6, cy - 38, tw + 12, 20);
-            ctx.strokeStyle = "#06b6d4";
-            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = isApSelected ? "#0284c7" : (isApDisabled ? "#cbd5e1" : "#0284c7");
+            ctx.lineWidth = isApSelected ? 2 : 1;
             ctx.strokeRect(cx - tw/2 - 6, cy - 38, tw + 12, 20);
 
-            ctx.fillStyle = "#38bdf8";
+            ctx.fillStyle = isApDisabled ? "#64748b" : "#0369a1";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, cx, cy - 28);
-        }
+        });
 
-        // 10. TOP METRIC RULER
-        ctx.fillStyle = "#050912";
+        // 10. TOP METRIC RULER (Light Mode Styling)
+        ctx.fillStyle = "#f1f5f9";
         ctx.fillRect(0, 0, W, RULER_TOP);
-        ctx.strokeStyle = "#1e293b";
+        ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, RULER_TOP);
@@ -4836,17 +5040,17 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.beginPath();
             ctx.moveTo(rx, RULER_TOP - (isMajor5 ? 10 : 6));
             ctx.lineTo(rx, RULER_TOP);
-            ctx.strokeStyle = isMajor5 ? "#38bdf8" : "#64748b";
+            ctx.strokeStyle = isMajor5 ? "#0284c7" : "#94a3b8";
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.stroke();
 
-            ctx.fillStyle = isMajor5 ? "#38bdf8" : "#94a3b8";
+            ctx.fillStyle = isMajor5 ? "#0284c7" : "#475569";
             ctx.fillText(x === 0 ? "0" : (x === width_m ? `${x}m` : `${x}`), rx, RULER_TOP - 11);
         }
 
         if (curM && curM.x >= 0 && curM.x <= width_m) {
             const pinX = toX(curM.x);
-            ctx.fillStyle = "#0ea5e9";
+            ctx.fillStyle = "#0284c7";
             ctx.beginPath();
             ctx.moveTo(pinX - 4, RULER_TOP - 2);
             ctx.lineTo(pinX + 4, RULER_TOP - 2);
@@ -4855,10 +5059,10 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.fill();
         }
 
-        // 11. LEFT METRIC RULER
-        ctx.fillStyle = "#050912";
+        // 11. LEFT METRIC RULER (Light Mode Styling)
+        ctx.fillStyle = "#f1f5f9";
         ctx.fillRect(0, 0, RULER_LEFT, H);
-        ctx.strokeStyle = "#1e293b";
+        ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(RULER_LEFT, 0);
@@ -4874,17 +5078,17 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.beginPath();
             ctx.moveTo(RULER_LEFT - (isMajor5 ? 10 : 6), ry);
             ctx.lineTo(RULER_LEFT, ry);
-            ctx.strokeStyle = isMajor5 ? "#38bdf8" : "#64748b";
+            ctx.strokeStyle = isMajor5 ? "#0284c7" : "#94a3b8";
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.stroke();
 
-            ctx.fillStyle = isMajor5 ? "#38bdf8" : "#94a3b8";
+            ctx.fillStyle = isMajor5 ? "#0284c7" : "#475569";
             ctx.fillText(y === 0 ? "0" : (y === height_m ? `${y}m` : `${y}`), RULER_LEFT - 11, ry);
         }
 
         if (curM && curM.y >= 0 && curM.y <= height_m) {
             const pinY = toY(curM.y);
-            ctx.fillStyle = "#0ea5e9";
+            ctx.fillStyle = "#0284c7";
             ctx.beginPath();
             ctx.moveTo(RULER_LEFT - 2, pinY - 4);
             ctx.lineTo(RULER_LEFT - 2, pinY + 4);
@@ -4893,79 +5097,772 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.fill();
         }
 
-        // 12. TOP-LEFT JUNCTION BADGE
-        ctx.fillStyle = "#0b1424";
+        // 12. TOP-LEFT JUNCTION BADGE (Light Mode Styling)
+        ctx.fillStyle = "#e2e8f0";
         ctx.fillRect(0, 0, RULER_LEFT, RULER_TOP);
-        ctx.strokeStyle = "#0ea5e9";
+        ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 1;
         ctx.strokeRect(1, 1, RULER_LEFT - 2, RULER_TOP - 2);
 
-        ctx.fillStyle = "#38bdf8";
+        ctx.fillStyle = "#0369a1";
         ctx.font = 'bold 10px "JetBrains Mono", monospace';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(curUnit, RULER_LEFT / 2, RULER_TOP / 2);
 
-        // 13. BOTTOM STATUS READOUT INSIDE CANVAS
+        // 13. BOTTOM STATUS READOUT
         ctx.font = 'bold 10px "JetBrains Mono", monospace';
         ctx.textAlign = "left";
         ctx.textBaseline = "bottom";
-        ctx.fillStyle = "rgba(148, 163, 230, 0.7)";
-        ctx.fillText(`FLOORPLAN ${state.planner.view25D ? '2.5D' : '2D'} (${state.planner.freq_ghz || 2.4} GHz • Mode: ${activeMode.toUpperCase()}) • ${width_m}m × ${height_m}m (${(width_m * height_m).toFixed(0)} m²)`, plotX + 8, H - 6);
+        ctx.fillStyle = "#475569";
+        ctx.fillText(`MẶT BẰNG ${state.planner.view25D ? '2.5D' : '2D'} (${state.planner.freq_ghz || 2.4} GHz • Chế độ: ${activeMode.toUpperCase()}) • ${width_m}m × ${height_m}m (${(width_m * height_m).toFixed(0)} m²)`, plotX + 8, H - 6);
 
         if (curM && curM.x >= 0 && curM.x <= width_m && curM.y >= 0 && curM.y <= height_m) {
             ctx.textAlign = "right";
-            ctx.fillStyle = "#38bdf8";
-            ctx.fillText(`X: ${curM.x.toFixed(2)}m  Y: ${curM.y.toFixed(2)}m (Snap: 0.25m)`, plotX + plotW - 8, H - 6);
+            ctx.fillStyle = "#0284c7";
+            ctx.fillText(`X: ${curM.x.toFixed(2)}m  Y: ${curM.y.toFixed(2)}m (Bước nhảy: 0.25m)`, plotX + plotW - 8, H - 6);
         }
     }
 
-    function getRssiColor(rssi) {
-        if (rssi >= -48) return "rgba(16, 185, 129, 0.56)";     // Excellent Green
-        if (rssi >= -58) return "rgba(52, 211, 153, 0.50)";     // Emerald
-        if (rssi >= -65) return "rgba(234, 179, 8, 0.45)";      // Yellow (VoWiFi target)
-        if (rssi >= -75) return "rgba(249, 115, 22, 0.40)";     // Orange
-        if (rssi >= -85) return "rgba(239, 68, 68, 0.35)";      // Red
-        return "rgba(15, 23, 42, 0.82)";                        // Dead zone dark
-    }
+    // =========================================================================
+    // OSCIUM CENTRALIZED TROUBLESHOOTING DASHBOARD (R4)
+    // =========================================================================
 
-    function getSnrColor(snr) {
-        if (snr >= 35) return "rgba(16, 185, 129, 0.56)";       // Ultra SNR (QAM-1024/4096)
-        if (snr >= 25) return "rgba(56, 189, 248, 0.50)";       // Voice/Enterprise SLA
-        if (snr >= 18) return "rgba(234, 179, 8, 0.45)";        // Moderate Data
-        if (snr >= 10) return "rgba(249, 115, 22, 0.40)";       // Marginal
-        return "rgba(239, 68, 68, 0.38)";                       // Poor SNR
-    }
+    window.refreshOsciumDiagnostics = async function() {
+        const btn = document.getElementById("btn-run-oscium-diag");
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Đang chẩn đoán...";
+        }
 
-    function getInterferenceColor(conflictCount) {
-        if (conflictCount <= 0) return "rgba(16, 185, 129, 0.45)"; // Clean
-        if (conflictCount === 1) return "rgba(234, 179, 8, 0.50)"; // Mild contention
-        if (conflictCount === 2) return "rgba(249, 115, 22, 0.55)";// Moderate CCI
-        return "rgba(239, 68, 68, 0.62)";                          // Severe CCI contention
-    }
+        try {
+            const response = await fetch("/api/troubleshooting/all-in-one");
+            if (!response.ok) {
+                throw new Error("Lỗi máy chủ: " + response.status);
+            }
+            const data = await response.json();
+            window.renderOsciumTroubleshootingDashboard(data);
+        } catch (err) {
+            console.error("Lỗi tải dữ liệu chẩn đoán Oscium:", err);
+            const summaryEl = document.getElementById("oscium-health-summary-text");
+            if (summaryEl) {
+                summaryEl.textContent = "Không thể tải dữ liệu chẩn đoán sự cố: " + (err.message || "Lỗi mạng");
+            }
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Chẩn Đoán Toàn Diện Ngay";
+            }
+        }
+    };
 
-    function getThroughputColor(mbps) {
-        if (mbps >= 600) return "rgba(16, 185, 129, 0.56)";     // Gigabit+
-        if (mbps >= 250) return "rgba(56, 189, 248, 0.50)";     // High speed
-        if (mbps >= 80)  return "rgba(234, 179, 8, 0.45)";      // Standard HD
-        if (mbps >= 20)  return "rgba(249, 115, 22, 0.40)";     // Slow
-        return "rgba(15, 23, 42, 0.80)";                        // Dead / Disconnected
-    }
+    window.renderOsciumTroubleshootingDashboard = function(data) {
+        if (!data) return;
 
+        const tsSuite = data.troubleshooting_suite || {};
+        const adapterDiag = tsSuite.adapter_diagnostics || {};
+        const iface = data.connected_interface || {};
+        const rootCause = tsSuite.automated_root_cause || {};
+        const pathQ = data.path_quality || {};
+        const timestamp = data.timestamp || new Date().toLocaleString("vi-VN");
+
+        // KHỐI 1: TỔNG QUAN ĐIỂM SỨC KHỎE
+        const lastUpdateEl = document.getElementById("oscium-last-update-time");
+        if (lastUpdateEl) lastUpdateEl.textContent = "Cập nhật: " + timestamp;
+
+        const healthScore = tsSuite.health_score !== undefined ? tsSuite.health_score : (data.global_score || 0);
+        const scoreValEl = document.getElementById("oscium-score-val");
+        if (scoreValEl) {
+            scoreValEl.textContent = healthScore;
+            if (healthScore >= 80) scoreValEl.style.color = "#059669";
+            else if (healthScore >= 60) scoreValEl.style.color = "#d97706";
+            else scoreValEl.style.color = "#dc2626";
+        }
+
+        const healthVerdictEl = document.getElementById("oscium-health-verdict-badge");
+        if (healthVerdictEl) {
+            if (healthScore >= 85) {
+                healthVerdictEl.className = "badge-status-pass";
+                healthVerdictEl.textContent = "Môi trường sóng xuất sắc";
+            } else if (healthScore >= 70) {
+                healthVerdictEl.className = "badge-status-pass";
+                healthVerdictEl.textContent = "Đạt chuẩn ổn định";
+            } else if (healthScore >= 50) {
+                healthVerdictEl.className = "badge-status-warn";
+                healthVerdictEl.textContent = "Cảnh báo có can nhiễu";
+            } else {
+                healthVerdictEl.className = "badge-status-crit";
+                healthVerdictEl.textContent = "Chất lượng sóng kém";
+            }
+        }
+
+        const retryEl = document.getElementById("oscium-retry-badge");
+        if (retryEl) {
+            const retryPct = tsSuite.estimated_retry_rate_pct !== undefined ? tsSuite.estimated_retry_rate_pct : 2.5;
+            retryEl.textContent = "Gửi lại gói tin: ~" + retryPct + "%";
+        }
+
+        const snrEl = document.getElementById("oscium-snr-badge");
+        if (snrEl) {
+            const avgSnr = data.avg_snr_db !== undefined ? data.avg_snr_db : 0;
+            snrEl.textContent = "SNR trung bình: " + avgSnr + " dB";
+        }
+
+        const summaryTextEl = document.getElementById("oscium-health-summary-text");
+        if (summaryTextEl) {
+            if (healthScore >= 80) {
+                summaryTextEl.textContent = "Môi trường sóng vô tuyến và thông số card mạng đạt chuẩn cao. Không phát hiện xung đột kênh hay nguồn phát nhiễu ngoại vi làm gián đoạn liên lạc.";
+            } else if (healthScore >= 60) {
+                summaryTextEl.textContent = "Hệ thống ghi nhận một số xung đột sóng ở dải 2.4GHz hoặc có nguồn phát lân cận làm tăng tỷ lệ gửi lại gói tin. Hãy làm theo hướng dẫn tối ưu phía dưới.";
+            } else {
+                summaryTextEl.textContent = "Môi trường mạng bị can nhiễu nghiêm trọng hoặc tín hiệu thu tại card mạng quá yếu. Tốc độ thực tế có thể suy giảm mạnh và gây rớt cuộc đàm thoại.";
+            }
+        }
+
+        // KHỐI 2: PHẦN CỨNG CARD MẠNG THU SÓNG
+        const statusPillEl = document.getElementById("oscium-adapter-status-pill");
+        if (statusPillEl) {
+            const adStatus = adapterDiag.status || "Chưa xác định";
+            statusPillEl.textContent = adStatus;
+            if (adStatus.includes("TỐT") || adStatus.includes("ĐẠT")) {
+                statusPillEl.className = "badge-status-pass";
+            } else if (adStatus.includes("CẢNH BÁO")) {
+                statusPillEl.className = "badge-status-warn";
+            } else {
+                statusPillEl.className = "badge-status-crit";
+            }
+        }
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val || "--";
+        };
+
+        setTxt("oscium-adapter-name", adapterDiag.device_description || iface.description || iface.interface_name || "Card Wi-Fi");
+        setTxt("oscium-adapter-ssid", adapterDiag.connected_ssid || iface.ssid || "Chưa kết nối");
+        setTxt("oscium-adapter-bssid", adapterDiag.connected_bssid || iface.bssid || "--");
+
+        const bandCh = (adapterDiag.band || iface.band || "5 GHz") + " - Kênh " + (adapterDiag.channel || iface.channel || "--");
+        setTxt("oscium-adapter-channel", bandCh);
+
+        const rssiDbm = adapterDiag.rssi_dbm !== undefined ? adapterDiag.rssi_dbm : (iface.rssi || -60);
+        const sigPct = adapterDiag.signal_pct !== undefined ? adapterDiag.signal_pct : (iface.signal || 75);
+        setTxt("oscium-adapter-rssi", rssiDbm + " dBm (" + sigPct + "%)");
+
+        const rx = adapterDiag.rx_rate_mbps !== undefined ? adapterDiag.rx_rate_mbps : (iface.rx_rate || 0);
+        const tx = adapterDiag.tx_rate_mbps !== undefined ? adapterDiag.tx_rate_mbps : (iface.tx_rate || 0);
+        setTxt("oscium-adapter-rates", "Thu: " + Math.round(rx) + " Mbps | Phát: " + Math.round(tx) + " Mbps");
+
+        setTxt("oscium-adapter-adequacy", adapterDiag.signal_adequacy || "ĐẠT CHUẨN");
+        setTxt("oscium-adapter-symmetry", adapterDiag.rx_tx_symmetry || "CÂN BẰNG ĐỐI XỨNG");
+
+        const adviceBox = document.getElementById("oscium-adapter-advice-box");
+        if (adviceBox) {
+            const recs = adapterDiag.recommendations || [];
+            adviceBox.textContent = recs.length > 0 ? recs.join(" ") : "Thông số card mạng và liên kết vô tuyến đang ở trạng thái tối ưu, không cần can thiệp cấu hình.";
+        }
+
+        // KHỐI 3: SƠ ĐỒ ĐƯỜNG TRUYỀN ĐA CHẶNG
+        setTxt("oscium-gateway-ip", pathQ.gateway_ip || "192.168.1.1");
+        setTxt("oscium-hop1-latency", (pathQ.gateway_latency_ms || 2.4) + " ms");
+        setTxt("oscium-hop2-latency", (pathQ.dns_latency_ms || 14.2) + " ms");
+        setTxt("oscium-hop3-latency", (pathQ.latency_avg_ms || 28.5) + " ms");
+
+        setTxt("oscium-path-rtt", (pathQ.latency_avg_ms || 28.5) + " ms");
+        setTxt("oscium-path-jitter", (pathQ.jitter_ms || 1.8) + " ms");
+        setTxt("oscium-path-loss", (pathQ.packet_loss_pct || 0.0) + " %");
+        setTxt("oscium-path-mos", (pathQ.mos_score || 4.4) + " / 4.5");
+
+        const hop1Status = document.getElementById("oscium-hop1-status");
+        if (hop1Status) {
+            const gwLat = pathQ.gateway_latency_ms || 2.4;
+            hop1Status.className = gwLat < 10 ? "oscium-node-badge status-pass" : (gwLat < 25 ? "oscium-node-badge status-warning" : "oscium-node-badge status-critical");
+            hop1Status.textContent = gwLat < 10 ? "Wi-Fi thông suốt" : "Wi-Fi bị chậm";
+        }
+
+        const hop2Status = document.getElementById("oscium-hop2-status");
+        if (hop2Status) {
+            const dnsLat = pathQ.dns_latency_ms || 14.2;
+            hop2Status.className = dnsLat < 50 ? "oscium-node-badge status-pass" : "oscium-node-badge status-warning";
+            hop2Status.textContent = dnsLat < 50 ? "DNS ổn định" : "DNS phản hồi chậm";
+        }
+
+        const hop3Status = document.getElementById("oscium-hop3-status");
+        if (hop3Status) {
+            const wanLat = pathQ.latency_avg_ms || 28.5;
+            const loss = pathQ.packet_loss_pct || 0;
+            hop3Status.className = (wanLat < 80 && loss < 1) ? "oscium-node-badge status-pass" : "oscium-node-badge status-warning";
+            hop3Status.textContent = loss > 2 ? "Mất gói tin" : (wanLat < 80 ? "Đường truyền tốt" : "Độ trễ cao");
+        }
+
+        const pathDiagBox = document.getElementById("oscium-path-diagnosis-box");
+        if (pathDiagBox) {
+            pathDiagBox.textContent = pathQ.path_diagnosis_vi || pathQ.verdict || "Toàn bộ các chặng kết nối đều hoạt động ổn định.";
+        }
+
+        // KHỐI 4: BẢNG KIỂM TRA 6 TIÊU CHUẨN CỐT LÕI
+        const checklistBox = document.getElementById("oscium-checklist-container");
+        if (checklistBox && Array.isArray(tsSuite.checklist)) {
+            checklistBox.innerHTML = tsSuite.checklist.map(item => {
+                const status = (item.status || "PASS").toUpperCase();
+                let cardClass = "pass";
+                let statusText = "ĐẠT CHUẨN";
+                let badgeClass = "badge-status-pass";
+
+                if (status === "WARNING") {
+                    cardClass = "warning";
+                    statusText = "CẢNH BÁO";
+                    badgeClass = "badge-status-warn";
+                } else if (status === "CRITICAL") {
+                    cardClass = "critical";
+                    statusText = "NGHIÊM TRỌNG";
+                    badgeClass = "badge-status-crit";
+                }
+
+                return `
+                    <div class="oscium-check-card ${cardClass}">
+                        <div class="oscium-check-header">
+                            <span class="oscium-check-title">${escapeHtml(item.category_vi || "")}</span>
+                            <span class="${badgeClass}">${statusText}</span>
+                        </div>
+                        <div class="oscium-check-metric">${escapeHtml(item.metric || "")}</div>
+                        <div class="oscium-check-desc">${escapeHtml(item.summary_vi || "")}</div>
+                        ${item.remediation_vi ? `<div class="oscium-check-remed">${escapeHtml(item.remediation_vi)}</div>` : ""}
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // KHỐI 5: CHỮ KÝ NGUỒN NHIỄU NGOÀI LUỒNG PHI WI-FI
+        const interferersBox = document.getElementById("oscium-interferers-container");
+        if (interferersBox && Array.isArray(tsSuite.non_wifi_interferers)) {
+            interferersBox.innerHTML = tsSuite.non_wifi_interferers.map(nw => {
+                const isDet = Boolean(nw.detected);
+                const cardClass = isDet ? "detected" : "";
+                const badgeClass = isDet ? "badge-status-warn" : "badge-status-pass";
+                const badgeText = isDet ? "ĐÃ PHÁT HIỆN" : "KHÔNG PHÁT HIỆN";
+
+                return `
+                    <div class="oscium-interferer-card ${cardClass}">
+                        <div class="oscium-interferer-header">
+                            <span class="oscium-interferer-name">${escapeHtml(nw.name_vi || "")}</span>
+                            <span class="${badgeClass}">${badgeText}</span>
+                        </div>
+                        <div class="oscium-interferer-meta">${escapeHtml(nw.band || "")} &bull; ${escapeHtml(nw.freq_range || "")}</div>
+                        <div class="oscium-interferer-impact">${escapeHtml(nw.impact_vi || "")}</div>
+                        <div class="oscium-interferer-remed">${escapeHtml(nw.remediation_vi || "")}</div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // KHỐI 6: NGUYÊN NHÂN GỐC RỄ VÀ HƯỚNG DẪN XỬ LÝ
+        const sevBadge = document.getElementById("oscium-rootcause-severity-badge");
+        if (sevBadge) {
+            const sev = (rootCause.severity || "info").toLowerCase();
+            if (sev === "critical") {
+                sevBadge.className = "badge-status-crit";
+                sevBadge.textContent = "Mức độ nghiêm trọng";
+            } else if (sev === "warning") {
+                sevBadge.className = "badge-status-warn";
+                sevBadge.textContent = "Cần lưu ý xử lý";
+            } else {
+                sevBadge.className = "badge-status-pass";
+                sevBadge.textContent = "Hoạt động bình thường";
+            }
+        }
+
+        const issueText = document.getElementById("oscium-primary-issue-text");
+        if (issueText) {
+            issueText.textContent = rootCause.primary_issue_vi || "Môi trường sóng vô tuyến và thông số card mạng đạt chuẩn ổn định cao, không phát hiện xung đột hay nghẽn nghẽn kỹ thuật.";
+        }
+
+        const stepsList = document.getElementById("oscium-action-steps-list");
+        if (stepsList) {
+            const steps = rootCause.action_steps_vi || [];
+            if (steps.length > 0) {
+                stepsList.innerHTML = steps.map(s => `<li>${escapeHtml(s)}</li>`).join("");
+            } else {
+                stepsList.innerHTML = "<li>Duy trì cấu hình kênh hiện tại và kiểm tra lại định kỳ.</li>";
+            }
+        }
+    };
+
+    // =========================================================================
+    // SPEED TEST WI-FI CONTROLLER (R5)
+    // =========================================================================
+
+    const speedtestState = {
+        isRunning: false,
+        mode: "quick",
+        sseSource: null,
+        pollingTimer: null,
+        testId: null,
+        historyKey: "netscanner_speedtest_history_v1"
+    };
+
+    window.setSpeedTestMode = function(mode) {
+        if (speedtestState.isRunning) return;
+        speedtestState.mode = mode;
+        document.querySelectorAll(".speedtest-mode-btn").forEach(btn => {
+            if (btn.getAttribute("data-mode") === mode) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+    };
+
+    window.startSpeedTest = async function() {
+        if (speedtestState.isRunning) return;
+
+        const btnStart = document.getElementById("btn-start-speedtest");
+        const btnStop = document.getElementById("btn-stop-speedtest");
+        if (btnStart) btnStart.style.display = "none";
+        if (btnStop) btnStop.style.display = "inline-block";
+
+        speedtestState.isRunning = true;
+        window.resetSpeedTestUI();
+
+        const stageText = document.getElementById("speedtest-stage-text");
+        if (stageText) stageText.textContent = "Đang kết nối tới máy chủ Anycast...";
+
+        try {
+            const response = await fetch("/api/speedtest/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: speedtestState.mode })
+            });
+
+            if (!response.ok) {
+                throw new Error("Không thể khởi động bài đo: Mã lỗi " + response.status);
+            }
+
+            const data = await response.json();
+            speedtestState.testId = data.test_id;
+            window.startSpeedTestStreamListener();
+        } catch (err) {
+            console.error("Lỗi khi bắt đầu Speed Test:", err);
+            window.handleSpeedTestError("Lỗi kết nối máy chủ: " + (err.message || "Không xác định"));
+        }
+    };
+
+    window.stopSpeedTest = async function() {
+        try {
+            await fetch("/api/speedtest/stop", { method: "POST" });
+        } catch (e) {
+            console.warn("Lỗi gọi dừng bài đo:", e);
+        }
+        window.cleanupSpeedTestListeners();
+        speedtestState.isRunning = false;
+
+        const btnStart = document.getElementById("btn-start-speedtest");
+        const btnStop = document.getElementById("btn-stop-speedtest");
+        if (btnStart) btnStart.style.display = "inline-block";
+        if (btnStop) btnStop.style.display = "none";
+
+        const stageText = document.getElementById("speedtest-stage-text");
+        if (stageText) stageText.textContent = "Người dùng đã dừng bài đo kiểm";
+    };
+
+    window.startSpeedTestStreamListener = function() {
+        window.cleanupSpeedTestListeners();
+
+        try {
+            if (!window.EventSource) {
+                throw new Error("Trình duyệt không hỗ trợ EventSource");
+            }
+
+            const sse = new EventSource("/api/speedtest/stream");
+            speedtestState.sseSource = sse;
+
+            sse.onmessage = function(event) {
+                try {
+                    const state = JSON.parse(event.data);
+                    window.updateSpeedTestUI(state);
+
+                    if (state.status === "completed") {
+                        window.onSpeedTestCompleted(state);
+                    } else if (state.status === "error") {
+                        window.handleSpeedTestError(state.error_message || "Đo kiểm gặp lỗi kết nối");
+                    } else if (state.status === "stopped") {
+                        window.cleanupSpeedTestListeners();
+                        speedtestState.isRunning = false;
+                    }
+                } catch (parseErr) {
+                    console.warn("Lỗi phân tích JSON gói tin SSE:", parseErr);
+                }
+            };
+
+            sse.onerror = function() {
+                console.warn("Luồng SSE bị gián đoạn, tự động chuyển sang REST Polling dự phòng...");
+                window.cleanupSpeedTestListeners();
+                window.startSpeedTestPollingFallback();
+            };
+
+        } catch (err) {
+            console.warn("Khởi tạo SSE thất bại, chuyển sang Polling:", err);
+            window.startSpeedTestPollingFallback();
+        }
+    };
+
+    window.startSpeedTestPollingFallback = function() {
+        if (speedtestState.pollingTimer) clearInterval(speedtestState.pollingTimer);
+
+        speedtestState.pollingTimer = setInterval(async () => {
+            try {
+                const resp = await fetch("/api/speedtest/status");
+                if (!resp.ok) return;
+                const state = await resp.json();
+                window.updateSpeedTestUI(state);
+
+                if (state.status === "completed") {
+                    clearInterval(speedtestState.pollingTimer);
+                    speedtestState.pollingTimer = null;
+                    window.onSpeedTestCompleted(state);
+                } else if (state.status === "error") {
+                    clearInterval(speedtestState.pollingTimer);
+                    speedtestState.pollingTimer = null;
+                    window.handleSpeedTestError(state.error_message || "Đo kiểm gặp lỗi");
+                } else if (state.status === "stopped") {
+                    clearInterval(speedtestState.pollingTimer);
+                    speedtestState.pollingTimer = null;
+                    speedtestState.isRunning = false;
+                }
+            } catch (e) {
+                console.warn("Lỗi Polling Speed Test:", e);
+            }
+        }, 200);
+    };
+
+    window.cleanupSpeedTestListeners = function() {
+        if (speedtestState.sseSource) {
+            try { speedtestState.sseSource.close(); } catch (e) {}
+            speedtestState.sseSource = null;
+        }
+        if (speedtestState.pollingTimer) {
+            clearInterval(speedtestState.pollingTimer);
+            speedtestState.pollingTimer = null;
+        }
+    };
+
+    window.resetSpeedTestUI = function() {
+        const setT = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+        const setW = (id, w) => {
+            const el = document.getElementById(id);
+            if (el) el.style.width = w;
+        };
+
+        setT("gauge-download-val", "0.0");
+        setT("gauge-upload-val", "0.0");
+        setT("gauge-ping-val", "0.0");
+        setT("gauge-jitter-val", "0.0");
+        setT("speedtest-progress-percent", "0%");
+
+        setW("speedtest-progress-bar", "0%");
+        setW("gauge-download-fill", "0%");
+        setW("gauge-upload-fill", "0%");
+        setW("gauge-ping-fill", "0%");
+        setW("gauge-jitter-fill", "0%");
+        setW("compare-down-fill", "0%");
+        setW("compare-link-fill", "0%");
+
+        const badges = ["badge-stage-download", "badge-stage-upload", "badge-stage-ping"];
+        badges.forEach(bId => {
+            const el = document.getElementById(bId);
+            if (el) {
+                el.className = "gauge-stage-badge";
+                el.textContent = "Chờ đo";
+            }
+        });
+    };
+
+    window.updateSpeedTestUI = function(st) {
+        if (!st) return;
+
+        const pct = Math.max(0, Math.min(100, st.progress_pct || 0));
+        const pBar = document.getElementById("speedtest-progress-bar");
+        if (pBar) pBar.style.width = pct + "%";
+
+        const pText = document.getElementById("speedtest-progress-percent");
+        if (pText) pText.textContent = pct + "%";
+
+        const stageEl = document.getElementById("speedtest-stage-text");
+        if (stageEl) {
+            stageEl.textContent = st.phase_text_vi || "Đang đo kiểm...";
+        }
+
+        const srvEl = document.getElementById("speedtest-server-label");
+        if (srvEl && st.server_location) {
+            srvEl.textContent = st.server_location;
+        }
+
+        const badgePing = document.getElementById("badge-stage-ping");
+        if (st.stage === "ping") {
+            if (badgePing) {
+                badgePing.className = "gauge-stage-badge active";
+                badgePing.textContent = "Đang đo";
+            }
+        } else if (st.stage === "download" || st.stage === "upload" || st.stage === "finished") {
+            if (badgePing) {
+                badgePing.className = "gauge-stage-badge done";
+                badgePing.textContent = "Hoàn tất";
+            }
+        }
+
+        if (st.ping_ms > 0) {
+            const gPing = document.getElementById("gauge-ping-val");
+            if (gPing) gPing.textContent = st.ping_ms.toFixed(1);
+            const pFill = document.getElementById("gauge-ping-fill");
+            if (pFill) pFill.style.width = Math.min(100, (st.ping_ms / 150) * 100) + "%";
+
+            const pVerdict = document.getElementById("gauge-ping-verdict");
+            if (pVerdict) {
+                pVerdict.textContent = st.ping_ms < 30 ? "Độ trễ thấp, phản hồi tức thì" : (st.ping_ms < 80 ? "Độ trễ tiêu chuẩn" : "Độ trễ cao");
+            }
+        }
+
+        if (st.jitter_ms > 0) {
+            const gJitter = document.getElementById("gauge-jitter-val");
+            if (gJitter) gJitter.textContent = st.jitter_ms.toFixed(1);
+            const jFill = document.getElementById("gauge-jitter-fill");
+            if (jFill) jFill.style.width = Math.min(100, (st.jitter_ms / 30) * 100) + "%";
+        }
+
+        const badgeDown = document.getElementById("badge-stage-download");
+        if (st.stage === "download") {
+            if (badgeDown) {
+                badgeDown.className = "gauge-stage-badge active";
+                badgeDown.textContent = "Đang đo";
+            }
+        } else if (st.stage === "upload" || st.stage === "finished") {
+            if (badgeDown) {
+                badgeDown.className = "gauge-stage-badge done";
+                badgeDown.textContent = "Hoàn tất";
+            }
+        }
+
+        if (st.download_mbps > 0) {
+            const gDown = document.getElementById("gauge-download-val");
+            if (gDown) gDown.textContent = st.download_mbps.toFixed(1);
+            const dFill = document.getElementById("gauge-download-fill");
+            if (dFill) dFill.style.width = Math.min(100, (st.download_mbps / 300) * 100) + "%";
+        }
+
+        const badgeUp = document.getElementById("badge-stage-upload");
+        if (st.stage === "upload") {
+            if (badgeUp) {
+                badgeUp.className = "gauge-stage-badge active";
+                badgeUp.textContent = "Đang đo";
+            }
+        } else if (st.stage === "finished") {
+            if (badgeUp) {
+                badgeUp.className = "gauge-stage-badge done";
+                badgeUp.textContent = "Hoàn tất";
+            }
+        }
+
+        if (st.upload_mbps > 0) {
+            const gUp = document.getElementById("gauge-upload-val");
+            if (gUp) gUp.textContent = st.upload_mbps.toFixed(1);
+            const uFill = document.getElementById("gauge-upload-fill");
+            if (uFill) uFill.style.width = Math.min(100, (st.upload_mbps / 200) * 100) + "%";
+        }
+    };
+
+    window.onSpeedTestCompleted = function(st) {
+        window.cleanupSpeedTestListeners();
+        speedtestState.isRunning = false;
+
+        const btnStart = document.getElementById("btn-start-speedtest");
+        const btnStop = document.getElementById("btn-stop-speedtest");
+        if (btnStart) btnStart.style.display = "inline-block";
+        if (btnStop) btnStop.style.display = "none";
+
+        const pBar = document.getElementById("speedtest-progress-bar");
+        if (pBar) pBar.style.width = "100%";
+        const pText = document.getElementById("speedtest-progress-percent");
+        if (pText) pText.textContent = "100%";
+        const stageEl = document.getElementById("speedtest-stage-text");
+        if (stageEl) stageEl.textContent = "Đo kiểm tốc độ hoàn tất";
+
+        const downRate = st.download_mbps || 0;
+        const linkRate = st.link_speed_mbps || 866.7;
+
+        const downLabel = document.getElementById("compare-down-rate");
+        if (downLabel) downLabel.textContent = downRate.toFixed(1) + " Mbps";
+
+        const linkLabel = document.getElementById("compare-link-rate");
+        if (linkLabel) linkLabel.textContent = linkRate.toFixed(1) + " Mbps";
+
+        const maxRate = Math.max(downRate, linkRate, 100);
+        const dFill = document.getElementById("compare-down-fill");
+        if (dFill) dFill.style.width = Math.min(100, (downRate / maxRate) * 100) + "%";
+
+        const lFill = document.getElementById("compare-link-fill");
+        if (lFill) lFill.style.width = Math.min(100, (linkRate / maxRate) * 100) + "%";
+
+        const efficiency = linkRate > 0 ? Math.min(100, Math.round((downRate / linkRate) * 100)) : 0;
+        const effBadge = document.getElementById("speedtest-efficiency-badge");
+        if (effBadge) {
+            effBadge.className = efficiency >= 50 ? "badge-status-pass" : "badge-status-warn";
+            effBadge.textContent = "Hiệu suất khai thác Wi-Fi: " + efficiency + "%";
+        }
+
+        const netCtx = st.network_context || {};
+        const setT = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val || "--";
+        };
+
+        setT("st-context-ssid", netCtx.ssid || "Wi-Fi Hiện Tại");
+        setT("st-context-channel", (netCtx.band || "5 GHz") + " - Kênh " + (netCtx.channel || 60));
+        setT("st-context-signal", (netCtx.signal_percent || 90) + " %");
+        setT("st-context-elapsed", (st.elapsed_seconds || 5.2) + " giây");
+
+        const diagText = document.getElementById("speedtest-diagnosis-text");
+        if (diagText) {
+            diagText.textContent = st.diagnosis_vi || "Kết nối Internet hoạt động ổn định.";
+        }
+
+        window.saveSpeedTestToHistory(st);
+        window.renderSpeedTestHistoryTable();
+    };
+
+    window.handleSpeedTestError = function(errMsg) {
+        window.cleanupSpeedTestListeners();
+        speedtestState.isRunning = false;
+
+        const btnStart = document.getElementById("btn-start-speedtest");
+        const btnStop = document.getElementById("btn-stop-speedtest");
+        if (btnStart) btnStart.style.display = "inline-block";
+        if (btnStop) btnStop.style.display = "none";
+
+        const stageEl = document.getElementById("speedtest-stage-text");
+        if (stageEl) {
+            stageEl.textContent = "Lỗi đo kiểm: " + errMsg;
+            stageEl.style.color = "#dc2626";
+        }
+    };
+
+    window.saveSpeedTestToHistory = function(st) {
+        try {
+            const item = {
+                id: st.test_id || Date.now().toString(),
+                time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " " + new Date().toLocaleDateString("vi-VN"),
+                mode: speedtestState.mode === "quick" ? "Đo nhanh" : "Đo đầy đủ",
+                download: (st.download_mbps || 0).toFixed(1),
+                upload: (st.upload_mbps || 0).toFixed(1),
+                ping: (st.ping_ms || 0).toFixed(1),
+                jitter: (st.jitter_ms || 0).toFixed(1),
+                link_speed: (st.link_speed_mbps || 0).toFixed(1),
+                verdict: (st.download_mbps >= 50 && st.ping_ms <= 50) ? "Rất tốt" : ((st.download_mbps >= 20) ? "Ổn định" : "Chậm")
+            };
+
+            const raw = localStorage.getItem(speedtestState.historyKey);
+            let list = raw ? JSON.parse(raw) : [];
+            list.unshift(item);
+            if (list.length > 10) list = list.slice(0, 10);
+            localStorage.setItem(speedtestState.historyKey, JSON.stringify(list));
+        } catch (e) {
+            console.warn("Không thể lưu lịch sử đo vào localStorage:", e);
+        }
+    };
+
+    window.renderSpeedTestHistoryTable = function() {
+        const tbody = document.getElementById("speedtest-history-tbody");
+        if (!tbody) return;
+
+        try {
+            const raw = localStorage.getItem(speedtestState.historyKey);
+            const list = raw ? JSON.parse(raw) : [];
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Chưa có dữ liệu lịch sử đo tốc độ. Hãy bấm "Bắt đầu đo" ở trên.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => `
+                <tr>
+                    <td>${escapeHtml(item.time)}</td>
+                    <td><span class="oscium-meta-pill">${escapeHtml(item.mode)}</span></td>
+                    <td class="font-mono" style="font-weight:700; color:#0284c7;">${escapeHtml(item.download)}</td>
+                    <td class="font-mono" style="font-weight:700; color:#059669;">${escapeHtml(item.upload)}</td>
+                    <td class="font-mono">${escapeHtml(item.ping)}</td>
+                    <td class="font-mono">${escapeHtml(item.jitter)}</td>
+                    <td class="font-mono">${escapeHtml(item.link_speed)}</td>
+                    <td>
+                        <span class="${item.verdict === 'Rất tốt' ? 'badge-status-pass' : (item.verdict === 'Ổn định' ? 'badge-status-neutral' : 'badge-status-warn')}">
+                            ${escapeHtml(item.verdict)}
+                        </span>
+                    </td>
+                </tr>
+            `).join("");
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Lỗi đọc lịch sử đo.</td></tr>`;
+        }
+    };
+
+    window.clearSpeedTestHistory = function() {
+        localStorage.removeItem(speedtestState.historyKey);
+        window.renderSpeedTestHistoryTable();
+    };
     window.addEventListener("resize", () => {
         drawSpectrumGraphs();
     });
 
-    // Initialize Planner Canvas Interaction
+    // Initialize Planner Canvas Interaction & Upgrades
     setupPlannerCanvasInteraction();
     window.loadFloorplanPreset("apartment");
+
+    // Initialize AP Inspector & Calibration event listeners
+    document.getElementById("planner-floorplan-file")?.addEventListener("change", window.handleFloorplanImageUpload);
+    document.getElementById("planner-image-opacity")?.addEventListener("input", (e) => window.setFloorplanImageOpacity(e.target.value));
+    document.getElementById("btn-clear-bg-image")?.addEventListener("click", window.clearFloorplanImage);
+
+    // Initialize Speed Test history
+    window.renderSpeedTestHistoryTable();
+
+
+    // Switch between Raytracing Heatmap (NWC_WifiTool) and Ekahau SLA Grid Planner
+    window.switchPlannerEngine = function(mode) {
+        const btnRay = document.getElementById("btn-switch-hm-raytracing");
+        const btnEka = document.getElementById("btn-switch-hm-ekahau");
+        const viewRay = document.getElementById("view-heatmap");
+        const viewEka = document.getElementById("view-ekahau-planner");
+
+        if (mode === "ekahau") {
+            if (btnRay) btnRay.classList.remove("active");
+            if (btnEka) btnEka.classList.add("active");
+            if (viewRay) viewRay.classList.add("hidden");
+            if (viewEka) viewEka.classList.remove("hidden");
+            if (window.drawFloorplanHeatmap) window.drawFloorplanHeatmap();
+        } else {
+            if (btnEka) btnEka.classList.remove("active");
+            if (btnRay) btnRay.classList.add("active");
+            if (viewEka) viewEka.classList.add("hidden");
+            if (viewRay) viewRay.classList.remove("hidden");
+            if (window.refreshInvasionoHeatmap) window.refreshInvasionoHeatmap();
+        }
+    };
 
     // Initialize Current Language
     setLanguage(state.currentLang);
 
     // Initial instant fetch to populate UI immediately on page load
-    fetchScanData(false);
+    try {
+        fetchScanData(false);
+    } catch (e) {
+        console.error("fetchScanData initial error:", e);
+    }
 
     // Start live WebSocket stream
-    setupContinuousEngine();
+    try {
+        setupContinuousEngine();
+    } catch (e) {
+        console.error("setupContinuousEngine initial error:", e);
+    }
 });

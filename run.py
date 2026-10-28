@@ -20,12 +20,15 @@ def find_available_port(start_port: int = 8000) -> int:
 
 def open_browser(url: str):
     time.sleep(1.0)
-    print(f"[MMQ./NetScanner] Dang mo giao dien Web tai dia chi / Opening Web UI at: {url}")
+    print(f"[MMQ./WifiScanner] Đang mở giao diện Web tại địa chỉ: {url}")
     webbrowser.open(url)
 
 if __name__ == "__main__":
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
 
@@ -34,7 +37,7 @@ if __name__ == "__main__":
 
     print(f" * Che do thu song / Wi-Fi Interface : Ket noi truc tiep card mang Windows WLAN")
     print(f" * Dia chi truy cap / Local Web URL  : {url}")
-    print(f" * Chu ky cap nhat / Scan Interval   : Tu dong quet moi 2 giay khi mo giao dien")
+    print(f" * Chu ky cap nhat / Scan Interval   : Tu dong quet lien tuc theo thoi gian thuc")
     print(f" * Dinh dang bao cao / Report Format : File bang tinh CSV (Excel) va JSON")
     print("-" * 70)
 
