@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
         eventSource: null,
         selectedChannel24: null,
         selectedChannel5: null,
-        theme: localStorage.getItem("netscanner_theme") || "dark",
+        theme: localStorage.getItem("netscanner_theme") || "light",
         currentLang: localStorage.getItem("netscanner_lang") || "vi",
         rationaleLang: localStorage.getItem("netscanner_lang") || "vi",
         vowifiTested: false,
@@ -4218,11 +4218,13 @@ document.addEventListener("DOMContentLoaded", () => {
         function toX(mx) { return plotX + mx * scaleX; }
         function toY(my) { return plotY + my * scaleY; }
 
-        // 1. CLEAR & FILL BASE
-        ctx.fillStyle = "#070c17";
+        const isDark = state.theme === "dark";
+
+        // 1. CLEAR & FILL BASE (Light & Dark Theme adaptive)
+        ctx.fillStyle = isDark ? "#070c17" : "#f1f5f9";
         ctx.fillRect(0, 0, W, H);
 
-        ctx.fillStyle = "#0a1324";
+        ctx.fillStyle = isDark ? "#0a1324" : "#ffffff";
         ctx.fillRect(plotX, plotY, plotW, plotH);
 
         // 2. DRAW HEATMAP (Ekahau 5-Mode Matrix Renderer)
@@ -4262,10 +4264,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             compliantCells++;
                         } else {
                             // Darken non-compliant dead-zone
-                            ctx.fillStyle = "rgba(10, 16, 30, 0.78)";
+                            ctx.fillStyle = isDark ? "rgba(10, 16, 30, 0.78)" : "rgba(226, 232, 240, 0.85)";
                             ctx.fillRect(cx, cy, cellW + 0.8, cellH + 0.8);
                             // Subtle hazard cross-hatching
-                            ctx.strokeStyle = "rgba(239, 68, 68, 0.38)";
+                            ctx.strokeStyle = isDark ? "rgba(239, 68, 68, 0.38)" : "rgba(239, 68, 68, 0.52)";
                             ctx.lineWidth = 1;
                             ctx.beginPath();
                             ctx.moveTo(cx, cy);
@@ -4326,8 +4328,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // 3. ARCHITECTURAL GRID
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.05)";
+        // 3. ARCHITECTURAL GRID (Theme adaptive)
+        ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.05)" : "rgba(15, 23, 42, 0.04)";
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
         for (let x = 0.5; x < width_m; x += 1.0) {
@@ -4345,7 +4347,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (let x = 1; x < width_m; x++) {
             const isMajor5 = (x % 5 === 0);
-            ctx.strokeStyle = isMajor5 ? "rgba(56, 189, 248, 0.22)" : "rgba(56, 189, 248, 0.10)";
+            ctx.strokeStyle = isMajor5 
+                ? (isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(2, 132, 199, 0.22)") 
+                : (isDark ? "rgba(56, 189, 248, 0.10)" : "rgba(15, 23, 42, 0.07)");
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.beginPath();
             ctx.moveTo(toX(x), plotY);
@@ -4354,7 +4358,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         for (let y = 1; y < height_m; y++) {
             const isMajor5 = (y % 5 === 0);
-            ctx.strokeStyle = isMajor5 ? "rgba(56, 189, 248, 0.22)" : "rgba(56, 189, 248, 0.10)";
+            ctx.strokeStyle = isMajor5 
+                ? (isDark ? "rgba(56, 189, 248, 0.22)" : "rgba(2, 132, 199, 0.22)") 
+                : (isDark ? "rgba(56, 189, 248, 0.10)" : "rgba(15, 23, 42, 0.07)");
             ctx.lineWidth = isMajor5 ? 1.5 : 1;
             ctx.beginPath();
             ctx.moveTo(plotX, toY(y));
@@ -4362,7 +4368,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.stroke();
         }
 
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
+        ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.45)" : "rgba(2, 132, 199, 0.35)";
         ctx.lineWidth = 1;
         for (let x = 2; x < width_m; x += 2) {
             for (let y = 2; y < height_m; y += 2) {
@@ -4376,12 +4382,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // 4. PERIMETER FRAME & CORNER BRACKETS
-        ctx.strokeStyle = "#0284c7";
+        ctx.strokeStyle = isDark ? "#0284c7" : "#0284c7";
         ctx.lineWidth = 2;
         ctx.strokeRect(plotX, plotY, plotW, plotH);
 
         const bracketLen = 10;
-        ctx.strokeStyle = "#38bdf8";
+        ctx.strokeStyle = isDark ? "#38bdf8" : "#0284c7";
         ctx.lineWidth = 2.5;
         [
             { x: plotX, y: plotY, dx: 1, dy: 1 },
@@ -4403,13 +4409,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const ry = toY(r.y);
                 ctx.font = "bold 11px sans-serif";
                 const tw = ctx.measureText(r.text).width;
-                ctx.fillStyle = "rgba(10, 19, 36, 0.75)";
+                ctx.fillStyle = isDark ? "rgba(10, 19, 36, 0.75)" : "rgba(255, 255, 255, 0.92)";
                 ctx.fillRect(rx - tw/2 - 6, ry - 10, tw + 12, 20);
-                ctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
+                ctx.strokeStyle = isDark ? "rgba(56, 189, 248, 0.25)" : "#cbd5e1";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(rx - tw/2 - 6, ry - 10, tw + 12, 20);
 
-                ctx.fillStyle = "rgba(226, 232, 240, 0.85)";
+                ctx.fillStyle = isDark ? "rgba(226, 232, 240, 0.85)" : "#0f172a";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(r.text, rx, ry);
@@ -4585,8 +4591,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const isMidHovered = isHovered && (state.planner.hoveredPart === "midpoint" || state.planner.hoveredPart === "body");
                 const pillW = 86;
                 const pillH = 20;
-                ctx.fillStyle = isMidHovered ? "#0e2a4a" : "#091220";
-                ctx.strokeStyle = isMidHovered ? "#38bdf8" : "#0ea5e9";
+                ctx.fillStyle = isMidHovered ? (isDark ? "#0e2a4a" : "#e0f2fe") : (isDark ? "#091220" : "#ffffff");
+                ctx.strokeStyle = isMidHovered ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#0ea5e9" : "#cbd5e1");
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.roundRect(midX - pillW/2, midY - pillH/2, pillW, pillH, 10);
@@ -4594,7 +4600,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.stroke();
 
                 ctx.font = "bold 10px sans-serif";
-                ctx.fillStyle = isMidHovered ? "#7dd3fc" : "#38bdf8";
+                ctx.fillStyle = isMidHovered ? (isDark ? "#7dd3fc" : "#0284c7") : (isDark ? "#38bdf8" : "#0369a1");
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(state.currentLang === "vi" ? "✥ Di Chuyển" : "✥ Move Wall", midX, midY);
@@ -4606,13 +4612,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 ctx.font = "bold 11px monospace";
                 const tw = ctx.measureText(dimText).width;
-                ctx.fillStyle = "#060b14";
+                ctx.fillStyle = isDark ? "#060b14" : "#ffffff";
                 ctx.fillRect(midX - tw/2 - 6, midY - 28, tw + 12, 18);
-                ctx.strokeStyle = "#0ea5e9";
+                ctx.strokeStyle = isDark ? "#0ea5e9" : "#0284c7";
                 ctx.lineWidth = 1.2;
                 ctx.strokeRect(midX - tw/2 - 6, midY - 28, tw + 12, 18);
 
-                ctx.fillStyle = "#38bdf8";
+                ctx.fillStyle = isDark ? "#38bdf8" : "#0284c7";
                 ctx.fillText(dimText, midX, midY - 19);
 
             } else {

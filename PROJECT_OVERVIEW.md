@@ -6,10 +6,12 @@ Tai lieu tom tat toan bo he thong cong cu khao sat song Wi-Fi, phan tich pho tan
 
 ## 1. Muc Tieu & Triet Ly Thiet Ke
 
-1. **Giao Dien Bang Dieu Khien Phan Tich Hien Dai (Modern SaaS Analytics Dashboard)**:
-   - Tham chieu phong cach uupm.cc SaaS Analytics Dashboard.
-   - Thiet ke giao dien the kinh mo, nen chuyen sac toi giam moi mat, thanh the chi so KPI tong quan voi do thi mini va thanh tien trinh truc quan.
-   - Ho tro chuyen doi giao dien Sang va Toi (Light / Dark Mode) va da ngon ngu Viet - Anh (Bilingual VI/EN).
+1. **Giao Dien Sang Thu Gian & Phan Tich Hien Dai (Health & Wellness Soft UI & SaaS Analytics Dashboard)**:
+   - Tham chieu ngon ngu thiet ke Neumorphism va Soft UI Evolution tu uupm.cc Health & Wellness App (uupm.cc/demo/health-wellness) ket hop cung SaaS Analytics Dashboard.
+   - Mac dinh giao dien Sang (Light Mode) thanh thoat, nhe nhang, su dung nen trang nga #f8fafc ket hop luoi anh sang pastel aura tinh te (xanh troi #38bdf8, xanh la cay nhe #22c55e va tim nhat #a855f7).
+   - Cac the thong tin su dung mat phang trang tinh khoi #ffffff voi vien sieu manh #e2e8f0 va do bong kep phan tan em diu, giup theo doi so lieu mang ca ngay khong bi moi mat.
+   - Chu tieu de su dung mau xam dam #0f172a / #1e293b do tuong phan cao, chu phu mau #64748b ro net, cac the KPI duoc bo tron 14px mem mai.
+   - Ho tro chuyen doi nhanh giua giao dien Sang va Toi (Light / Dark Mode) qua nut bam tren thanh dieu huong, di kem song ngu Viet - Anh (Bilingual VI/EN).
 
 2. **Quy Hoach Mat Bang & Ban Do Nhiet 5 Che Do Chuan Ekahau (Ekahau Wi-Fi Design Solutions)**:
    - Tham chieu tieu chuan thiet ke mang khong day chuyen nghiep cua Ekahau.
