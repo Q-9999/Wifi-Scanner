@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+cd /d "%~dp0"
 title MMQ./WifiScanner
 cls
 echo ======================================================================
@@ -11,6 +12,9 @@ echo.
 python run.py
 if errorlevel 1 (
     echo.
-    echo   [Loi] Khong the khoi chay chuong trinh. Vui long kiem tra Python.
+    echo   [Loi] Khong the khoi chay chuong trinh ^(Ma loi: %errorlevel%^).
+    echo   Vui long kiem tra da cai dat Python 3.10+ va chay:
+    echo       python -m pip install -r requirements.txt
+    echo.
     pause
 )

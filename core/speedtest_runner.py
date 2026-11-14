@@ -9,8 +9,13 @@ Mo ta: Bo thuc thi do kiem toc do mang Wi-Fi (Download, Upload, Ping, Jitter)
 import time
 import uuid
 import threading
+import urllib.request
 from typing import Dict, Any, Optional, List
-import httpx
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 try:
     from . import wifi_scanner
@@ -29,6 +34,62 @@ BROWSER_USER_AGENT = (
 CF_SPEED_BASE = "https://speed.cloudflare.com"
 CF_DOWN_URL = f"{CF_SPEED_BASE}/__down"
 CF_UP_URL = f"{CF_SPEED_BASE}/__up"
+
+
+class _UrllibCompatResponse:
+    """Minimal httpx-compatible response wrapper backed by urllib.request."""
+
+    def __init__(self, resp):
+        self._resp = resp
+        self.status_code = getattr(resp, "status", 200)
+        self.headers = {k.lower(): v for k, v in resp.headers.items()} if getattr(resp, "headers", None) else {}
+
+    def iter_bytes(self, chunk_size: int = 65536, max_chunks: int = 2048):
+        for _ in range(max_chunks):
+            chunk = self._resp.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            self._resp.close()
+        except Exception:
+            pass
+
+
+class _UrllibCompatClient:
+    """Fallback HTTP client using stdlib urllib.request when httpx is unavailable."""
+
+    def __init__(self, headers: Dict[str, str], timeout: float = 12.0):
+        self._headers = headers
+        self._timeout = timeout
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        pass
+
+    def get(self, url: str) -> _UrllibCompatResponse:
+        req = urllib.request.Request(url, headers=self._headers, method="GET")
+        with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+            resp.read()
+            return _UrllibCompatResponse(resp)
+
+    def stream(self, method: str, url: str) -> _UrllibCompatResponse:
+        req = urllib.request.Request(url, headers=self._headers, method=method)
+        resp = urllib.request.urlopen(req, timeout=self._timeout)
+        return _UrllibCompatResponse(resp)
+
+    def post(self, url: str, content: bytes) -> _UrllibCompatResponse:
+        req = urllib.request.Request(url, data=content, headers=self._headers, method="POST")
+        with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+            resp.read()
+            return _UrllibCompatResponse(resp)
 
 
 class SpeedTestRunner:
@@ -113,9 +174,20 @@ class SpeedTestRunner:
         self._worker_thread.start()
         return {"status": "running", "test_id": test_id}
 
+    _UPLOAD_CACHE = {}
+
+    @classmethod
+    def _get_upload_payload(cls, size: int) -> bytes:
+        """Lazily reuse immutable upload buffers to avoid repeated multi-MB allocations."""
+        buf = cls._UPLOAD_CACHE.get(size)
+        if buf is None:
+            buf = b"0" * size
+            cls._UPLOAD_CACHE[size] = buf
+        return buf
+
     def _run_mock_test(self, test_id: str):
         """Gia lap ket qua tat dinh trong < 0.05 giay phuc vu test tu dong"""
-        iface = wifi_scanner.get_connected_interface_info()
+        iface = wifi_scanner.get_connected_interface_info(ttl_sec=5.0)
         link_speed = max(iface.get("rx_rate") or 0.0, iface.get("tx_rate") or 0.0)
         if link_speed <= 0.0:
             link_speed = 866.7
@@ -152,7 +224,12 @@ class SpeedTestRunner:
         }
 
         try:
-            with httpx.Client(headers=headers, timeout=12.0, follow_redirects=True) as client:
+            client_cm = (
+                httpx.Client(headers=headers, timeout=12.0, follow_redirects=True)
+                if httpx is not None
+                else _UrllibCompatClient(headers=headers, timeout=12.0)
+            )
+            with client_cm as client:
                 # GIAI ĐOẠN 1: ĐO ĐỘ TRỄ (PING) & BIẾN ĐỘNG ĐỘ TRỄ (JITTER)
                 self._update_state(
                     stage="ping",
@@ -236,7 +313,7 @@ class SpeedTestRunner:
                 )
 
                 up_size = 2_097_152 if mode == "quick" else 5_242_880
-                upload_payload = b"0" * up_size
+                upload_payload = self._get_upload_payload(up_size)
 
                 t_up_start = time.perf_counter()
                 up_resp = client.post(CF_UP_URL, content=upload_payload)

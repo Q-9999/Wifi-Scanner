@@ -34,7 +34,7 @@ NetSpot.exe
 reports/*
 !reports/.gitkeep
 
-# IDE & OS
+# IDE & OS & Scratch/Agent dirs
 .idea/
 .vscode/
 *.swp
@@ -42,3 +42,7 @@ reports/*
 .DS_Store
 Thumbs.db
 .agents/
+.pytest_cache/
+*.log
+csv/
+json/

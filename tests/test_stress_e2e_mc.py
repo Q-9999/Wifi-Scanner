@@ -27,7 +27,10 @@ import ast
 import concurrent.futures
 
 sys.stdout.reconfigure(encoding="utf-8")
-WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_DIR = os.path.abspath(os.path.join(TEST_DIR, ".."))
+if WORKSPACE_DIR not in sys.path:
+    sys.path.insert(0, WORKSPACE_DIR)
 
 PASSED_COUNT = 0
 FAILED_COUNT = 0
@@ -44,9 +47,9 @@ def log_test(name: str, passed: bool, detail: str = ""):
 
 
 def run_python_file(filename: str, timeout: float = 30.0) -> subprocess.CompletedProcess:
-    filepath = os.path.join(WORKSPACE_DIR, filename)
+    filepath = os.path.join(TEST_DIR, filename)
     return subprocess.run(
-        [sys.executable, filepath],
+        [sys.executable, "-B", filepath],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -91,7 +94,7 @@ log_test(
 # CHALLENGE 2: Assertion and Coverage Audit across all 9 Parts
 # ==============================================================================
 print("\n--- CHALLENGE 2: Assertion and Coverage Audit (AST & Dynamic) ---")
-suite_path = os.path.join(WORKSPACE_DIR, "test_full_suite.py")
+suite_path = os.path.join(TEST_DIR, "test_full_suite.py")
 with open(suite_path, "r", encoding="utf-8") as f:
     suite_code = f.read()
 
@@ -101,12 +104,13 @@ log_test("AST Assert Node Count", len(ast_asserts) >= 60, f"Found {len(ast_asser
 
 # Dynamic assertion tracer
 executed_asserts = 0
-trace_script = """
+trace_script = f"""
 import sys
 import os
-sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, {WORKSPACE_DIR!r})
+sys.path.insert(0, {TEST_DIR!r})
 executed_asserts = 0
-with open("test_full_suite.py", "r", encoding="utf-8") as f:
+with open({suite_path!r}, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
 def trace_calls(frame, event, arg):
@@ -120,10 +124,10 @@ def trace_calls(frame, event, arg):
 sys.settrace(trace_calls)
 import test_full_suite
 sys.settrace(None)
-print(f"DYNAMIC_ASSERTS_EXECUTED:{executed_asserts}")
+print(f"DYNAMIC_ASSERTS_EXECUTED:{{executed_asserts}}")
 """
 proc_dyn = subprocess.run(
-    [sys.executable, "-c", trace_script],
+    [sys.executable, "-B", "-c", trace_script],
     capture_output=True,
     text=True,
     encoding="utf-8",
@@ -180,7 +184,7 @@ log_test("Regression: test_challenger_mb_dynamic.py (25 tests)", mb_dyn_ok, f"({
 # CHALLENGE 4: Part 6 Mock Speed Test Performance (< 0.1s)
 # ==============================================================================
 print("\n--- CHALLENGE 4: SpeedTestRunner Mock Performance Benchmark ---")
-import speedtest_runner
+from core import speedtest_runner
 
 runner = speedtest_runner.SpeedTestRunner()
 mock_iterations = 50

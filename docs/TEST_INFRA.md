@@ -7,20 +7,20 @@
 ## Feature Inventory & Test Coverage
 | # | Feature | Nguồn yêu cầu | Tier 1 | Tier 2 | Tier 3 |
 |---|---------|---------------|:------:|:------:|:------:|
-| 1 | R1: Bản địa hóa 100% Tiếng Việt trên toàn bộ giao diện | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ |
-| 2 | R1: Ngôn ngữ tối giản không biểu tượng (0 icon, 0 emoji) | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ |
-| 3 | R2: Loại bỏ Dark mode và thiết lập Light mode cố định | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ |
-| 4 | R2: Chuẩn hóa bố cục UI/UX chuyên nghiệp | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ |
-| 5 | R3: Làm mượt đồ họa Bản đồ nhiệt Wi-Fi và dải màu đa bậc | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ |
-| 6 | R3: Bảng thuộc tính AP và nạp ảnh mặt bằng kiến trúc | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ |
-| 7 | R4: Tích hợp thông số Card mạng vào chẩn đoán Oscium | ORIGINAL_REQUEST §R4 | 5 | 5 | ✓ |
-| 8 | R4: Chẩn đoán nguyên nhân gốc rễ và hướng dẫn từng bước | ORIGINAL_REQUEST §R4 | 5 | 5 | ✓ |
-| 9 | R5: Đo tốc độ Download, Upload, Ping/Latency thực tế | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
-| 10 | R5: API đo tốc độ và đối sánh với tốc độ liên kết Wi-Fi | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
-| 11 | R6: Cập nhật đồng bộ tài liệu PROJECT_OVERVIEW và README | ORIGINAL_REQUEST §R6 | 5 | 5 | ✓ |
+| 1 | R1: Bản địa hóa 100% Tiếng Việt trên toàn bộ giao diện | ORIGINAL_REQUEST §R1 | 5 | 5 | Pass |
+| 2 | R1: Ngôn ngữ tối giản không biểu tượng (0 icon, 0 emoji) | ORIGINAL_REQUEST §R1 | 5 | 5 | Pass |
+| 3 | R2: Loại bỏ Dark mode và thiết lập Light mode cố định | ORIGINAL_REQUEST §R2 | 5 | 5 | Pass |
+| 4 | R2: Chuẩn hóa bố cục giao diện nền sáng | ORIGINAL_REQUEST §R2 | 5 | 5 | Pass |
+| 5 | R3: Làm mượt đồ họa Bản đồ nhiệt Wi-Fi và dải màu đa bậc | ORIGINAL_REQUEST §R3 | 5 | 5 | Pass |
+| 6 | R3: Bảng thuộc tính AP và nạp ảnh mặt bằng kiến trúc | ORIGINAL_REQUEST §R3 | 5 | 5 | Pass |
+| 7 | R4: Tích hợp thông số Card mạng vào chẩn đoán Oscium | ORIGINAL_REQUEST §R4 | 5 | 5 | Pass |
+| 8 | R4: Chẩn đoán nguyên nhân gốc rễ và hướng dẫn từng bước | ORIGINAL_REQUEST §R4 | 5 | 5 | Pass |
+| 9 | R5: Đo tốc độ Download, Upload, Ping/Latency thực tế | ORIGINAL_REQUEST §R5 | 5 | 5 | Pass |
+| 10 | R5: API đo tốc độ và đối sánh với tốc độ liên kết Wi-Fi | ORIGINAL_REQUEST §R5 | 5 | 5 | Pass |
+| 11 | R6: Cập nhật đồng bộ tài liệu PROJECT_OVERVIEW và README | ORIGINAL_REQUEST §R6 | 5 | 5 | Pass |
 
 ## Test Architecture
-- **Test Runner chính**: `python test_full_suite.py`
+- **Test Runner chính**: `python -B tests/test_full_suite.py`
 - **Môi trường**: Windows PowerShell / Python 3.14.
 - **Tiêu chuẩn đạt**: Exit code = 0, toàn bộ các khẳng định (`assert`) vượt qua, thông báo `ALL VERIFICATIONS PASSED SUCCESSFULLY!`.
 - **Cấu trúc bộ kiểm thử mở rộng**:
@@ -41,7 +41,7 @@
 | 2 | Chạy đo kiểm tốc độ mạng Speed Test và so sánh với tốc độ liên kết card Wi-Fi | F9, F10 | Nâng cao |
 | 3 | Khảo sát bản đồ nhiệt mặt bằng với ảnh nền và cấu hình công suất AP | F5, F6 | Nâng cao |
 | 4 | Chẩn đoán sự cố mạng Wi-Fi yếu/nhiễu kênh theo phong cách Oscium | F7, F8 | Nâng cao |
-| 5 | Xuất báo cáo tổng hợp môi trường sóng và kiểm tra tính toàn vẹn tài liệu | F11 | Toàn diện |
+| 5 | Xuất báo cáo tổng hợp môi trường sóng và kiểm tra tính toàn vẹn tài liệu | F11 | Đầy đủ |
 
 ## Coverage Thresholds
 - Tier 1: Tối thiểu 5 ca kiểm thử cho từng tính năng độc lập.

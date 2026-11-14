@@ -4,7 +4,24 @@ import socket
 import webbrowser
 import threading
 import time
-import uvicorn
+import subprocess
+import importlib.util
+
+
+def ensure_dependencies() -> None:
+    """Kiem tra va tu dong cai dat cac thu vien con thieu tu requirements.txt."""
+    required_modules = ("uvicorn", "fastapi", "httpx", "pydantic")
+    missing = [mod for mod in required_modules if importlib.util.find_spec(mod) is None]
+    if not missing:
+        return
+
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    req_path = os.path.join(root_dir, "requirements.txt")
+    print(f"[He thong] Phat hien thieu thu vien: {', '.join(missing)}. Dang tu dong cai dat...")
+    if os.path.exists(req_path):
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req_path])
+    else:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
 
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -31,6 +48,9 @@ if __name__ == "__main__":
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
+
+    ensure_dependencies()
+    import uvicorn
 
     port = find_available_port(8000)
     url = f"http://localhost:{port}"

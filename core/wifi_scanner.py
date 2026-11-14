@@ -1,9 +1,28 @@
 import subprocess
 import re
-import math
+import time
+import threading
 import ctypes
 from ctypes import wintypes
+from collections import Counter
 from typing import List, Dict, Any, Optional, Tuple
+
+_IFACE_LOCK = threading.Lock()
+_IFACE_CACHE: Dict[str, Any] = {"ts": 0.0, "data": None}
+
+
+def _safe_int(val: Any, default: int = 0) -> int:
+    try:
+        return int(float(val)) if val is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    try:
+        return float(val) if val is not None else default
+    except (ValueError, TypeError):
+        return default
 
 # Pre-compiled regular expressions for fast line parsing without per-scan re-allocation
 RE_SSID = re.compile(r"^SSID\s+\d+\s*:\s*(.*)$", re.IGNORECASE)
@@ -186,197 +205,126 @@ def signal_percent_to_dbm(percent: int) -> int:
     return max(-100, min(-30, dbm))
 
 
+_WIFI_GEN_TABLE = (
+    ("802.11be", "Wi-Fi 7"), ("802.11ax", "Wi-Fi 6"), ("802.11ac", "Wi-Fi 5"),
+    ("802.11n", "Wi-Fi 4"), ("802.11g", "Wi-Fi 3"), ("802.11a", "Wi-Fi 2"), ("802.11b", "Wi-Fi 1"),
+)
+_GEN_PHY_CAPS = (("7", 160, 13), ("6", 80, 11), ("5", 80, 9))
+_MCS_SNR_TABLE = (
+    (38, 12, 13, "4096-QAM (5/6)"), (34, 10, 11, "1024-QAM (5/6)"),
+    (31, 9, 9, "256-QAM (5/6)"), (28, 8, 8, "256-QAM (3/4)"),
+    (25, 0, 7, "64-QAM (5/6)"), (22, 0, 6, "64-QAM (3/4)"), (19, 0, 5, "64-QAM (2/3)"),
+    (16, 0, 4, "16-QAM (3/4)"), (13, 0, 3, "16-QAM (1/2)"),
+    (10, 0, 2, "QPSK (3/4)"), (7, 0, 1, "QPSK (1/2)"),
+)
+_BASE_RATES_20MHZ_2SS = {
+    0: 14.4, 1: 28.8, 2: 43.3, 3: 57.8, 4: 86.7, 5: 115.6, 6: 130.0,
+    7: 144.4, 8: 173.3, 9: 192.0, 10: 240.0, 11: 288.2, 12: 317.0, 13: 346.0,
+}
+
+
 def get_wifi_generation(radio_type: str) -> str:
     rt = radio_type.lower()
-    if "802.11be" in rt:
-        return "Wi-Fi 7"
-    if "802.11ax" in rt:
-        return "Wi-Fi 6"
-    if "802.11ac" in rt:
-        return "Wi-Fi 5"
-    if "802.11n" in rt:
-        return "Wi-Fi 4"
-    if "802.11g" in rt:
-        return "Wi-Fi 3"
-    if "802.11b" in rt:
-        return "Wi-Fi 1"
-    if "802.11a" in rt:
-        return "Wi-Fi 2"
-    return radio_type
+    return next((gen for token, gen in _WIFI_GEN_TABLE if token in rt), radio_type)
 
 
 def channel_to_frequency(channel: int, band_str: str) -> int:
     if "2.4" in band_str or (1 <= channel <= 14):
-        if channel == 14:
-            return 2484
-        return 2407 + (channel * 5)
-    elif "5" in band_str or (32 <= channel <= 177):
+        return 2484 if channel == 14 else 2407 + (channel * 5)
+    if "5" in band_str or (32 <= channel <= 177):
         return 5000 + (channel * 5)
-    elif "6" in band_str or channel > 177:
+    if "6" in band_str or channel > 177:
         return 5950 + (channel * 5)
     return 2412
 
 
 def estimate_channel_noise_floor(channel: int, band_str: str, same_ch_aps: int = 0) -> int:
-    """
-    Estimate channel thermal + co-channel interference noise floor (dBm).
-    2.4 GHz baseline is -94 dBm; 5/6 GHz baseline is -96 dBm.
-    """
+    """Estimate channel thermal + co-channel interference noise floor (dBm)."""
     base_noise = -94 if ("2.4" in band_str or (1 <= channel <= 14)) else -96
     return min(-78, base_noise + (max(0, same_ch_aps) * 2))
 
 
 def estimate_mcs_and_phy(signal_dbm: int, snr_db: int, wifi_gen: str, band: str) -> Dict[str, Any]:
-    """
-    Estimate MCS Index (Modulation and Coding Scheme), modulation type, channel width,
-    and realistic TCP/UDP throughput (Hamina / Ekahau / AirMagnet standard).
-    """
-    is_5g_or_6g = ("5" in band) or ("6" in band)
-    if "7" in wifi_gen:
-        width_mhz = 160 if is_5g_or_6g else 20
-        max_mcs = 13
-    elif "6" in wifi_gen:
-        width_mhz = 80 if is_5g_or_6g else 20
-        max_mcs = 11
-    elif "5" in wifi_gen:
-        width_mhz = 80 if is_5g_or_6g else 20
-        max_mcs = 9
-    else:
-        width_mhz = 40 if is_5g_or_6g else 20
-        max_mcs = 7
-
-    # Map SNR/RSSI to MCS Index
-    if snr_db >= 38 and max_mcs >= 12:
-        mcs = max_mcs
-        mod = "4096-QAM (5/6)"
-    elif snr_db >= 34 and max_mcs >= 10:
-        mcs = min(max_mcs, 11)
-        mod = "1024-QAM (5/6)"
-    elif snr_db >= 31 and max_mcs >= 9:
-        mcs = min(max_mcs, 9)
-        mod = "256-QAM (5/6)"
-    elif snr_db >= 28 and max_mcs >= 8:
-        mcs = min(max_mcs, 8)
-        mod = "256-QAM (3/4)"
-    elif snr_db >= 25:
-        mcs = 7
-        mod = "64-QAM (5/6)"
-    elif snr_db >= 22:
-        mcs = 6
-        mod = "64-QAM (3/4)"
-    elif snr_db >= 19:
-        mcs = 5
-        mod = "64-QAM (2/3)"
-    elif snr_db >= 16:
-        mcs = 4
-        mod = "16-QAM (3/4)"
-    elif snr_db >= 13:
-        mcs = 3
-        mod = "16-QAM (1/2)"
-    elif snr_db >= 10:
-        mcs = 2
-        mod = "QPSK (3/4)"
-    elif snr_db >= 7:
-        mcs = 1
-        mod = "QPSK (1/2)"
-    else:
-        mcs = 0
-        mod = "BPSK (1/2)"
-
-    # Base 2x2 MIMO spatial stream PHY rate estimation (Mbps)
-    width_factor = width_mhz / 20.0
-    base_rates_20mhz_2ss = {
-        0: 14.4, 1: 28.8, 2: 43.3, 3: 57.8, 4: 86.7,
-        5: 115.6, 6: 130.0, 7: 144.4, 8: 173.3, 9: 192.0,
-        10: 240.0, 11: 288.2, 12: 317.0, 13: 346.0
-    }
-    phy_rate = round(base_rates_20mhz_2ss.get(mcs, 72.2) * width_factor, 1)
-    # Realistic TCP/IP application throughput is ~62% of PHY link speed due to CSMA/CA overhead
-    est_throughput = round(phy_rate * 0.62, 1)
-
+    """Estimate MCS Index, modulation, channel width, PHY rate and realistic TCP throughput."""
+    is_56 = ("5" in band) or ("6" in band)
+    width_mhz, max_mcs = next(
+        ((w if is_56 else 20, m) for g, w, m in _GEN_PHY_CAPS if g in wifi_gen),
+        (40 if is_56 else 20, 7)
+    )
+    mcs, mod = next(
+        ((min(max_mcs, cap), m) for s, req_m, cap, m in _MCS_SNR_TABLE if snr_db >= s and max_mcs >= req_m),
+        (0, "BPSK (1/2)")
+    )
+    phy_rate = round(_BASE_RATES_20MHZ_2SS.get(mcs, 72.2) * (width_mhz / 20.0), 1)
     return {
         "mcs_index": mcs,
         "modulation": mod,
         "channel_width_mhz": width_mhz,
         "phy_rate_mbps": phy_rate,
-        "est_throughput_mbps": est_throughput
+        "est_throughput_mbps": round(phy_rate * 0.62, 1)
     }
 
 
-def get_connected_interface_info() -> Dict[str, Any]:
-    """Parse netsh wlan show interfaces to get active connection"""
-    info = {
-        "connected": False,
-        "ssid": None,
-        "bssid": None,
-        "interface_name": None,
-        "description": None,
-        "band": None,
-        "channel": None,
-        "signal": None,
-        "rssi": None,
-        "radio_type": None,
-        "auth": None,
-        "rx_rate": None,
-        "tx_rate": None
+_IFACE_KEY_MAP = {
+    "name": "interface_name",
+    "description": "description",
+    "ssid": "ssid",
+    "band": "band",
+    "radio type": "radio_type",
+    "authentication": "auth",
+}
+
+
+def get_connected_interface_info(ttl_sec: float = 1.2) -> Dict[str, Any]:
+    """Parse netsh wlan show interfaces with a short TTL cache to avoid repeated subprocess overhead."""
+    now = time.monotonic()
+    with _IFACE_LOCK:
+        cached = _IFACE_CACHE["data"]
+        if cached is not None and (now - _IFACE_CACHE["ts"]) < ttl_sec:
+            return dict(cached)
+
+    info: Dict[str, Any] = {
+        "connected": False, "ssid": None, "bssid": None, "interface_name": None,
+        "description": None, "band": None, "channel": None, "signal": None,
+        "rssi": None, "radio_type": None, "auth": None, "rx_rate": None, "tx_rate": None,
     }
     try:
         proc = subprocess.run(
             ["netsh", "wlan", "show", "interfaces"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=2.0
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2.0
         )
         for line in proc.stdout.splitlines():
-            line = line.strip()
-            if not line or ":" not in line:
+            if ":" not in line:
                 continue
-            key_raw, val = line.split(":", 1)
-            key = key_raw.strip().lower()
-            val = val.strip()
-
-            if key == "name":
-                info["interface_name"] = val
-            elif key == "description":
-                info["description"] = val
+            key_raw, val_raw = line.split(":", 1)
+            key, val = key_raw.strip().lower(), val_raw.strip()
+            if key in _IFACE_KEY_MAP:
+                info[_IFACE_KEY_MAP[key]] = val
             elif key == "state":
                 info["connected"] = (val.lower() == "connected")
-            elif key == "ssid":
-                info["ssid"] = val
             elif "bssid" in key:
                 info["bssid"] = val.lower()
-            elif key == "band":
-                info["band"] = val
             elif key == "channel":
-                try:
-                    info["channel"] = int(val)
-                except ValueError:
-                    info["channel"] = val
+                info["channel"] = _safe_int(val, val)
             elif key == "signal":
-                pct = RE_DIGITS.findall(val)
-                if pct:
-                    info["signal"] = int(pct[0])
+                if m := RE_DIGITS.findall(val):
+                    info["signal"] = int(m[0])
             elif key == "rssi":
-                try:
-                    info["rssi"] = int(val)
-                except ValueError:
-                    pass
-            elif key == "radio type":
-                info["radio_type"] = val
-            elif key == "authentication":
-                info["auth"] = val
+                parsed_rssi = _safe_int(val, -999)
+                if parsed_rssi != -999:
+                    info["rssi"] = parsed_rssi
             elif "receive rate" in key:
-                m = RE_FLOAT.findall(val)
-                if m:
+                if m := RE_FLOAT.findall(val):
                     info["rx_rate"] = float(m[0])
             elif "transmit rate" in key:
-                m = RE_FLOAT.findall(val)
-                if m:
+                if m := RE_FLOAT.findall(val):
                     info["tx_rate"] = float(m[0])
     except Exception:
         pass
+
+    with _IFACE_LOCK:
+        _IFACE_CACHE["ts"] = time.monotonic()
+        _IFACE_CACHE["data"] = dict(info)
     return info
 
 
@@ -422,28 +370,36 @@ def get_native_hardware_rssi() -> Dict[str, Dict[str, Any]]:
     return hardware_data
 
 
+def _enrich_rf_metrics(net: Dict[str, Any], ch_counts: Counter, default_dbm: int = -100) -> None:
+    """Compute Noise Floor, SNR, co-channel density, and MCS/PHY estimates in place."""
+    ch = _safe_int(net.get("channel"), 1)
+    band_str = str(net.get("band", "2.4 GHz"))
+    sig_dbm = _safe_int(net.get("signal_dbm"), default_dbm)
+    same_ch = max(0, ch_counts.get(ch, 1) - 1)
+    nf = estimate_channel_noise_floor(ch, band_str, same_ch)
+    snr = max(0, sig_dbm - nf)
+    net["noise_floor_dbm"] = nf
+    net["snr_db"] = snr
+    net["co_channel_count"] = same_ch
+    net.update(estimate_mcs_and_phy(sig_dbm, snr, net.get("wifi_generation", "Wi-Fi 4"), band_str))
+
+
 def _parse_raw_networks(connected_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Internal parser that extracts raw BSSID entries without running duplicate clustering"""
+    """Internal parser that extracts raw BSSID entries without running duplicate clustering."""
     live_hardware = get_native_hardware_rssi()
     networks: List[Dict[str, Any]] = []
 
     try:
         proc = subprocess.run(
             ["netsh", "wlan", "show", "networks", "mode=bssid"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=2.5
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=2.5
         )
         raw_output = proc.stdout
     except Exception:
         raw_output = ""
 
     connected_bssid = (connected_info.get("bssid") or "").lower()
-    current_ssid = None
-    current_auth = "Unknown"
-    current_cipher = "Unknown"
+    current_ssid, current_auth, current_cipher = None, "Unknown", "Unknown"
     current_bss: Optional[Dict[str, Any]] = None
 
     for line in raw_output.splitlines():
@@ -451,109 +407,64 @@ def _parse_raw_networks(connected_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not line_str:
             continue
 
-        ssid_match = RE_SSID.match(line_str)
-        if ssid_match:
+        if ssid_match := RE_SSID.match(line_str):
             if current_bss:
                 networks.append(current_bss)
                 current_bss = None
             current_ssid = ssid_match.group(1).strip() or "[Hidden Network]"
-            current_auth = "Open"
-            current_cipher = "None"
+            current_auth, current_cipher = "Open", "None"
             continue
 
-        if line_str.startswith("Authentication"):
-            parts = line_str.split(":", 1)
-            if len(parts) > 1:
-                current_auth = parts[1].strip()
+        if line_str.startswith("Authentication") and ":" in line_str:
+            current_auth = line_str.split(":", 1)[1].strip()
+            continue
+        if line_str.startswith("Encryption") and ":" in line_str:
+            current_cipher = line_str.split(":", 1)[1].strip()
             continue
 
-        if line_str.startswith("Encryption"):
-            parts = line_str.split(":", 1)
-            if len(parts) > 1:
-                current_cipher = parts[1].strip()
-            continue
-
-        bssid_match = RE_BSSID.match(line_str)
-        if bssid_match:
+        if bssid_match := RE_BSSID.match(line_str):
             if current_bss:
                 networks.append(current_bss)
-
             bssid = bssid_match.group(1).lower()
             current_bss = {
-                "ssid": current_ssid or "[Hidden Network]",
-                "bssid": bssid,
-                "authentication": current_auth,
-                "encryption": current_cipher,
-                "signal_percent": 0,
-                "signal_dbm": -100,
-                "radio_type": "802.11n",
-                "wifi_generation": "Wi-Fi 4",
-                "band": "2.4 GHz",
-                "channel": 1,
-                "frequency_mhz": 2412,
-                "vendor": get_vendor(bssid),
-                "channel_utilization_pct": None,
-                "connected_stations": 0,
-                "is_connected": (bssid == connected_bssid),
-                "rates": []
+                "ssid": current_ssid or "[Hidden Network]", "bssid": bssid,
+                "authentication": current_auth, "encryption": current_cipher,
+                "signal_percent": 0, "signal_dbm": -100,
+                "radio_type": "802.11n", "wifi_generation": "Wi-Fi 4",
+                "band": "2.4 GHz", "channel": 1, "frequency_mhz": 2412,
+                "vendor": get_vendor(bssid), "channel_utilization_pct": None,
+                "connected_stations": 0, "is_connected": (bssid == connected_bssid), "rates": [],
             }
             continue
 
-        if current_bss is not None:
-            if line_str.startswith("Signal"):
-                parts = line_str.split(":", 1)
-                if len(parts) > 1:
-                    pct_m = RE_DIGITS.findall(parts[1])
-                    if pct_m:
-                        pct = int(pct_m[0])
-                        current_bss["signal_percent"] = pct
-                        current_bss["signal_dbm"] = signal_percent_to_dbm(pct)
-            elif line_str.startswith("Radio type"):
-                parts = line_str.split(":", 1)
-                if len(parts) > 1:
-                    rt = parts[1].strip()
-                    current_bss["radio_type"] = rt
-                    current_bss["wifi_generation"] = get_wifi_generation(rt)
-            elif line_str.startswith("Band"):
-                parts = line_str.split(":", 1)
-                if len(parts) > 1:
-                    current_bss["band"] = parts[1].strip()
-            elif line_str.startswith("Channel") and "Utilization" not in line_str:
-                ch_m = RE_CHANNEL.match(line_str)
-                if ch_m:
-                    current_bss["channel"] = int(ch_m.group(1))
-            elif "Connected Stations:" in line_str:
-                parts = line_str.split(":", 1)
-                if len(parts) > 1:
-                    m = RE_DIGITS.findall(parts[1])
-                    if m:
-                        current_bss["connected_stations"] = int(m[0])
-            elif "Channel Utilization:" in line_str:
-                pct_m = RE_UTIL_PCT.findall(line_str)
-                if pct_m:
-                    current_bss["channel_utilization_pct"] = int(pct_m[0])
-                else:
-                    raw_val = RE_UTIL_RAW.findall(line_str)
-                    if raw_val:
-                        current_bss["channel_utilization_pct"] = round((int(raw_val[0]) / 255.0) * 100)
-            elif "Basic rates" in line_str or "Other rates" in line_str:
-                parts = line_str.split(":", 1)
-                if len(parts) > 1:
-                    current_bss["rates"].extend(parts[1].strip().split())
+        if current_bss is None:
+            continue
+        if line_str.startswith("Signal") and (m := RE_DIGITS.findall(line_str.split(":", 1)[-1])):
+            pct = int(m[0])
+            current_bss["signal_percent"], current_bss["signal_dbm"] = pct, signal_percent_to_dbm(pct)
+        elif line_str.startswith("Radio type") and ":" in line_str:
+            rt = line_str.split(":", 1)[1].strip()
+            current_bss["radio_type"], current_bss["wifi_generation"] = rt, get_wifi_generation(rt)
+        elif line_str.startswith("Band") and ":" in line_str:
+            current_bss["band"] = line_str.split(":", 1)[1].strip()
+        elif line_str.startswith("Channel") and "Utilization" not in line_str and (ch_m := RE_CHANNEL.match(line_str)):
+            current_bss["channel"] = int(ch_m.group(1))
+        elif "Connected Stations:" in line_str and (m := RE_DIGITS.findall(line_str.split(":", 1)[-1])):
+            current_bss["connected_stations"] = int(m[0])
+        elif "Channel Utilization:" in line_str:
+            if pct_m := RE_UTIL_PCT.findall(line_str):
+                current_bss["channel_utilization_pct"] = int(pct_m[0])
+            elif raw_val := RE_UTIL_RAW.findall(line_str):
+                current_bss["channel_utilization_pct"] = round((int(raw_val[0]) / 255.0) * 100)
+        elif ("Basic rates" in line_str or "Other rates" in line_str) and ":" in line_str:
+            current_bss["rates"].extend(line_str.split(":", 1)[1].strip().split())
 
     if current_bss:
         networks.append(current_bss)
 
-    # Compute channel congestion counts for accurate noise floor estimation
-    ch_counts: Dict[int, int] = {}
+    ch_counts = Counter(n.get("channel", 1) for n in networks)
     for net in networks:
-        ch = net.get("channel", 1)
-        ch_counts[ch] = ch_counts.get(ch, 0) + 1
-
-    for net in networks:
-        bssid_lower = (net.get("bssid") or "").lower()
-        if bssid_lower in live_hardware:
-            hw = live_hardware[bssid_lower]
+        if hw := live_hardware.get((net.get("bssid") or "").lower()):
             net["signal_dbm"] = hw["rssi_dbm"]
             if hw.get("link_quality"):
                 net["signal_percent"] = hw["link_quality"]
@@ -561,29 +472,9 @@ def _parse_raw_networks(connected_info: Dict[str, Any]) -> List[Dict[str, Any]]:
                 net["frequency_mhz"] = hw["frequency_mhz"]
         else:
             net["frequency_mhz"] = channel_to_frequency(net["channel"], net["band"])
-
         if net["is_connected"] and connected_info.get("rssi"):
             net["signal_dbm"] = connected_info["rssi"]
-
-        # Calculate Noise Floor (dBm) & SNR (dB) - Ekahau AI Pro standard
-        ch = net.get("channel", 1)
-        band_str = str(net.get("band", "2.4 GHz"))
-        same_ch_aps = max(0, ch_counts.get(ch, 1) - 1)
-        noise_floor_dbm = estimate_channel_noise_floor(ch, band_str, same_ch_aps)
-        snr_db = max(0, net["signal_dbm"] - noise_floor_dbm)
-
-        net["noise_floor_dbm"] = noise_floor_dbm
-        net["snr_db"] = snr_db
-        net["co_channel_count"] = same_ch_aps
-
-        # Calculate MCS Index, Modulation, Channel Width & Real Throughput
-        mcs_info = estimate_mcs_and_phy(
-            signal_dbm=net["signal_dbm"],
-            snr_db=snr_db,
-            wifi_gen=net.get("wifi_generation", "Wi-Fi 4"),
-            band=band_str
-        )
-        net.update(mcs_info)
+        _enrich_rf_metrics(net, ch_counts)
 
     return networks
 
@@ -592,44 +483,24 @@ def normalize_mac_bytes(mac: str) -> Tuple[int, int, int, int, int, int]:
     try:
         parts = [int(p, 16) for p in mac.strip().lower().replace("-", ":").split(":")]
         if len(parts) == 6:
-            parts[0] = parts[0] & ~0x03
-            return (parts[0], parts[1], parts[2], parts[3], parts[4], parts[5])
+            return (parts[0] & ~0x03, parts[1], parts[2], parts[3], parts[4], parts[5])
     except Exception:
         pass
     return (0, 0, 0, 0, 0, 0)
 
 
 def are_bssid_siblings_fast(m1: Tuple[int, ...], sig1: int, m2: Tuple[int, ...], sig2: int) -> bool:
-    """Fast O(1) sibling check assuming OUI prefix m1[:3] == m2[:3] is already verified"""
-    d3 = abs(m1[3] - m2[3])
-    d4 = abs(m1[4] - m2[4])
-    d5 = abs(m1[5] - m2[5])
-
-    if d3 == 0 and d4 == 0 and d5 <= 16:
-        return True
-    if d4 == 0 and d5 == 0:
-        return True
-    if d4 == 0 and d5 <= 16 and abs(sig1 - sig2) <= 15:
-        return True
-    if (d3 + d4 + d5) <= 24 and abs(sig1 - sig2) <= 18:
-        return True
-    return False
+    """Fast O(1) sibling check assuming OUI prefix m1[:3] == m2[:3] is already verified."""
+    d3, d4, d5, ds = abs(m1[3] - m2[3]), abs(m1[4] - m2[4]), abs(m1[5] - m2[5]), abs(sig1 - sig2)
+    return (d4 == 0 and d5 == 0) or (d4 == 0 and d5 <= 16 and (d3 == 0 or ds <= 15)) or ((d3 + d4 + d5) <= 24 and ds <= 18)
 
 
 def decloak_and_cluster_networks(networks: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     """
-    O(N) Hash-Partitioned BSSID Topology Clustering, Hidden Network De-cloaking & Threat Analysis:
-    1. Partitions networks by normalized 3-byte OUI prefix into hash buckets first (reduces O(N^2) to O(N)).
-    2. Clusters physical multi-band/multi-SSID hardware and unmasks hidden Mesh/Guest/IoT BSSIDs.
-    3. Audits Roaming / Sticky Client status across multi-AP ESSIDs.
-    4. Detects Evil Twin / Rogue AP security anomalies.
+    O(N) Hash-Partitioned BSSID Topology Clustering, Hidden Network De-cloaking & Threat Analysis.
     """
     oui_buckets: Dict[Tuple[int, int, int], List[Tuple[Dict[str, Any], Tuple[int, ...]]]] = {}
-
-    ch_counts: Dict[int, int] = {}
-    for net in networks:
-        ch_val = net.get("channel", 1)
-        ch_counts[ch_val] = ch_counts.get(ch_val, 0) + 1
+    ch_counts = Counter(n.get("channel", 1) for n in networks)
 
     for net in networks:
         ch = net.get("channel")
@@ -638,16 +509,7 @@ def decloak_and_cluster_networks(networks: List[Dict[str, Any]]) -> Tuple[List[D
         net["dfs_label"] = "DFS Radar (UNII-2)" if is_dfs else None
 
         if "snr_db" not in net or "mcs_index" not in net:
-            ch_int = ch if isinstance(ch, int) else 1
-            b_str = str(net.get("band", "2.4 GHz"))
-            sig_dbm = int(net.get("signal_dbm", -75))
-            same_ch = max(0, ch_counts.get(ch_int, 1) - 1)
-            nf = estimate_channel_noise_floor(ch_int, b_str, same_ch)
-            snr = max(0, sig_dbm - nf)
-            net["noise_floor_dbm"] = nf
-            net["snr_db"] = snr
-            net["co_channel_count"] = same_ch
-            net.update(estimate_mcs_and_phy(sig_dbm, snr, net.get("wifi_generation", "Wi-Fi 4"), b_str))
+            _enrich_rf_metrics(net, ch_counts, default_dbm=-75)
 
         ssid = (net.get("ssid") or "").strip()
         ssid_low = ssid.lower()

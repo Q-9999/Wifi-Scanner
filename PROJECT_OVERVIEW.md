@@ -50,18 +50,19 @@ Hệ thống gồm 8 thẻ chức năng chính:
         │                       │                        │
         └───────────────────────┼────────────────────────┘
                                 ▼
-         [Máy Chủ Dịch Vụ FastAPI / Uvicorn (server.py)]
+       [Máy Chủ Dịch Vụ FastAPI / Uvicorn (api/server.py)]
                                 │
   ┌─────────────────┬───────────┴───────────┬─────────────────┐
   │                 │                       │                 │
   ▼                 ▼                       ▼                 ▼
 [Mô-đun Quét]     [Mô-đun Phổ Tần &]     [Mô-đun Đo Tốc Độ] [Mô-đun Bản Đồ Nhiệt]
-wifi_scanner.py   Oscium Chẩn Đoán]      speedtest_runner.py  ai_planner.py &
-                  channel_analyzer.py                         heatmap.js
+core/             Oscium Chẩn Đoán]      core/              core/ai_planner.py &
+wifi_scanner.py   core/                  speedtest_runner.py static/heatmap.js
+                  channel_analyzer.py
   │                 │                       │                 │
   │                 ▼                       │                 ▼
   │               [Mô-đun VoWiFi MOS]       │               [Mô-đun Xuất Báo Cáo]
-  │                vowifi_analyzer.py       │                report_generator.py
+  │                core/vowifi_analyzer.py  │                core/report_generator.py
   ▼
 [Card Mạng WLAN]
 (wlanapi.dll & netsh wlan)
@@ -69,39 +70,39 @@ wifi_scanner.py   Oscium Chẩn Đoán]      speedtest_runner.py  ai_planner.py 
 
 ### 2.2. Các Thành Phần Xử Lý Backend
 
-1. `server.py`:
+1. `api/server.py`:
    - Máy chủ ứng dụng viết bằng framework FastAPI chạy trên nền máy chủ ASGI Uvicorn tại cổng 8000.
    - Cung cấp các điểm cuối REST API cho toàn bộ các chức năng.
    - Quản lý luồng quét sóng chạy ngầm trong một luồng riêng biệt, chu kỳ cập nhật dữ liệu từ 2 đến 3 giây một lần.
    - Phát dữ liệu thời gian thực tới trình duyệt qua Server-Sent Events và WebSocket.
 
-2. `wifi_scanner.py`:
+2. `core/wifi_scanner.py`:
    - Giao tiếp trực tiếp với card mạng không dây của máy tính Windows thông qua thư viện `ctypes` gọi hàm trong `wlanapi.dll`.
-   - Sử dụng lệnh hệ thống `netsh wlan show networks mode=bssid` và `netsh wlan show interfaces` làm kênh thu thập dữ liệu dự phòng.
+   - Sử dụng lệnh hệ thống `netsh wlan show networks mode=bssid` và `netsh wlan show interfaces` làm kênh thu thập dữ liệu bổ sung.
    - Trích xuất các trường thông tin: SSID, BSSID, RSSI (dBm), phần trăm sóng, băng tần, kênh phát, chuẩn 802.11, kiểu mã hóa bảo mật, tốc độ lý thuyết Rx/Tx, thông tin BSS Load.
    - Thực hiện thuật toán nhóm phần cứng: so sánh tiền tố 5 octet đầu của địa chỉ MAC để xác định các BSSID phát ra từ cùng một bo mạch phần cứng.
    - Thực hiện đối chiếu địa chỉ MAC để giải mã tên mạng của các BSSID ẩn phát chung thiết bị với mạng chính.
 
-3. `channel_analyzer.py`:
+3. `core/channel_analyzer.py`:
    - Phân tích hiện tượng trùng kênh (Co-Channel Interference) và lấn kênh kề (Adjacent Channel Interference).
    - Chấm điểm chất lượng các kênh trên 3 băng tần: 2.4 GHz, 5 GHz và 6 GHz theo công thức trừ điểm phạt dựa trên mức tín hiệu của các trạm phát lân cận.
    - Tạo cấu trúc dữ liệu cho khối chẩn đoán sự cố Oscium: đánh giá card mạng đang kết nối, kiểm tra 6 tiêu chuẩn kỹ thuật, phát hiện chữ ký của 4 nguồn phát xạ không phải Wi-Fi.
 
-4. `vowifi_analyzer.py`:
+4. `core/vowifi_analyzer.py`:
    - Thực hiện kiểm tra độ trễ đa chặng bằng lệnh ping hệ thống: chặng máy tính đến địa chỉ cổng bộ định tuyến (Default Gateway), chặng đến máy chủ internet (8.8.8.8, 1.1.1.1) và thời gian truy vấn máy chủ tên miền DNS.
    - Tính toán chỉ số chất lượng truyền giọng nói theo mô hình ITU-T G.107 E-Model: tính hệ số suy giảm trễ Id, hệ số suy giảm mất gói Ie-eff, hệ số truyền dẫn R và quy đổi sang điểm đánh giá trung bình MOS từ 1.0 đến 4.5.
 
-5. `ai_planner.py`:
+5. `core/ai_planner.py`:
    - Mô phỏng suy hao sóng theo mô hình Log-Distance Path Loss kết hợp khuyến nghị ITU-R P.1238 cho môi trường trong nhà.
    - Tính toán cường độ tín hiệu tại từng tọa độ trên lưới mặt bằng kiến trúc.
    - Cung cấp giải thuật đề xuất vị trí đặt trạm phát sóng để phủ sóng diện tích mặt bằng theo tiêu chuẩn SLA yêu cầu.
 
-6. `speedtest_runner.py`:
-   - Đo tốc độ internet bằng thư viện `httpx` bất đồng bộ kết nối đến mạng lưới máy chủ Anycast CDN của Cloudflare.
+6. `core/speedtest_runner.py`:
+   - Đo tốc độ internet bằng thư viện `httpx` bất đồng bộ (có dự phòng `urllib.request`) kết nối đến mạng lưới máy chủ Anycast CDN của Cloudflare.
    - Thực hiện 4 phép đo tuần tự: đo độ trễ gói tin (Ping Latency), đo biến động trễ (Jitter), đo tốc độ tải về (Download Throughput) và đo tốc độ tải lên (Upload Throughput).
-   - Cung cấp luồng dữ liệu Server-Sent Events tại `/api/speedtest/stream` để cập nhật tiến trình đo lên giao diện người dùng theo chu kỳ 100 mili-giây.
+   - Cung cấp luồng dữ liệu Server-Sent Events tại `/api/speedtest/stream` để cập nhật tiến trình đo lên giao diện người dùng theo chu kỳ 150 mili-giây.
 
-7. `report_generator.py`:
+7. `core/report_generator.py`:
    - Tập hợp toàn bộ dữ liệu khảo sát, phân tích phổ, chẩn đoán sự cố, chất lượng thoại và danh sách trạm phát.
    - Xuất dữ liệu ra tập tin CSV mã hóa UTF-8 có kèm BOM để hiển thị đúng dấu tiếng Việt trên Microsoft Excel.
    - Xuất dữ liệu ra tập tin JSON có cấu trúc đầy đủ.
@@ -172,14 +173,14 @@ Hệ thống cung cấp hai công cụ mô phỏng sóng không dây, chuyển �
   - Từ mỗi vị trí trạm phát sóng (Access Point), hệ thống tính toán 180 tia quét xung quanh 360 độ (mỗi tia cách nhau 2 độ).
   - Từng tia sóng tự động tính toán giao cắt hình học với các bức tường, tính tích lũy suy hao truyền sóng trong không gian tự do (FSPL) theo tần số kết hợp hệ số suy hao của từng loại vật liệu mà tia xuyên qua.
   - Kết xuất vùng phủ sóng đa giác bán trong suốt trên mặt bằng.
-- 7 Loại vật liệu tường cản sóng tiêu chuẩn:
-  1. Vách thạch cao / Vách ngăn nhẹ: Suy hao 2.0 dB.
-  2. Tường gạch tiêu chuẩn: Suy hao 4.0 dB.
-  3. Tường bê tông cốt thép dày: Suy hao 12.0 dB.
-  4. Cửa sổ kính thường: Suy hao 2.0 dB.
-  5. Cửa gỗ thông phòng: Suy hao 3.0 dB.
-  6. Cửa kim loại / Cửa thép: Suy hao 15.0 dB.
-  7. Cửa kính cường lực: Suy hao 2.5 dB.
+- 7 Loại vật liệu tường cản sóng trong `static/heatmap.js` (suy hao 2.4 GHz / 5 GHz):
+  1. Vách thạch cao: 3 dB (2.4 GHz) / 4 dB (5 GHz).
+  2. Tường gạch tiêu chuẩn: 6 dB (2.4 GHz) / 9 dB (5 GHz).
+  3. Tường bê tông cốt thép: 12 dB (2.4 GHz) / 18 dB (5 GHz).
+  4. Vách kính / Cửa sổ kính: 2 dB (2.4 GHz) / 3 dB (5 GHz).
+  5. Cửa kính cường lực: 3 dB (2.4 GHz) / 4 dB (5 GHz).
+  6. Cửa gỗ tự nhiên / gỗ công nghiệp: 4 dB (2.4 GHz) / 6 dB (5 GHz).
+  7. Cửa kim loại / Cửa chống cháy: 15 dB (2.4 GHz) / 22 dB (5 GHz).
 - Tự động khoét lỗ cửa tường: Khi đặt cửa lên bức tường đã vẽ, thuật toán tự động nhận diện và cắt bỏ đoạn tường trùng lặp để mức suy hao tại vị trí cánh cửa phản ánh đúng vật liệu cửa mà không bị cộng dồn hai lần.
 - Mô phỏng thiết bị máy trạm (Laptop, PC) và phân tích đường truyền:
   - Cho phép đặt các thiết bị máy tính người dùng tại bất kỳ vị trí nào trên sơ đồ mặt bằng.
@@ -232,36 +233,38 @@ Hệ thống cung cấp hai công cụ mô phỏng sóng không dây, chuyển �
 
 ---
 
-## 4. Danh Mục Điểm Cuối REST API
+## 4. Danh Mục Điểm Cuối REST API (`api/server.py`)
 
 ### 4.1. Nhóm API Quét Sóng Và Dữ Liệu Thiết Bị
 - `GET /api/scan`: Trả về danh sách trạm phát sóng BSSID, thông tin card mạng đang kết nối, các nhóm phần cứng vật lý và cảnh báo bảo mật.
+- `GET /api/clusters`: Trả về danh sách các cụm thiết bị vật lý và tổng hợp cảnh báo.
 - `GET /api/stream/live`: Luồng Server-Sent Events truyền dữ liệu quét sóng liên tục tới trình duyệt.
-- `GET /api/export/csv`: Xuất dữ liệu khảo sát hiện tại ra tập tin CSV mã hóa UTF-8 có BOM.
-- `GET /api/export/json`: Xuất dữ liệu khảo sát hiện tại ra tập tin JSON.
+- `WS /ws/live`: Kênh WebSocket truyền cập nhật quét sóng và lịch sử tín hiệu.
 
 ### 4.2. Nhóm API Phổ Tần Và Chẩn Đoán Oscium
-- `GET /api/channel/analysis`: Trả về dữ liệu phân tích phổ tần, hiện tượng trùng kênh và điểm số đánh giá các kênh trên 3 băng tần.
+- `GET /api/channel-recommendations`: Trả về dữ liệu phân tích phổ tần, hiện tượng trùng kênh, airtime, roaming và điểm số đánh giá các kênh trên 3 băng tần.
+- `POST /api/channel-autopick`: Chọn kênh và độ rộng kênh đề xuất trên cả 3 băng tần.
 - `GET /api/troubleshooting/all-in-one`: Trả về bộ dữ liệu chẩn đoán sự cố tập trung theo chuẩn Oscium (điểm đánh giá kết nối, thông số card mạng, bảng kiểm 6 tiêu chuẩn, 4 chữ ký nhiễu không phải Wi-Fi và hướng dẫn xử lý).
 
 ### 4.3. Nhóm API Đo Tốc Độ Mạng (Speed Test)
-- `POST /api/speedtest/start`: Bắt đầu phiên đo tốc độ mạng mới. Nhận tham số `{ "mode": "quick" | "full" }`.
+- `POST /api/speedtest/start`: Bắt đầu phiên đo tốc độ mạng mới. Nhận tham số `{ "mode": "quick" | "full" | "mock" }`.
 - `GET /api/speedtest/status`: Trả về trạng thái hiện tại của phiên đo tốc độ, các chỉ số Ping, Jitter, Download, Upload và tốc độ liên kết card mạng.
 - `POST /api/speedtest/stop`: Dừng phiên đo tốc độ đang chạy.
 - `GET /api/speedtest/stream`: Luồng dữ liệu Server-Sent Events truyền tiến trình đo theo thời gian thực tới trình duyệt.
 
 ### 4.4. Nhóm API Chất Lượng Thoại VoWiFi
-- `GET /api/vowifi/metrics`: Trả về các chỉ số độ trễ RTT, Jitter, tỷ lệ mất gói tin, điểm MOS và đánh giá theo 3 bộ mã hóa âm thanh.
-- `GET /api/vowifi/diagnose`: Trả về kết quả đo độ trễ phân tách ba chặng (nội bộ, internet, DNS) và kết luận nguyên nhân lỗi.
+- `GET /api/vowifi-mos`: Trả về các chỉ số độ trễ RTT, Jitter, tỷ lệ mất gói tin, điểm MOS, độ trễ Gateway/DNS và đánh giá theo 3 bộ mã hóa âm thanh.
 
 ### 4.5. Nhóm API Bản Đồ Nhiệt Vùng Phủ Sóng
-- `POST /api/planner/simulate`: Tiếp nhận danh sách tường chắn, trạm phát sóng, băng tần và trả về ma trận mức sóng mô phỏng.
-- `POST /api/planner/optimize`: Tiếp nhận mặt bằng kiến trúc và tính toán vị trí đặt trạm phát tối ưu để phủ sóng diện tích yêu cầu.
+- `POST /api/ai-planner/calculate-heatmap`: Tiếp nhận danh sách tường chắn, trạm phát sóng, băng tần và trả về 5 ma trận lưới mức sóng mô phỏng.
+- `POST /api/ai-planner/optimize`: Tiếp nhận mặt bằng kiến trúc và tính toán vị trí đặt trạm phát để phủ sóng diện tích yêu cầu.
 
 ### 4.6. Nhóm API Quản Lý Báo Cáo
+- `POST /api/export-report`: Tạo tập tin báo cáo CSV (UTF-8-SIG) hoặc JSON trong thư mục `reports/`.
 - `GET /api/reports/list`: Trả về danh sách các tập tin báo cáo đã lưu trong thư mục `reports/`.
 - `GET /api/reports/download/{filename}`: Tải tập tin báo cáo về máy tính.
-- `DELETE /api/reports/delete/{filename}`: Xóa tập tin báo cáo khỏi hệ thống.
+- `DELETE /api/reports/{filename}`: Xóa một tập tin báo cáo khỏi hệ thống.
+- `POST /api/reports/clear-all`: Xóa toàn bộ tập tin báo cáo trong thư mục `reports/`.
 
 ---
 

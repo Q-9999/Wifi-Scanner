@@ -60,6 +60,28 @@ def measure_dns_resolution_ms(domain: str = "cloudflare.com") -> Dict[str, Any]:
         }
 
 
+_PING_TIME_RE = re.compile(r"time[=<](\d+(?:\.\d+)?)ms", re.IGNORECASE)
+
+_MOS_VERDICTS = (
+    (4.3, "Tuyệt vời (Tối ưu)", "success", "Đường truyền hoàn hảo, cuộc gọi thoại và video trực tuyến rất ổn định, không gián đoạn hoặc mất tiếng."),
+    (4.0, "Tốt", "success", "Chất lượng thoại rõ ràng, ổn định, độ trễ thấp phù hợp hội họp và đàm thoại công việc."),
+    (3.6, "Khá (Trung bình)", "warning", "Có thể gặp hiện tượng giật tiếng hoặc ngắt quãng ngắn khi di chuyển giữa các phòng."),
+    (3.0, "Kém", "danger", "Độ trễ cao hoặc mất gói tin. Cuộc gọi thoại có thể bị rè tiếng, méo giọng hoặc trễ tiếng."),
+)
+_MOS_DEFAULT = ("Rất kém", "danger", "Nghẽn mạng nghiêm trọng, nguy cơ gián đoạn cuộc gọi hoặc không thể thiết lập cuộc đàm thoại.")
+
+
+def _parse_ping_ms(stdout: str, fallback_ms: float) -> float:
+    """Extract ping RTT in ms from OS ping output, falling back to elapsed wall time."""
+    match = _PING_TIME_RE.search(stdout or "")
+    return float(match.group(1)) if match else round(fallback_ms, 2)
+
+
+def _classify_mos(mos: float) -> tuple:
+    """Return (rating, badge_color, verdict) for an ITU-T G.107 MOS score."""
+    return next(((r, c, v) for thresh, r, c, v in _MOS_VERDICTS if mos >= thresh), _MOS_DEFAULT)
+
+
 def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -> Dict[str, Any]:
     """
     Measure real-time RTT latency, Jitter, and Packet Loss using native OS ping.
@@ -74,14 +96,8 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
         t0 = time.time()
         try:
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=1.5)
-            elapsed_ms = (time.time() - t0) * 1000.0
-
             if res.returncode == 0:
-                match = re.search(r"time[=<](\d+(?:\.\d+)?)ms", res.stdout, re.IGNORECASE)
-                if match:
-                    rtts.append(float(match.group(1)))
-                else:
-                    rtts.append(round(elapsed_ms, 2))
+                rtts.append(_parse_ping_ms(res.stdout, (time.time() - t0) * 1000.0))
             else:
                 lost_packets += 1
         except Exception:
@@ -129,26 +145,7 @@ def measure_network_quality(target_host: str = "8.8.8.8", ping_count: int = 5) -
 
     mos = round(max(1.0, min(4.5, mos)), 2)
 
-    if mos >= 4.3:
-        rating = "Tuyệt vời (Tối ưu)"
-        badge_color = "success"
-        verdict = "Đường truyền hoàn hảo, cuộc gọi thoại và video trực tuyến rất ổn định, không gián đoạn hoặc mất tiếng."
-    elif mos >= 4.0:
-        rating = "Tốt"
-        badge_color = "success"
-        verdict = "Chất lượng thoại rõ ràng, ổn định, độ trễ thấp phù hợp hội họp và đàm thoại công việc."
-    elif mos >= 3.6:
-        rating = "Khá (Trung bình)"
-        badge_color = "warning"
-        verdict = "Có thể gặp hiện tượng giật tiếng hoặc ngắt quãng ngắn khi di chuyển giữa các phòng."
-    elif mos >= 3.0:
-        rating = "Kém"
-        badge_color = "danger"
-        verdict = "Độ trễ cao hoặc mất gói tin. Cuộc gọi thoại có thể bị rè tiếng, méo giọng hoặc trễ tiếng."
-    else:
-        rating = "Rất kém"
-        badge_color = "danger"
-        verdict = "Nghẽn mạng nghiêm trọng, nguy cơ gián đoạn cuộc gọi hoặc không thể thiết lập cuộc đàm thoại."
+    rating, badge_color, verdict = _classify_mos(mos)
 
     dns_check = measure_dns_resolution_ms("cloudflare.com")
     gateway_ip = _detect_default_gateway()
@@ -194,11 +191,8 @@ def measure_single_hop_fast(host: str) -> Dict[str, Any]:
     t0 = time.time()
     try:
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=0.9)
-        elapsed_ms = (time.time() - t0) * 1000.0
         if res.returncode == 0:
-            match = re.search(r"time[=<](\d+(?:\.\d+)?)ms", res.stdout, re.IGNORECASE)
-            lat = float(match.group(1)) if match else round(elapsed_ms, 2)
-            return {"host": host, "reachable": True, "latency_ms": lat}
+            return {"host": host, "reachable": True, "latency_ms": _parse_ping_ms(res.stdout, (time.time() - t0) * 1000.0)}
     except Exception:
         pass
     return {"host": host, "reachable": False, "latency_ms": 0.0}

@@ -30,23 +30,37 @@ def get_next_report_filename(output_dir: str, extension: str = "csv") -> str:
     return f"NetScanner_Report_{date_str}_ID-{next_id:02d}.{extension}"
 
 
+_SIGNAL_LEVEL_THRESHOLDS = (
+    (-60.0, "Rất mạnh (-30 đến -60 dBm: Tối ưu cho mọi dịch vụ trực tuyến)"),
+    (-70.0, "Tốt (-61 đến -70 dBm: Ổn định cho duyệt web và hội họp)"),
+    (-80.0, "Yếu (-71 đến -80 dBm: Tín hiệu chập chờn, giảm tốc độ)"),
+)
+_SIGNAL_LEVEL_DEFAULT = "Rất yếu (dưới -80 dBm: Dễ ngắt kết nối, mất gói tin)"
+
+_SECURITY_RULES = (
+    ("wpa3", "Rất an toàn (Chuẩn WPA3)"),
+    ("enterprise", "Rất an toàn (Mạng doanh nghiệp 802.1X)"),
+    ("wpa2", "An toàn tiêu chuẩn (Chuẩn WPA2-AES)"),
+)
+
+
+def _classify_security_level(auth_str: str, cipher_str: str) -> str:
+    """Map authentication and cipher descriptors to security tier text."""
+    auth_l, cipher_l = auth_str.lower(), cipher_str.lower()
+    if "open" in auth_l or "none" in cipher_l:
+        return "Nguy hiểm (Mạng mở không mã hóa)"
+    return next((label for key, label in _SECURITY_RULES if key in auth_l), "Kém an toàn (Chuẩn cũ WPA hoặc WEP)")
+
+
 def evaluate_signal_level(dbm: Any) -> str:
     """Classify RSSI signal strength into practical real-world status"""
     if dbm is None:
-        return "Rất yếu (dưới -80 dBm: Dễ ngắt kết nối, mất gói tin)"
+        return _SIGNAL_LEVEL_DEFAULT
     try:
         val = float(dbm)
     except (ValueError, TypeError):
-        return "Rất yếu (dưới -80 dBm: Dễ ngắt kết nối, mất gói tin)"
-
-    if val >= -60:
-        return "Rất mạnh (-30 đến -60 dBm: Tối ưu cho mọi dịch vụ trực tuyến)"
-    elif val >= -70:
-        return "Tốt (-61 đến -70 dBm: Ổn định cho duyệt web và hội họp)"
-    elif val >= -80:
-        return "Yếu (-71 đến -80 dBm: Tín hiệu chập chờn, giảm tốc độ)"
-    else:
-        return "Rất yếu (dưới -80 dBm: Dễ ngắt kết nối, mất gói tin)"
+        return _SIGNAL_LEVEL_DEFAULT
+    return next((label for thresh, label in _SIGNAL_LEVEL_THRESHOLDS if val >= thresh), _SIGNAL_LEVEL_DEFAULT)
 
 
 def generate_csv_report(networks: List[Dict[str, Any]], analysis: Dict[str, Any], filepath: str) -> str:
@@ -201,17 +215,7 @@ def generate_csv_report(networks: List[Dict[str, Any]], analysis: Dict[str, Any]
 
             auth_str = str(n.get("authentication") or "")
             cipher_str = str(n.get("encryption") or "")
-
-            if "open" in auth_str.lower() or "none" in cipher_str.lower():
-                sec_level = "Nguy hiểm (Mạng mở không mã hóa)"
-            elif "wpa3" in auth_str.lower():
-                sec_level = "Rất an toàn (Chuẩn WPA3)"
-            elif "enterprise" in auth_str.lower():
-                sec_level = "Rất an toàn (Mạng doanh nghiệp 802.1X)"
-            elif "wpa2" in auth_str.lower():
-                sec_level = "An toàn tiêu chuẩn (Chuẩn WPA2-AES)"
-            else:
-                sec_level = "Kém an toàn (Chuẩn cũ WPA hoặc WEP)"
+            sec_level = _classify_security_level(auth_str, cipher_str)
 
             sig_pct = n.get('signal_percent') if n.get('signal_percent') is not None else 0
             snr = n.get('snr_db') if n.get('snr_db') is not None else 0

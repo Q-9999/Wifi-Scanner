@@ -178,6 +178,61 @@ def evaluate_24ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _parse_int(val: Any, default: Optional[int] = None) -> Optional[int]:
+    """Safely parse int/float values to int without raising on malformed inputs."""
+    try:
+        return int(float(val)) if val is not None else default
+    except (ValueError, TypeError):
+        return default
+
+
+def _accumulate_channel_metrics(
+    nets: List[Dict[str, Any]],
+    channel_evals: Dict[int, Dict[str, Any]],
+    default_util: int,
+) -> None:
+    """Aggregate AP interference, client counts, and peak utilization into channel buckets."""
+    for net in nets:
+        net_ch = net.get("channel")
+        if not isinstance(net_ch, int) or net_ch not in channel_evals:
+            continue
+        raw_dbm = net.get("signal_dbm")
+        power_factor = rssi_to_linear_power(float(raw_dbm) if raw_dbm is not None else -90.0) * 1e6
+        util = net.get("channel_utilization_pct") or default_util
+
+        item = channel_evals[net_ch]
+        item["same_channel_aps"].append(net)
+        item["interference_score"] += power_factor * (1.0 + (util / 100.0))
+        item["connected_clients"] += net.get("connected_stations", 0)
+        if util > item["utilization_pct"]:
+            item["utilization_pct"] = util
+
+
+def _evaluate_channel_blocks(
+    blocks_map: Dict[str, Tuple[List[int], int]],
+    channel_evals: Dict[int, Dict[str, Any]],
+    include_aps: bool = False,
+) -> List[Dict[str, Any]]:
+    """Aggregate sub-channel scores into wide channel block (80/160MHz) rankings."""
+    block_evals: List[Dict[str, Any]] = []
+    for block_name, (sub_channels, center_ch) in blocks_map.items():
+        evs = [channel_evals[c] for c in sub_channels if c in channel_evals]
+        ap_list = [ap for ev in evs for ap in ev["same_channel_aps"]]
+        entry: Dict[str, Any] = {
+            "block_name": block_name,
+            "primary_channels": sub_channels,
+            "center_channel": center_ch,
+            "avg_score": round(sum(ev["health_score"] for ev in evs) / len(sub_channels)),
+            "total_aps": len(ap_list),
+        }
+        if include_aps:
+            entry["aps"] = ap_list
+            entry["is_dfs"] = any(ev.get("is_dfs") for ev in evs)
+        block_evals.append(entry)
+    block_evals.sort(key=lambda x: (x["avg_score"], -x["total_aps"]), reverse=True)
+    return block_evals
+
+
 def evaluate_5ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Evaluate 5 GHz band and recommend the cleanest channel and 80MHz block"""
     nets_5 = [
@@ -185,70 +240,29 @@ def evaluate_5ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
         if "5" in str(n.get("band", "")) or (isinstance(n.get("channel"), int) and n.get("channel") >= 32 and "6" not in str(n.get("band", "")))
     ]
 
-    channel_evals = {}
-    for ch in ALL_5GHZ_CHANNELS:
-        dfs = ch in DFS_SET_5G
-        unii_group = "UNII-1" if ch in UNII_1 else ("UNII-3" if ch in UNII_3 else "UNII-2 DFS")
-        channel_evals[ch] = {
+    channel_evals = {
+        ch: {
             "channel": ch,
             "band": "5 GHz",
-            "unii_group": unii_group,
-            "is_dfs": dfs,
+            "unii_group": "UNII-1" if ch in UNII_1 else ("UNII-3" if ch in UNII_3 else "UNII-2 DFS"),
+            "is_dfs": ch in DFS_SET_5G,
             "same_channel_aps": [],
             "interference_score": 0.0,
             "utilization_pct": 0,
             "connected_clients": 0
         }
+        for ch in ALL_5GHZ_CHANNELS
+    }
 
-    for net in nets_5:
-        net_ch = net.get("channel")
-        if not isinstance(net_ch, int) or net_ch not in channel_evals:
-            continue
-        raw_dbm = net.get("signal_dbm")
-        signal_dbm = float(raw_dbm) if raw_dbm is not None else -90.0
-        power_factor = rssi_to_linear_power(signal_dbm) * 1e6
-        util = net.get("channel_utilization_pct") or 15
-        clients = net.get("connected_stations", 0)
+    _accumulate_channel_metrics(nets_5, channel_evals, default_util=15)
 
-        item = channel_evals[net_ch]
-        item["same_channel_aps"].append(net)
-        item["interference_score"] += power_factor * (1.0 + (util / 100.0))
-        item["connected_clients"] += clients
-        if util > item["utilization_pct"]:
-            item["utilization_pct"] = util
-
-    for ch, item in channel_evals.items():
+    for item in channel_evals.values():
         raw_score = 100.0 - min(80.0, math.sqrt(item["interference_score"]) * 2.0) - (item["utilization_pct"] * 0.3)
         if item["is_dfs"]:
             raw_score -= 10.0
         item["health_score"] = max(10, round(raw_score))
 
-    block_evals = []
-    for block_name, (sub_channels, center_ch) in BLOCKS_80MHZ.items():
-        total_aps = 0
-        total_score = 0
-        has_dfs = False
-        ap_list = []
-        for c in sub_channels:
-            ev = channel_evals.get(c)
-            if ev:
-                total_aps += len(ev["same_channel_aps"])
-                total_score += ev["health_score"]
-                ap_list.extend(ev["same_channel_aps"])
-                if ev["is_dfs"]:
-                    has_dfs = True
-        avg_score = round(total_score / len(sub_channels))
-        block_evals.append({
-            "block_name": block_name,
-            "primary_channels": sub_channels,
-            "center_channel": center_ch,
-            "avg_score": avg_score,
-            "total_aps": total_aps,
-            "aps": ap_list,
-            "is_dfs": has_dfs
-        })
-
-    block_evals.sort(key=lambda x: (x["avg_score"], -x["total_aps"]), reverse=True)
+    block_evals = _evaluate_channel_blocks(BLOCKS_80MHZ, channel_evals, include_aps=True)
     best_block = block_evals[0]
 
     sorted_channels = sorted(channel_evals.values(), key=lambda x: (x["health_score"], not x["is_dfs"]), reverse=True)
@@ -329,24 +343,9 @@ def evaluate_6ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
             "connected_clients": 0
         }
 
-    for net in nets_6:
-        net_ch = net.get("channel")
-        if not isinstance(net_ch, int) or net_ch not in channel_evals:
-            continue
-        raw_dbm = net.get("signal_dbm")
-        signal_dbm = float(raw_dbm) if raw_dbm is not None else -90.0
-        power_factor = rssi_to_linear_power(signal_dbm) * 1e6
-        util = net.get("channel_utilization_pct") or 10
-        clients = net.get("connected_stations", 0)
+    _accumulate_channel_metrics(nets_6, channel_evals, default_util=10)
 
-        item = channel_evals[net_ch]
-        item["same_channel_aps"].append(net)
-        item["interference_score"] += power_factor * (1.0 + (util / 100.0))
-        item["connected_clients"] += clients
-        if util > item["utilization_pct"]:
-            item["utilization_pct"] = util
-
-    for ch, item in channel_evals.items():
+    for item in channel_evals.values():
         raw_score = 100.0 - min(75.0, math.sqrt(item["interference_score"]) * 1.8) - (item["utilization_pct"] * 0.25)
         if not item["is_psc"]:
             raw_score -= 8.0
@@ -356,18 +355,7 @@ def evaluate_6ghz_channels(networks: List[Dict[str, Any]]) -> Dict[str, Any]:
     psc_candidates.sort(key=lambda x: (x["health_score"], -len(x["same_channel_aps"])), reverse=True)
     best_psc = psc_candidates[0]
 
-    block_evals = []
-    for block_name, (sub_channels, center_ch) in BLOCKS_160MHZ_6G.items():
-        total_aps = sum(len(channel_evals[c]["same_channel_aps"]) for c in sub_channels)
-        avg_score = round(sum(channel_evals[c]["health_score"] for c in sub_channels) / len(sub_channels))
-        block_evals.append({
-            "block_name": block_name,
-            "primary_channels": sub_channels,
-            "center_channel": center_ch,
-            "avg_score": avg_score,
-            "total_aps": total_aps
-        })
-    block_evals.sort(key=lambda x: (x["avg_score"], -x["total_aps"]), reverse=True)
+    block_evals = _evaluate_channel_blocks(BLOCKS_160MHZ_6G, channel_evals, include_aps=False)
     best_block = block_evals[0]
 
     reasons_vi = [
@@ -1044,24 +1032,14 @@ def analyze_wifi_environment(
     roaming_groups = []
     for ssid_name, members in ssid_groups.items():
         if len(members) >= 2:
-            bands_present = sorted(list({str(m.get("band") or "2.4 GHz") for m in members}))
-            valid_channels = []
-            for m in members:
-                ch = m.get("channel")
-                if ch is not None:
-                    try:
-                        valid_channels.append(int(float(ch)))
-                    except (ValueError, TypeError):
-                        pass
-            channels_present = sorted(list(set(valid_channels))) if valid_channels else [1]
+            bands_present = sorted({str(m.get("band") or "2.4 GHz") for m in members})
+            valid_channels = [ch for ch in (_parse_int(m.get("channel")) for m in members) if ch is not None]
+            channels_present = sorted(set(valid_channels)) if valid_channels else [1]
 
-            signals = []
-            for m in members:
-                raw_sig = m.get("signal_dbm") if m.get("signal_dbm") is not None else m.get("rssi")
-                try:
-                    signals.append(int(float(raw_sig)) if raw_sig is not None else -100)
-                except (ValueError, TypeError):
-                    signals.append(-100)
+            signals = [
+                _parse_int(m.get("signal_dbm") if m.get("signal_dbm") is not None else m.get("rssi"), -100)
+                for m in members
+            ]
             max_sig = max(signals) if signals else -100
             min_sig = min(signals) if signals else -100
             spread = max_sig - min_sig
@@ -1142,7 +1120,7 @@ def analyze_wifi_environment(
 
 
 if __name__ == "__main__":
-    from wifi_scanner import scan_wifi_networks
+    from core.wifi_scanner import scan_wifi_networks
     nets = scan_wifi_networks()
     analysis = analyze_wifi_environment(nets)
     print("\n--- 2.4 GHz Recommendation ---")

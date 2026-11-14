@@ -1,187 +1,203 @@
-# MMQ./WifiScanner - Công Cụ Khảo Sát Và Phân Tích Mạng Wi-Fi 
+# MMQ./WifiScanner (tool-NWC203)
 
-MMQ./WifiScanner là công cụ khảo sát sóng vô tuyến, đo lường thông số mạng Wi-Fi, phân tích phổ tần, mô phỏng bản đồ nhiệt suy hao sóng, đo tốc độ truyền dữ liệu internet và xuất báo cáo dữ liệu. Ứng dụng chạy trực tiếp trên máy tính cục bộ bằng chính card Wifi trong máy bạn.
-
-
+Phần mềm khảo sát mạng không dây (WLAN) và chẩn đoán kết nối mạng chạy cục bộ trên hệ điều hành Windows. Chương trình thu thập thông số lớp vật lý (PHY) và lớp liên kết dữ liệu (MAC) từ card mạng Wi-Fi qua giao diện `wlanapi.dll` và lệnh `netsh wlan`, kết hợp đo kiểm lớp mạng/vận chuyển, sau đó hiển thị dữ liệu trên giao diện web nền sáng (Light Mode) chạy bằng FastAPI và Uvicorn.
 
 ---
 
-## 1. Kiến Trúc Hệ Thống
+## 1. Cấu trúc thư mục phân cấp
 
-Ứng dụng gồm hai phần chính:
-
-1. **Phần máy chủ xử lý (Backend - Python)**:
-   - Sử dụng FastAPI và Uvicorn để tiếp nhận yêu cầu HTTP REST API, truyền dữ liệu thời gian thực qua Server-Sent Events (SSE) và kết nối WebSocket.
-   - Thu thập dữ liệu sóng từ card mạng không dây thông qua Windows Native WLAN API (wlanapi.dll) và công cụ 
-etsh wlan của hệ điều hành Windows.
-   - Tích hợp các mô-đun xử lý: phân tích kênh phát, kiểm tra sự cố mạng theo chuẩn Oscium, đánh giá chất lượng thoại VoWiFi theo mô hình ITU-T G.107 E-Model, tính toán suy hao sóng theo mô hình ITU-R P.1238 và đo tốc độ mạng qua mạng lưới máy chủ Cloudflare Anycast CDN.
-
-2. **Phần giao diện người dùng (Frontend - Web)**:
-   - Xây dựng dưới dạng trang đơn bằng HTML5, CSS3 và JavaScript thuần (Vanilla JS), không sử dụng thư viện bên ngoài.
-   - Biểu đồ phổ tần, biểu đồ biến thiên tín hiệu và bản đồ nhiệt được vẽ trực tiếp bằng thẻ HTML5 Canvas.
-
----
-
-## 2. Hướng Dẫn Cài Đặt Và Khởi Động
-
-### Yêu Cầu Hệ Thống
-- Hệ điều hành: Windows 10 hoặc Windows 11.
-- Python: Phiên bản 3.10 trở lên.
-- Thiết bị: Card mạng Wi-Fi.
-
-### Các Bước Khởi Động
-1. Mở thư mục chứa mã nguồn trong cửa sổ dòng lệnh (CMD hoặc PowerShell).
-2. Cài đặt các gói thư viện cần thiết:
-   `bash
-   pip install -r requirements.txt
-   `
-3. Khởi động chương trình:
-   - Cách 1: Nhấn đúp chuột vào tập tin start.bat.
-   - Cách 2: Chạy lệnh: python run.py
-4. Trình duyệt web sẽ tự động mở địa chỉ: http://localhost:8000.
-
----
-
-## 3. Chi Tiết 8 Chức Năng Chính
-
-### Chức Năng 1: Khảo Sát Sóng Wi-Fi Thời Gian Thực
-- Quét và liệt kê danh sách các trạm phát sóng (BSSID) mà card mạng thu nhận được.
-- Ghi nhận đầy đủ các thông số kỹ thuật:
-  - Tên mạng (SSID), địa chỉ vật lý MAC (BSSID), tên nhà sản xuất phần cứng theo mã tra cứu IEEE OUI.
-  - Mức tín hiệu thu (RSSI tính bằng dBm), tỷ lệ phần trăm tín hiệu (%), mức nền nhiễu ước tính (Noise Floor tính bằng dBm) và tỷ số tín hiệu trên nhiễu (SNR tính bằng dB).
-  - Chuẩn mạng Wi-Fi (Wi-Fi 4 / 802.11n, Wi-Fi 5 / 802.11ac, Wi-Fi 6 / 802.11ax, Wi-Fi 6E/7 / 802.11be), độ rộng kênh (20, 40, 80, 160 MHz), chỉ số điều chế và mã hóa MCS (từ 0 đến 11), dạng điều chế tín hiệu (từ BPSK đến 4096-QAM) và tốc độ truyền dữ liệu lý thuyết (Mbps).
-  - Tỷ lệ chiếm dụng thời gian kênh và số lượng thiết bị đang kết nối từ phần tử BSS Load.
-- Nhóm phần cứng vật lý: Tự động xác định các BSSID cùng thuộc một bộ phát phần cứng phát đồng thời nhiều băng tần (2.4 GHz, 5 GHz, mạng khách, mạng kết nối nội bộ).
-- Xác định tên mạng ẩn: Đối chiếu địa chỉ MAC để tìm tên mạng của các trạm phát ẩn hoạt động trên cùng thiết bị với trạm phát chính.
-- Công cụ dò tìm vị trí trạm phát: Theo dõi mức tín hiệu RSSI theo thời gian thực, khoảng cách ước tính tính bằng mét và tỷ lệ tiếp cận giúp người dùng xác định vị trí đặt thiết bị phát sóng.
-
-### Chức Năng 2: Đồ Thị Phổ Tần Vô Tuyến
-- Đồ thị phổ sóng OFDM: Hiển thị dạng công suất tín hiệu của từng trạm phát trên các băng tần 2.4 GHz và 5 GHz theo kênh trung tâm và độ rộng kênh.
-- Đồ thị biến thiên mức tín hiệu theo thời gian (RSSI History) giúp theo dõi độ ổn định của tín hiệu.
-- Đồ thị phổ tần theo thời gian (Spectrogram) giúp ghi lại biên độ tín hiệu theo trục thời gian để phát hiện sóng phát ngắt quãng.
-- Phân tích hiện tượng nhiễu sóng:
-  - Nhận diện nhiễu kênh kề, trạm phát sử dụng độ rộng 40 MHz trên băng tần 2.4 GHz và cảnh báo các kênh radar DFS (kênh 52 đến 144).
-  - Theo dõi tỷ lệ thời gian chiếm dụng kênh và tỷ lệ gửi lại gói tin.
-
-### Chức Năng 3: Tối Ưu Hóa Kênh Và Chẩn Đoán Sự Cố Oscium
-- Chấm điểm và đề xuất kênh phát:
-  - Đánh giá các kênh trên 3 băng tần: 2.4 GHz, 5 GHz và 6 GHz.
-  - Đề xuất kênh ít bị trùng lặp: kênh 1, 6 hoặc 11 trên 2.4 GHz; khối kênh 80 MHz ít nhiễu trên 5 GHz; kênh ưu tiên quét (PSC) trên 6 GHz.
-- Bảng điều khiển chẩn đoán sự cố gồm 6 thẻ thông tin:
-  1. Điểm đánh giá kết nối: Chấm điểm trên thang từ 0 - 100.
-  2. Thông số card mạng đang kết nối: Giao diện mạng, tên mạng đang kết nối, địa chỉ MAC trạm phát, kênh, băng tần, tốc độ truyền và nhận dữ liệu (Rx/Tx Rate).
-  3. Kiểm tra độ trễ 3 chặng mạng: Độ trễ đến cổng bộ định tuyến nội bộ, độ trễ đến máy chủ internet và độ trễ phân giải tên miền DNS.
-  4. Bảng kiểm 6 tiêu chuẩn kỹ thuật: Mức tín hiệu sóng, độ trùng lặp kênh, nguồn nhiễu không phải Wi-Fi, thời gian chiếm kênh, khả năng chuyển vùng và chuẩn mã hóa.
-  5. Nhận diện 4 nguồn phát nhiễu không phải Wi-Fi: Lò vi sóng (2.45 GHz), thiết bị Bluetooth, camera không dây analog và radar DFS.
-  6. Hướng dẫn khắc phục sự cố: Tổng hợp lỗi kỹ thuật và đưa ra các bước xử lý cụ thể.
-
-### Chức Năng 4: Đánh Giá Chất Lượng Cuộc Gọi Thoại VoWiFi 
-- Tính toán thông số truyền âm thanh qua mạng không dây theo mô hình ITU-T G.107 E-Model.
-- Đo lường các chỉ số kỹ thuật: Độ trễ khứ hồi (RTT Latency tính bằng ms), độ biến thiên trễ (Jitter tính bằng ms), tỷ lệ mất gói tin (%) và quy đổi sang điểm MOS (từ 1.0 đến 4.5).
-- Đánh giá khả năng đáp ứng của mạng với 3 bộ mã hóa giọng nói: Opus HD Voice, G.711 PCM và G.729.
-- Kiểm tra độ trễ phân tách theo từng chặng:
-  - Chặng 1: Độ trễ từ máy tính đến địa chỉ cổng mặc định của bộ định tuyến (Default Gateway IP).
-  - Chặng 2: Độ trễ từ máy tính ra máy chủ internet ngoài.
-  - Chặng 3: Thời gian phản hồi truy vấn của máy chủ tên miền DNS.
-
-### Chức Năng 5: Bản Đồ Nhiệt Vùng Phủ Sóng 
-
-#### Công Cụ 1: Mô Phỏng Tán Xạ Tia Sóng 
-- Mô phỏng dò tia 180 hướng: Từ mỗi Access Point, hệ thống phát ra 180 tia quét xung quanh góc 360 độ, tính toán giao điểm hình học với từng đoạn tường chắn và tính độ suy hao truyền sóng theo khoảng cách và vật liệu cản sóng.
-- Hỗ trợ 7 loại vật liệu tường cản sóng thực tế:
-  1. Vách thạch cao / Vách ngăn nhẹ: Suy hao 2.0 dB.
-  2. Tường gạch tiêu chuẩn: Suy hao 4.0 dB.
-  3. Tường bê tông cốt thép dày: Suy hao 12.0 dB.
-  4. Cửa sổ kính thường: Suy hao 2.0 dB.
-  5. Cửa gỗ thông phòng: Suy hao 3.0 dB.
-  6. Cửa kim loại / Cửa thép: Suy hao 15.0 dB.
-  7. Cửa kính cường lực: Suy hao 2.5 dB.
-- Tự động khoét lỗ cửa trên tường: Khi đặt cửa lên bức tường đã vẽ, hệ thống tự động nhận diện và loại bỏ đoạn tường trùng lặp để mức suy hao tại vị trí cửa phản ánh đúng vật liệu cửa.
-- Mô phỏng thiết bị người dùng (Laptop, PC) và phân tích đường truyền: Cho phép đặt thiết bị máy tính trên sơ đồ, tự động nối tia đến trạm phát tín hiệu tốt nhất, tính toán mức tín hiệu thu (dBm), số lượng bức tường chắn giữa đường và mức suy hao của từng bức tường.
-- Đo tín hiệu từ card Wi-Fi thực tế: Nút nạp card Wi-Fi kết nối với API /api/scan để đo cường độ tín hiệu thực tế của card mạng máy tính và hiển thị đối chiếu với kết quả mô phỏng.
-
-#### Công Cụ 2: Mô Phỏng Lưới Phủ Sóng Và Tiêu Chuẩn Nghiệm Thu SLA
-- Thuật toán nội suy song tuyến tính (Bilinear Interpolation): Tính toán ma trận điểm trên canvas để tạo dải màu chuyển tiếp 5 mức tín hiệu từ trên -50 dBm đến dưới -85 dBm.
-- 5 chế độ hiển thị bản đồ nhiệt:
-  1. Cường độ sóng chính: Mức tín hiệu mạnh nhất thu được tại mỗi tọa độ.
-  2. Cường độ sóng phụ cho chuyển vùng: Mức tín hiệu của trạm phát mạnh thứ hai, đánh giá điều kiện chuyển vùng khi di chuyển.
-  3. Tỷ số tín hiệu trên nhiễu (SNR): Đánh giá mức độ sạch của kênh truyền.
-  4. Mức độ trùng kênh: Số lượng trạm phát phát sóng trùng kênh hoặc lấn kênh lên cùng một khu vực.
-  5. Tốc độ dữ liệu ước tính: Dự báo tốc độ truyền dữ liệu vật lý và số lượng thiết bị đáp ứng đồng thời.
-- Thanh trượt đặt ngưỡng tiêu chuẩn SLA (từ -85 dBm đến -50 dBm): Tự động vẽ đường kẻ sọc cảnh báo và làm mờ các khu vực không đạt yêu cầu kỹ thuật.
-- Bảng thuộc tính trạm phát: Cho phép tùy chỉnh tên trạm, kênh phát trên 3 băng tần (2.4 GHz, 5 GHz, 6 GHz), công suất phát (14, 17, 20, 23 dBm) và độ lợi anten bức xạ.
-- Hiệu chuẩn tỷ lệ khoảng cách: Thước đo 2 điểm trên bản vẽ để quy đổi tỷ lệ pixel sang mét thực tế.
-- Nạp ảnh mặt bằng kiến trúc: Cho phép tải lên tập tin ảnh (PNG, JPG) làm nền sơ đồ với thanh trượt chỉnh độ mờ.
-
-### Chức Năng 6: Đo Tốc Độ Mạng Wi-Fi 
-- Đo lường trực tiếp 4 thông số internet: Tốc độ tải về (Download), tốc độ tải lên (Upload), độ trễ mạng (Ping) và biến động trễ (Jitter).
-- Kết nối trực tiếp đến mạng lưới máy chủ Anycast CDN của Cloudflare bằng thư viện httpx trên backend.
-- Cung cấp hai chế độ đo: Chế độ nhanh (5 giây) và Chế độ đầy đủ (10 giây).
-- Cập nhật tiến trình và thông số thời gian thực lên giao diện thông qua Server-Sent Events (SSE) tại địa chỉ /api/speedtest/stream.
-- So sánh tốc độ internet thực tế với tốc độ liên kết vật lý của card mạng Wi-Fi để xác định điểm giới hạn băng thông là do nhà mạng hay do sóng không dây.
-- Lưu lại lịch sử các lần đo để tiện theo dõi.
-
-### Chức Năng 7: Kiểm Tra An Toàn Bảo Mật 
-- Phát hiện các trạm phát không cài đặt mật khẩu mã hóa (mạng mở).
-- Cảnh báo các trạm phát sử dụng giao thức bảo mật cũ (WEP hoặc WPA sử dụng thuật toán TKIP).
-- Thống kê tỷ lệ sử dụng các chuẩn mã hóa: WPA2, WPA3, mạng không đặt mật khẩu.
-- Phát hiện các trạm phát có cùng tên SSID nhưng khác địa chỉ MAC hoặc khác hãng sản xuất để cảnh báo nguy cơ trạm phát giả mạo.
-
-### Chức Năng 8: Lưu Trữ Và Xuất Báo Cáo 
-- Xuất báo cáo ra tập tin CSV theo chuẩn UTF-8 kèm BOM, mở trực tiếp trên Microsoft Excel
-- Xuất báo cáo ra tập tin định dạng JSON.
-- Format tập tin: NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv và NetScanner_Report_[MM-DD-YYYY]_[ID-01].json.
-- Nội dung báo cáo gồm 6 phần:
-  1. Thông số môi trường và card mạng đang kết nối.
-  2. Bảng phân tích kênh và khuyến nghị kênh phát.
-  3. Kết quả kiểm tra sự cố mạng theo chuẩn Oscium.
-  4. Kết quả đánh giá cuộc gọi thoại VoWiFi và độ trễ đa chặng.
-  5. Kết quả kiểm tra an toàn bảo mật.
-  6. Danh sách chi tiết toàn bộ các trạm phát BSSID thu thập được.
-- Quản lý danh sách các tập tin báo cáo trong thư mục reports/, cho phép tải về máy tính hoặc xóa tập tin cũ trên giao diện web.
+```text
+tool-NWC203/
+├── api/
+│   ├── __init__.py                  # Khởi tạo gói FastAPI app
+│   └── server.py                    # Máy chủ FastAPI phục vụ REST API, SSE và WebSocket
+├── core/
+│   ├── __init__.py                  # Khởi tạo các mô-đun xử lý lõi
+│   ├── wifi_scanner.py              # Thu thập BSSID qua wlanapi.dll/netsh, tra cứu IEEE OUI, nhóm phần cứng
+│   ├── channel_analyzer.py          # Chấm điểm kênh 2.4/5/6 GHz, phân tích CCI/ACI và chẩn đoán Oscium
+│   ├── vowifi_analyzer.py           # Đo RTT, Jitter, Packet Loss đa chặng và tính điểm MOS (ITU-T G.107)
+│   ├── ai_planner.py                # Mô phỏng suy hao sóng Log-Distance/WAF và tính lưới Ekahau 5 lớp
+│   ├── speedtest_runner.py          # Đo Ping, Jitter, Download/Upload qua Cloudflare Speed CDN
+│   └── report_generator.py          # Xuất báo cáo kỹ thuật định dạng CSV (UTF-8-SIG) và JSON
+├── static/
+│   ├── index.html                   # Giao diện trang đơn 8 thẻ chức năng (tiếng Việt, không dùng icon)
+│   ├── styles.css                   # Bảng định kiểu Light Mode nền sáng
+│   ├── app.js                       # Điều khiển giao diện, đồ thị phổ Canvas, Speed Test và Ekahau Planner
+│   ├── heatmap.js                   # Động cơ dò tia 180 hướng (Raytracing) trên mặt bằng 2D
+│   └── lucide.min.js                # Tệp giữ chỗ (đã loại bỏ bộ icon Lucide khỏi giao diện)
+├── docs/
+│   ├── PROJECT.md                   # Đặc tả yêu cầu tính năng và các mốc hoàn thiện dự án
+│   └── TEST_INFRA.md                # Tài liệu cấu trúc kiểm thử tự động
+├── tests/
+│   ├── __init__.py                  # Khởi tạo gói kiểm thử
+│   ├── test_full_suite.py           # Bộ kiểm thử 9 phần chức năng từ lõi đến giao diện
+│   ├── test_challenger_mb_static.py # Kiểm thử tĩnh HTML/CSS/JS (0 emoji, 0 icon, Light Mode)
+│   ├── test_challenger_mb_dynamic.py# Kiểm thử luồng SSE Speed Test, Oscium schema và nội suy Heatmap
+│   ├── test_repo_integrity_mc.py    # Kiểm tra đồng bộ tài liệu, mã nguồn và chạy chéo các bộ test
+│   ├── test_challenger_ma.py        # Kiểm thử mô-đun backend độc lập
+│   ├── test_adversarial_m_a.py      # Kiểm thử dữ liệu biên và ngoại lệ backend
+│   └── test_stress_e2e_mc.py        # Kiểm thử tải lặp lại và tính ổn định luồng dữ liệu
+├── reports/
+│   └── .gitkeep                     # Giữ cấu trúc thư mục lưu trữ các tệp CSV/JSON đã xuất
+├── .gitignore                       # Quy tắc loại trừ bộ nhớ đệm và tệp báo cáo sinh tự động
+├── LICENSE                          # Giấy phép MIT
+├── PROJECT_OVERVIEW.md              # Tài liệu kiến trúc kỹ thuật và đặc tả API nội bộ
+├── README.md                        # Tài liệu tổng quan và hướng dẫn vận hành dự án
+├── requirements.txt                 # Danh sách thư viện Python phụ thuộc
+├── run.py                           # Điểm khởi chạy máy chủ kèm tự kiểm tra gói và mở trình duyệt
+└── start.bat                        # Tệp lệnh khởi chạy nhanh trên Windows
+```
 
 ---
 
-## 4. Cấu Trúc Thư Mục Phân Cấp Của Dự Án
+## 2. Kiến trúc kỹ thuật và luồng dữ liệu
 
-├── api/                       # Tầng máy chủ web và các điểm cuối API
-│   ├── __init__.py
-│   └── server.py              # Máy chủ FastAPI, định tuyến REST API, WebSocket và SSE
-├── core/                      # Tầng nghiệp vụ xử lý dữ liệu mạng vô tuyến
-│   ├── __init__.py
-│   ├── wifi_scanner.py        # Giao tiếp card mạng WLAN, quét sóng, nhóm phần cứng
-│   ├── channel_analyzer.py    # Phân tích phổ tần, chấm điểm kênh và chẩn đoán Oscium
-│   ├── vowifi_analyzer.py     # Đo trễ đa chặng và tính điểm chất lượng thoại ITU-T G.107 MOS
-│   ├── ai_planner.py          # Mô phỏng suy hao sóng ITU-R P.1238 và tối ưu vị trí trạm phát
-│   ├── speedtest_runner.py    # Đo tốc độ internet qua mạng lưới máy chủ Cloudflare CDN
-│   └── report_generator.py    # Xuất báo cáo dữ liệu định dạng CSV và JSON
-├── static/                    # User front-end
-│   ├── index.html             # Cấu trúc HTML5 
-│   ├── styles.css             # Định dạng giao diện 
-│   ├── app.js                 # Xử lý tương tác, bảng dữ liệu và công cụ Ekahau Planner
-│   └── heatmap.js             # Động cơ mô phỏng tán xạ tia sóng vô tuyến (Raytracing)
-├── tests/                     # Các bộ kiểm thử tự động toàn diện
-│   ├── __init__.py
-│   ├── test_full_suite.py     # Kiểm thử toàn diện 9 phần chức năng
-│   ├── test_challenger_mb_static.py   # Kiểm tra tính toàn vẹn giao diện nền sáng và từ ngữ
-│   ├── test_challenger_mb_dynamic.py  # Kiểm tra logic tính toán và các thuật toán
-│   ├── test_challenger_ma.py  # Kiểm thử tương thích môi trường và card mạng
-│   ├── test_adversarial_m_a.py        # Kiểm thử biên và trường hợp dữ liệu bất thường
-│   ├── test_repo_integrity_mc.py      # Kiểm tra toàn vẹn cấu trúc dự án
-│   └── test_stress_e2e_mc.py  # Kiểm thử tải và luồng dữ liệu liên tục
-├── docs/                      # Tài liệu kỹ thuật chi tiết
-│   ├── PROJECT.md
-│   └── TEST_INFRA.md
-├── assets/                    # Tệp hình ảnh mẫu 
-│   └── mau-ho-so-thiet-ke-kien-truc2-566x400.webp
-├── reports/                   # Thư mục lưu trữ các tệp báo cáo khảo sát đã xuất
-├── requirements.txt           # Danh mục thư viện phụ thuộc Python
-├── run.py                     # Điểm khởi chạy ứng dụng bằng lệnh Python
-├── start.bat                  # Tập tin khởi động nhanh trên hệ điều hành Windows
-├── README.md                  # Hướng dẫn tổng quan về dự án
-└── PROJECT_OVERVIEW.md        # Báo cáo kỹ thuật chi tiết toàn bộ hệ thống
+Hệ thống tách biệt tầng thu thập/tính toán bằng Python khỏi tầng hiển thị trên trình duyệt:
 
+1. **Tầng thu thập lớp vật lý và liên kết (`core/wifi_scanner.py`)**:
+   - Gọi hàm trong thư viện hệ thống `wlanapi.dll` của Windows thông qua `ctypes` (`WlanOpenHandle`, `WlanEnumInterfaces`, `WlanScan`, `WlanGetNetworkBssList`) để yêu cầu trình điều khiển card mạng quét lại phổ tần thực tế.
+   - Đọc thêm dữ liệu xác thực, mã hóa, kiểu radio và trạng thái kết nối từ lệnh `netsh wlan show networks mode=bssid` và `netsh wlan show interfaces`.
+   - Tính mức nền nhiễu (`Noise Floor`) theo băng tần (`-94 dBm` cơ sở ở `2.4 GHz`, `-96 dBm` cơ sở ở `5/6 GHz` cộng hệ số mật độ đồng kênh), tính tỷ số tín hiệu trên nhiễu (`SNR`), ánh xạ chỉ số điều chế và mã hóa (`MCS`), dạng điều chế (`QAM`), độ rộng kênh và tốc độ thông lượng ước tính.
+2. **Tầng máy chủ ứng dụng (`api/server.py`)**:
+   - Khởi chạy bằng `FastAPI` trên nền `Uvicorn` (`127.0.0.1:8000` mặc định, tự động tăng cổng nếu cổng 8000 đang bận khi chạy qua `run.py`).
+   - Duy trì một luồng chạy nền (`background_scanner_worker`) cập nhật bảng quét và chuỗi lịch sử cường độ tín hiệu (`signal_history`) tối đa 20 mẫu cho mỗi `BSSID`.
+   - Phát dữ liệu xuống trình duyệt qua `REST API`, `WebSocket` (`/ws/live`) và `Server-Sent Events` (`/api/stream/live`, `/api/speedtest/stream`).
+3. **Tầng giao diện trình duyệt (`static/`)**:
+   - Viết bằng `HTML5`, `CSS3` (nền sáng cố định Light Mode với các biến `:root` như `--bg-main: #f8fafc`, `--bg-card: #ffffff`, `--text-primary: #0f172a`) và JavaScript thuần (`app.js`, `heatmap.js`).
+   - Toàn bộ đồ thị phổ công suất `OFDM`, biểu đồ lịch sử `RSSI`, đồ thị thác nước (`Spectrogram`) và bản đồ nhiệt mặt bằng được vẽ trực tiếp trên `HTML5 Canvas`.
 
+---
 
-*Created as part of the NWC303 Course at Danang FPT University (Oct 2026).* 
+## 3. Yêu cầu hệ thống và cài đặt
 
+### Yêu cầu môi trường
+- Hệ điều hành: Windows 10 hoặc Windows 11 (phục vụ gọi `wlanapi.dll` và `netsh wlan`).
+- Python: phiên bản 3.10 trở lên.
+- Phần cứng: card mạng Wi-Fi đang bật (Location Services cần được cấp quyền trên Windows để hệ điều hành trả về danh sách `BSSID`).
+
+### Cài đặt thư viện phụ thuộc
+```bash
+pip install -r requirements.txt
+```
+Các thư viện khai báo trong `requirements.txt`: `fastapi>=0.100.0`, `uvicorn>=0.23.0`, `httpx>=0.24.0`, `pydantic>=2.0.0`.
+
+### Khởi chạy ứng dụng
+- Cách 1: Chạy tệp `start.bat` (trên Windows).
+- Cách 2: Chạy bằng dòng lệnh Python:
+  ```bash
+  python run.py
+  ```
+Khi chạy `run.py`, chương trình sẽ kiểm tra các gói phụ thuộc, tìm cổng trống bắt đầu từ `8000`, khởi động máy chủ và mở trình duyệt tại `http://localhost:8000`.
+
+---
+
+## 4. Đặc tả 8 phân hệ chức năng
+
+Giao diện web tổ chức 8 thẻ chức năng tương ứng với từng bước khảo sát và chẩn đoán mạng:
+
+### 4.1. Khảo sát sóng (Survey - `tab-survey`)
+- Hiển thị bảng danh sách các trạm phát sóng (`BSSID`) quét được cùng thông tin card mạng đang kết nối.
+- Trích xuất và hiển thị: tên mạng (`SSID`), địa chỉ MAC (`BSSID`), hãng sản xuất phần cứng tra từ bảng `IEEE OUI` (có xử lý bit địa chỉ quản trị cục bộ `LAA`), cường độ tín hiệu thu `RSSI` (`dBm` và `%`), mức nền nhiễu `Noise Floor`, tỷ số `SNR` (`dB`), băng tần (`2.4 GHz`, `5 GHz`, `6 GHz`), kênh phát, độ rộng kênh (`20/40/80/160 MHz`), cảnh báo kênh radar `DFS`, thế hệ `802.11` (`Wi-Fi 4` đến `Wi-Fi 7`), chỉ số `MCS`, chuẩn bảo mật và tải kênh (`BSS Load`).
+- Nhóm phần cứng vật lý: gom các `BSSID` có cùng tiền tố 5 octet địa chỉ MAC vào cùng một nhóm thiết bị phát, đồng thời gán nhãn tên mạng dự đoán cho `BSSID` ẩn nếu có `BSSID` công khai nằm chung nhóm phần cứng đó.
+- Công cụ dò tìm vị trí trạm phát (`Device Finder`): theo dõi biến thiên `RSSI` của một `BSSID` chỉ định để ước lượng khoảng cách và tỷ lệ tiếp cận.
+
+### 4.2. Phổ tần vô tuyến (Spectrum - `tab-spectrum`)
+- Vẽ mặt nạ phổ công suất `OFDM` của từng trạm phát theo tần số trung tâm và độ rộng kênh trên băng tần `2.4 GHz` (kênh 1-14) và `5 GHz`.
+- Vẽ đồ thị lịch sử cường độ tín hiệu (`RSSI History`) theo thời gian thực và đồ thị thác nước (`Spectrogram`) biểu diễn mật độ tín hiệu theo trục thời gian để nhận diện trạm phát sóng gián đoạn hoặc chồng lấn.
+- Phát hiện can nhiễu kênh kề (`ACI`) trên `2.4 GHz`, cảnh báo cấu hình kênh rộng `40 MHz` ở dải `2.4 GHz` và nhận diện các trạm hoạt động trong dải `DFS` (`UNII-2A`, `UNII-2C`).
+
+### 4.3. Tối ưu hóa và chẩn đoán Oscium (Optimizer - `tab-optimizer`)
+- Chấm điểm kênh phát từ `1` đến `100` trên cả 3 băng tần (`2.4 GHz` ưu tiên kênh `1, 6, 11`; `5 GHz` đánh giá từng kênh và khối `80 MHz`; `6 GHz` đánh giá kênh quét ưu tiên `PSC` và khối `160 MHz` trên `UNII-5`) dựa trên công suất tuyến tính từ `RSSI` các trạm trùng kênh (`CCI`) và lân cận (`ACI`).
+- Cung cấp bảng điều khiển chẩn đoán `Oscium` gồm 6 phần dữ liệu trả về từ `/api/troubleshooting/all-in-one`:
+  1. Điểm đánh giá chất lượng môi trường (`health_score`, thang điểm `0-100`).
+  2. Thống kê thông số card mạng đang kết nối (`adapter_diagnostics`: tốc độ Rx/Tx, mức đối xứng thu phát, đánh giá độ mạnh tín hiệu).
+  3. Đo độ trễ phân tách 3 chặng (`path_quality`: bộ định tuyến nội bộ, máy chủ internet, máy chủ phân giải `DNS`).
+  4. Bảng kiểm 6 tiêu chuẩn kỹ thuật (`checklist`: vùng phủ, chất lượng phổ, nhiễu phi Wi-Fi, thời lượng phát sóng và tỷ lệ gửi lại gói tin, chuyển vùng đa trạm, bảo mật mã hóa).
+  5. Bảng phân tích chữ ký 4 nguồn nhiễu phi Wi-Fi (`non_wifi_interferers`: lò vi sóng `2.45 GHz`, thiết bị `Bluetooth FHSS`, camera tương tự truyền liên tục và xung radar `DFS`).
+  6. Kết luận nguyên nhân chính và các bước xử lý kỹ thuật (`automated_root_cause`).
+
+### 4.4. Đo tốc độ mạng (Speed Test - `tab-speedtest`)
+- Thực hiện đo kiểm trực tiếp từ backend qua `httpx` (tự động dự phòng bằng `urllib.request`) tới hệ thống máy chủ `Cloudflare Anycast CDN` (`https://speed.cloudflare.com`).
+- Đo tuần tự 4 thông số: độ trễ `Ping` (`ms`), biến thiên độ trễ `Jitter` (`ms`), tốc độ tải xuống `Download` (`Mbps`) và tốc độ tải lên `Upload` (`Mbps`).
+- Hỗ trợ chế độ `quick` (đo nhanh), `full` (đo tải cao hơn) và `mock` (dùng cho kiểm thử tự động).
+- Truyền trạng thái tiến trình qua luồng `SSE` tại `/api/speedtest/stream` và đối sánh kết quả băng thông internet với tốc độ liên kết vật lý (`PHY Rate`) của card mạng Wi-Fi để xác định điểm nghẽn nằm ở mạng nội bộ hay đường truyền nhà cung cấp.
+
+### 4.5. Chất lượng cuộc gọi thoại (VoWiFi - `tab-vowifi`)
+- Đo độ trễ khứ hồi (`RTT`), `Jitter` và tỷ lệ mất gói tin (`Packet Loss %`) bằng lệnh `ping` hệ thống kết hợp kiểm tra phân giải tên miền `DNS` và chặng đầu đến `Default Gateway`.
+- Tính hệ số truyền dẫn `R-Factor` và điểm chất lượng thoại `MOS` (thang điểm `1.0` đến `4.5`) theo công thức `ITU-T G.107 E-Model`.
+- Đánh giá mức độ đáp ứng của đường truyền đối với 3 bộ mã hóa giọng nói: `Opus`, `G.711` và `G.729`.
+
+### 4.6. Bản đồ nhiệt sóng (Planner & Heatmap - `tab-planner`)
+Gồm hai động cơ mô phỏng hoạt động trên mặt bằng 2D:
+- **Mô phỏng dò tia tán xạ (`static/heatmap.js`)**:
+  - Phát `180` tia xung quanh mỗi trạm phát (`360` độ) để tính suy hao truyền sóng qua khoảng cách và giao cắt với `7` loại vật liệu (`Tường thạch cao`, `Tường gạch`, `Tường bê tông`, `Vách kính`, `Cửa kính cường lực`, `Cửa gỗ`, `Cửa kim loại`).
+  - Tự động cắt đoạn tường trùng khi đặt cửa lên tường; hỗ trợ đặt thiết bị đầu cuối (`Laptop`, `PC`) để tính `RSSI`, số tường chắn và liên kết mạnh nhất; có nút nạp thông số từ `/api/scan`.
+- **Mô phỏng lưới phủ sóng theo ngưỡng SLA (`core/ai_planner.py` và `static/app.js`)**:
+  - Áp dụng mô hình suy hao đường truyền trong nhà (`Log-Distance Path Loss` kèm hệ số xuyên tường theo băng tần `2.4 GHz`, `5 GHz`, `6 GHz`) và công cụ đề xuất vị trí đặt trạm phát đạt ngưỡng nghiệm thu `SLA` (`office`: `-67 dBm`, `voice`: `-65 dBm`, `high_density`: `-60 dBm`).
+  - Kết xuất bằng nội suy song tuyến tính (`Bilinear Interpolation`) với 5 lớp hiển thị: cường độ sóng chính (`primary_rssi_grid`), cường độ sóng phụ phục vụ chuyển vùng (`secondary_rssi_grid`), tỷ số tín hiệu trên nhiễu (`snr_grid`), mật độ xung đột kênh (`interference_grid`) và tốc độ dữ liệu ước tính (`throughput_grid`).
+  - Hỗ trợ nạp ảnh mặt bằng (`PNG`/`JPG`), thước đo hiệu chuẩn tỷ lệ pixel sang mét thực tế và bảng chỉnh sửa thuộc tính từng trạm phát (kênh `2.4/5/6 GHz`, công suất `Tx Power`).
+
+### 4.7. Kiểm tra an toàn bảo mật (Security Audit - `tab-security`)
+- Phân loại các mạng phát hiện theo chuẩn bảo mật: mạng mở không mật khẩu (`Open`), chuẩn cũ kém an toàn (`WEP`, `WPA-TKIP`), `WPA2`, `WPA3` và mạng doanh nghiệp (`Enterprise`).
+- Phát hiện các tập hợp `BSSID` sử dụng cùng tên mạng `SSID` nhưng khác tiền tố phần cứng hoặc suy giảm cấu hình bảo mật để cảnh báo khả năng xuất hiện trạm phát giả mạo.
+- Đưa ra danh sách cảnh báo theo mức độ và hướng dẫn khắc phục cho từng trường hợp.
+
+### 4.8. Lưu trữ báo cáo (Reports - `tab-reports`)
+- Tổng hợp kết quả quét sóng, phân tích kênh 3 băng tần, kiểm tra `Oscium`, thông số `VoWiFi` và cảnh báo bảo mật để xuất thành tệp `CSV` (mã hóa `utf-8-sig` có BOM để mở đúng tiếng Việt trong Excel) hoặc `JSON`.
+- Đặt tên tệp tự động theo quy tắc `NetScanner_Report_[MM-DD-YYYY]_[ID-01].csv` và `.json` trong thư mục `reports/`.
+- Cho phép liệt kê, tải xuống, xóa từng tệp hoặc xóa toàn bộ tệp báo cáo đã lưu thông qua giao diện web.
+
+---
+
+## 5. Danh mục điểm cuối API (`api/server.py`)
+
+| Nhóm | Giao thức | Đường dẫn | Chức năng |
+| :--- | :--- | :--- | :--- |
+| Giao diện | `GET` | `/` | Trả về trang chính `static/index.html` |
+| Quét sóng | `WS` | `/ws/live` | Kênh WebSocket truyền cập nhật quét sóng và `signal_history` |
+| Quét sóng | `GET` | `/api/stream/live` | Luồng `SSE` truyền dữ liệu quét sóng liên tục |
+| Quét sóng | `GET` | `/api/scan` | Lấy danh sách `BSSID`, thông số card mạng, cụm phần cứng, cảnh báo (tham số `?force=true`) |
+| Quét sóng | `GET` | `/api/clusters` | Lấy danh sách các cụm thiết bị vật lý và tổng hợp cảnh báo |
+| Phổ tần & Chẩn đoán | `GET` | `/api/channel-recommendations` | Trả về đánh giá kênh `2.4/5/6 GHz`, airtime, roaming và `troubleshooting_suite` |
+| Phổ tần & Chẩn đoán | `POST` | `/api/channel-autopick` | Chọn kênh và độ rộng kênh đề xuất cho cả 3 băng tần |
+| Phổ tần & Chẩn đoán | `GET` | `/api/troubleshooting/all-in-one` | Tổng hợp đầy đủ bộ chẩn đoán `Oscium`, `adapter_diagnostics`, `automated_root_cause` và `path_quality` |
+| Đo tốc độ | `POST` | `/api/speedtest/start` | Khởi chạy phiên đo tốc độ (`{"mode": "quick" \| "full" \| "mock"}`) |
+| Đo tốc độ | `GET` | `/api/speedtest/status` | Đọc trạng thái và kết quả hiện tại của phiên đo tốc độ |
+| Đo tốc độ | `POST` | `/api/speedtest/stop` | Dừng phiên đo tốc độ đang chạy |
+| Đo tốc độ | `GET` | `/api/speedtest/stream` | Luồng `SSE` cập nhật tiến trình Speed Test |
+| VoWiFi | `GET` | `/api/vowifi-mos` | Đo `RTT`, `Jitter`, mất gói, `DNS`, `Default Gateway` và tính điểm `MOS` (`?target=8.8.8.8&count=5`) |
+| Bản đồ nhiệt | `POST` | `/api/ai-planner/optimize` | Tính vị trí đặt trạm phát theo kích thước mặt bằng, tường chắn, băng tần và `sla_profile` |
+| Bản đồ nhiệt | `POST` | `/api/ai-planner/calculate-heatmap` | Tính 5 ma trận lưới 2D cho các trạm phát và tường chắn đầu vào |
+| Báo cáo | `POST` | `/api/export-report` | Tạo tệp báo cáo `CSV` hoặc `JSON` trong `reports/` (`{"format": "csv" \| "json"}`) |
+| Báo cáo | `GET` | `/api/reports/list` | Liệt kê danh sách tệp báo cáo hiện có trong `reports/` |
+| Báo cáo | `GET` | `/api/reports/download/{filename}` | Tải tệp báo cáo về máy |
+| Báo cáo | `DELETE` | `/api/reports/{filename}` | Xóa một tệp báo cáo cụ thể |
+| Báo cáo | `POST` | `/api/reports/clear-all` | Xóa toàn bộ tệp báo cáo trong `reports/` |
+
+---
+
+## 6. Kiểm thử tự động
+
+Chạy các bộ kiểm thử từ thư mục gốc của repository (dùng cờ `-B` để không sinh tệp `__pycache__` vào cây làm việc):
+
+```bash
+# Kiểm tra cú pháp JavaScript
+node --check static/app.js
+node --check static/heatmap.js
+
+# Bộ kiểm thử 9 phần từ lõi RF, API đến tài liệu
+python -B tests/test_full_suite.py
+
+# Bộ kiểm thử tĩnh giao diện (0 emoji, 0 Lucide icon, Light Mode)
+python -B tests/test_challenger_mb_static.py
+
+# Bộ kiểm thử động (SSE Speed Test, Oscium binding, nội suy 5 lớp Heatmap)
+python -B tests/test_challenger_mb_dynamic.py
+
+# Bộ kiểm thử toàn vẹn cấu trúc dự án và chạy chéo các suite
+python -B tests/test_repo_integrity_mc.py
+```
+
+---
+
+*Dự án phục vụ học phần NWC303 tại Đại học FPT Đà Nẵng (2026).*

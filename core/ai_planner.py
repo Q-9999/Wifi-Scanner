@@ -66,31 +66,27 @@ def _get_band_rf_params(freq_ghz: float) -> Tuple[float, float, float, float, fl
         return (40.0, 28.0, 1.00, -92.0, 286.8)
 
 
+_SNR_THROUGHPUT_SCALE = ((38.0, 0.82), (32.0, 0.68), (26.0, 0.52), (20.0, 0.36), (14.0, 0.20), (9.0, 0.10))
+_DEFAULT_BAND_CHANNELS = {
+    2.4: (1, 6, 11),
+    5.0: (36, 44, 149, 157, 161),
+    6.0: (37, 53, 69, 85, 101),
+}
+
+
+def _select_ap_channel(ap: Dict[str, Any], idx: int, target_freq: float) -> int:
+    band_key = 6.0 if target_freq >= 5.8 else (5.0 if target_freq >= 4.0 else 2.4)
+    ch_field = "channel_6" if band_key == 6.0 else ("channel_5" if band_key == 5.0 else "channel_24")
+    defaults = _DEFAULT_BAND_CHANNELS[band_key]
+    return int(ap.get(ch_field) or ap.get("channel") or defaults[idx % len(defaults)])
+
+
 def _estimate_cell_throughput_mbps(snr_db: float, max_phy_mbps: float, contention_count: int) -> float:
-    """
-    Estimate achievable TCP/PHY data rate (Mbps) at a floorplan point from SNR (dB),
-    band channel capacity, and co-channel contention count.
-    """
+    """Estimate achievable TCP/PHY data rate (Mbps) from SNR (dB) and contention count."""
     if snr_db <= 4.0:
         return 0.0
-    elif snr_db >= 38.0:
-        scale = 0.82
-    elif snr_db >= 32.0:
-        scale = 0.68
-    elif snr_db >= 26.0:
-        scale = 0.52
-    elif snr_db >= 20.0:
-        scale = 0.36
-    elif snr_db >= 14.0:
-        scale = 0.20
-    elif snr_db >= 9.0:
-        scale = 0.10
-    else:
-        scale = 0.04
-
-    # Co-channel contention reduces per-client airtime slice
-    contention_factor = 1.0 / (1.0 + max(0, contention_count) * 0.35)
-    return round(max_phy_mbps * scale * contention_factor, 1)
+    scale = next((s for min_snr, s in _SNR_THROUGHPUT_SCALE if snr_db >= min_snr), 0.04)
+    return round(max_phy_mbps * scale / (1.0 + max(0, contention_count) * 0.35), 1)
 
 
 def _normalize_aps_and_walls(
@@ -238,25 +234,17 @@ def generate_heatmap_grid(
     secondary_threshold_dbm = profile_cfg["secondary_rssi_dbm"]
     min_snr_target = profile_cfg["min_snr_db"]
 
-    channels_24_default = (1, 6, 11)
-    channels_5_default = (36, 44, 149, 157, 161)
-    channels_6_default = (37, 53, 69, 85, 101)
-
     fallback_tx = float(tx_power) if tx_power is not None else 20.0
-    parsed_aps = []
-    for idx, ap in enumerate(aps_clean):
-        if not isinstance(ap, dict):
-            continue
-        ax = float(ap.get("x", 0.0))
-        ay = float(ap.get("y", 0.0))
-        atx = float(ap.get("tx_power") or ap.get("tx_power_dbm") or fallback_tx)
-        if target_freq >= 5.8:
-            ach = int(ap.get("channel_6") or ap.get("channel") or channels_6_default[idx % len(channels_6_default)])
-        elif target_freq >= 4.0:
-            ach = int(ap.get("channel_5") or ap.get("channel") or channels_5_default[idx % len(channels_5_default)])
-        else:
-            ach = int(ap.get("channel_24") or ap.get("channel") or channels_24_default[idx % len(channels_24_default)])
-        parsed_aps.append((ax, ay, atx, ach))
+    parsed_aps = [
+        (
+            float(ap.get("x", 0.0)),
+            float(ap.get("y", 0.0)),
+            float(ap.get("tx_power") or ap.get("tx_power_dbm") or fallback_tx),
+            _select_ap_channel(ap, idx, target_freq),
+        )
+        for idx, ap in enumerate(aps_clean)
+        if isinstance(ap, dict)
+    ]
 
     grid: List[List[float]] = []
     secondary_grid: List[List[float]] = []
@@ -372,13 +360,8 @@ def generate_heatmap_grid(
     avg_snr_db = round(snr_sum / max(total_points, 1), 1) if parsed_aps else 0.0
     avg_throughput_mbps = round(tp_sum / max(total_points, 1), 1) if parsed_aps else 0.0
 
-    if target_freq >= 5.8:
-        per_ap_clients = profile_cfg["clients_per_ap_6"]
-    elif target_freq >= 4.0:
-        per_ap_clients = profile_cfg["clients_per_ap_5"]
-    else:
-        per_ap_clients = profile_cfg["clients_per_ap_24"]
-    capacity_max_clients = len(parsed_aps) * per_ap_clients
+    client_key = "clients_per_ap_6" if target_freq >= 5.8 else ("clients_per_ap_5" if target_freq >= 4.0 else "clients_per_ap_24")
+    capacity_max_clients = len(parsed_aps) * profile_cfg[client_key]
 
     sla_pass = (coverage_pct >= 85.0) and (avg_snr_db >= min_snr_target)
 
@@ -415,6 +398,19 @@ def generate_heatmap_grid(
     }
 
 
+def _score_combined_rssi(
+    v_a: List[float], v_b: Optional[List[float]], target_rssi: float, total_pts: int
+) -> Tuple[float, float]:
+    """Compute (coverage_pct, avg_rssi) without allocating an intermediate combined vector."""
+    good, total_sum = 0, 0.0
+    vals = v_a if v_b is None else (a if a > b else b for a, b in zip(v_a, v_b))
+    for val in vals:
+        if val >= target_rssi:
+            good += 1
+        total_sum += val
+    return (good / total_pts) * 100.0, total_sum / total_pts
+
+
 def optimize_ap_placement(
     width_m: float,
     height_m: float,
@@ -427,7 +423,6 @@ def optimize_ap_placement(
     Precomputed-Grid AP Placement Optimizer (Ekahau Auto-Planner style):
     Precomputes the 1D RSSI vector for every candidate position once (O(C * R^2 * W)),
     then evaluates 1-AP, 2-AP, and N-AP combinations via fast vector max operations (O(R^2)).
-    Supports 2.4 GHz, 5.0 GHz, and 6.0 GHz bands plus SLA Requirement Profiles.
     """
     tx_power = 20.0
     candidate_steps = 6
@@ -437,8 +432,7 @@ def optimize_ap_placement(
 
     eval_res = 15
     total_pts = eval_res * eval_res
-    step_x = width_m / eval_res
-    step_y = height_m / eval_res
+    step_x, step_y = width_m / eval_res, height_m / eval_res
     eval_points = [((i + 0.5) * step_x, (j + 0.5) * step_y) for j in range(eval_res) for i in range(eval_res)]
 
     target_freq = float(freq_ghz or 2.4)
@@ -448,120 +442,69 @@ def optimize_ap_placement(
     profile_cfg = SLA_PROFILES.get(str(sla_profile or "voice").lower(), SLA_PROFILES["voice"])
     target_rssi = profile_cfg["target_rssi_dbm"]
 
-    # Precompute 1D RSSI array for each candidate once
-    cand_vectors: List[List[float]] = []
-    for cx, cy in candidates:
-        vec = [
-            _calculate_point_rssi_fast(cx, cy, px, py, tx_power, parsed_walls, base_loss_1m, path_loss_exp_10)
-            for px, py in eval_points
-        ]
-        cand_vectors.append(vec)
+    cand_vectors = [
+        [_calculate_point_rssi_fast(cx, cy, px, py, tx_power, parsed_walls, base_loss_1m, path_loss_exp_10)
+         for px, py in eval_points]
+        for cx, cy in candidates
+    ]
 
     best_indices: List[int] = [0]
-    best_score_tuple = (-1.0, -999.0)  # (coverage_pct, avg_rssi)
+    best_score_tuple = (-1.0, -999.0)
     min_sep = math.hypot(width_m, height_m) * 0.28
+    n_cand = len(candidates)
 
     for num_aps in range(1, max_aps + 1):
         if num_aps == 1:
             for idx, vec in enumerate(cand_vectors):
-                good = sum(1 for v in vec if v >= target_rssi)
-                cov = (good / total_pts) * 100.0
-                avg_r = sum(vec) / total_pts
-                sc = (cov, avg_r)
+                sc = _score_combined_rssi(vec, None, target_rssi, total_pts)
                 if sc > best_score_tuple:
-                    best_score_tuple = sc
-                    best_indices = [idx]
+                    best_score_tuple, best_indices = sc, [idx]
             if best_score_tuple[0] >= 88.0:
                 break
-
         elif num_aps == 2:
-            n_cand = len(candidates)
             for i in range(n_cand):
-                c1 = candidates[i]
-                v1 = cand_vectors[i]
+                c1, v1 = candidates[i], cand_vectors[i]
                 for k in range(i + 1, n_cand):
                     c2 = candidates[k]
                     if math.hypot(c1[0] - c2[0], c1[1] - c2[1]) < min_sep:
                         continue
-                    v2 = cand_vectors[k]
-                    good = 0
-                    s_val = 0.0
-                    for p in range(total_pts):
-                        m_val = v1[p] if v1[p] > v2[p] else v2[p]
-                        if m_val >= target_rssi:
-                            good += 1
-                        s_val += m_val
-                    cov = (good / total_pts) * 100.0
-                    sc = (cov, s_val / total_pts)
+                    sc = _score_combined_rssi(v1, cand_vectors[k], target_rssi, total_pts)
                     if sc > best_score_tuple:
-                        best_score_tuple = sc
-                        best_indices = [i, k]
+                        best_score_tuple, best_indices = sc, [i, k]
             if best_score_tuple[0] >= 90.0:
                 break
-
         else:
-            cur_vec = [
-                max(cand_vectors[idx][p] for idx in best_indices)
-                for p in range(total_pts)
-            ]
+            cur_vec = [max(cand_vectors[idx][p] for idx in best_indices) for p in range(total_pts)]
             chosen_coords = [candidates[idx] for idx in best_indices]
             next_best_idx = -1
-            for m_idx in range(len(candidates)):
-                if m_idx in best_indices:
+            for m_idx, cm in enumerate(candidates):
+                if m_idx in best_indices or any(math.hypot(cm[0] - cc[0], cm[1] - cc[1]) < min_sep * 0.75 for cc in chosen_coords):
                     continue
-                cm = candidates[m_idx]
-                if any(math.hypot(cm[0] - cc[0], cm[1] - cc[1]) < min_sep * 0.75 for cc in chosen_coords):
-                    continue
-                vm = cand_vectors[m_idx]
-                good = 0
-                s_val = 0.0
-                for p in range(total_pts):
-                    m_val = cur_vec[p] if cur_vec[p] > vm[p] else vm[p]
-                    if m_val >= target_rssi:
-                        good += 1
-                    s_val += m_val
-                cov = (good / total_pts) * 100.0
-                sc = (cov, s_val / total_pts)
+                sc = _score_combined_rssi(cur_vec, cand_vectors[m_idx], target_rssi, total_pts)
                 if sc > best_score_tuple:
-                    best_score_tuple = sc
-                    next_best_idx = m_idx
+                    best_score_tuple, next_best_idx = sc, m_idx
             if next_best_idx >= 0:
                 best_indices = best_indices + [next_best_idx]
             if best_score_tuple[0] >= 90.0:
                 break
 
-    channels_24 = (1, 6, 11)
-    channels_5 = (36, 44, 149, 157, 161)
-    channels_6 = (37, 53, 69, 85, 101)
+    channels_24 = _DEFAULT_BAND_CHANNELS[2.4]
+    channels_5 = _DEFAULT_BAND_CHANNELS[5.0]
+    channels_6 = _DEFAULT_BAND_CHANNELS[6.0]
+    width_hint = "6 GHz" if target_freq >= 5.8 else ("5 GHz" if target_freq >= 4.0 else "2.4 GHz")
+    width_bw = "160 MHz" if target_freq >= 5.8 else ("80 MHz" if target_freq >= 4.0 else "20 MHz")
 
-    result_aps = []
-    ap_channel_labels = []
+    result_aps, ap_channel_labels = [], []
     for idx, cand_idx in enumerate(best_indices):
         cx, cy = candidates[cand_idx]
-        ch24 = channels_24[idx % len(channels_24)]
-        ch5 = channels_5[idx % len(channels_5)]
-        ch6 = channels_6[idx % len(channels_6)]
-        if target_freq >= 5.8:
-            active_ch = ch6
-            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 6 GHz {ch6} (độ rộng 160 MHz)")
-        elif target_freq >= 4.0:
-            active_ch = ch5
-            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 5 GHz {ch5} (độ rộng 80 MHz)")
-        else:
-            active_ch = ch24
-            ap_channel_labels.append(f"Trạm {idx+1}: Kênh 2.4 GHz {ch24} (độ rộng 20 MHz)")
+        ch24, ch5, ch6 = channels_24[idx % len(channels_24)], channels_5[idx % len(channels_5)], channels_6[idx % len(channels_6)]
+        active_ch = ch6 if target_freq >= 5.8 else (ch5 if target_freq >= 4.0 else ch24)
+        ap_channel_labels.append(f"Trạm {idx+1}: Kênh {width_hint} {active_ch} (độ rộng {width_bw})")
 
         result_aps.append({
-            "id": idx + 1,
-            "name": f"Trạm phát {idx+1}",
-            "x": round(cx, 2),
-            "y": round(cy, 2),
-            "channel": active_ch,
-            "channel_24": ch24,
-            "channel_5": ch5,
-            "channel_6": ch6,
-            "tx_power": tx_power,
-            "freq_ghz": target_freq,
+            "id": idx + 1, "name": f"Trạm phát {idx+1}", "x": round(cx, 2), "y": round(cy, 2),
+            "channel": active_ch, "channel_24": ch24, "channel_5": ch5, "channel_6": ch6,
+            "tx_power": tx_power, "freq_ghz": target_freq,
             "role": "Trạm phát chính (Cổng kết nối)" if idx == 0 else f"Trạm phát phụ (Nút mở rộng {idx})"
         })
 
