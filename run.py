@@ -10,7 +10,7 @@ import importlib.util
 
 def ensure_dependencies() -> None:
     """Kiem tra va tu dong cai dat cac thu vien con thieu tu requirements.txt."""
-    required_modules = ("uvicorn", "fastapi", "httpx", "pydantic")
+    required_modules = ("uvicorn", "fastapi", "httpx", "pydantic", "websockets")
     missing = [mod for mod in required_modules if importlib.util.find_spec(mod) is None]
     if not missing:
         return
